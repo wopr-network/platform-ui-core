@@ -1,0 +1,461 @@
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  ALL_CATEGORIES,
+  formatInstallCount,
+  getHostedAdaptersForCapabilities,
+  HOSTED_ADAPTERS,
+  hasHostedOption,
+  MOCK_MANIFESTS,
+} from "../lib/marketplace-data";
+
+// --- Mock next/navigation for page components ---
+const mockPush = vi.fn();
+const mockParams: { plugin?: string } = {};
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: mockPush }),
+  usePathname: () => "/marketplace",
+  useParams: () => mockParams,
+}));
+
+// --- Mock next/link ---
+vi.mock("next/link", () => ({
+  default: ({
+    children,
+    href,
+    ...props
+  }: { children: React.ReactNode; href: string } & Record<string, unknown>) => (
+    <a href={href} {...props}>
+      {children}
+    </a>
+  ),
+}));
+
+function findManifest(id: string) {
+  const m = MOCK_MANIFESTS.find((p) => p.id === id);
+  if (!m) throw new Error(`Manifest ${id} not found`);
+  return m;
+}
+
+function closestButton(el: HTMLElement): HTMLElement {
+  const btn = el.closest("button");
+  if (!btn) throw new Error("No parent button found");
+  return btn;
+}
+
+// --- Data layer tests ---
+describe("marketplace-data", () => {
+  describe("formatInstallCount", () => {
+    it("formats thousands with k suffix", () => {
+      expect(formatInstallCount(12400)).toBe("12.4k");
+      expect(formatInstallCount(8200)).toBe("8.2k");
+      expect(formatInstallCount(1000)).toBe("1.0k");
+    });
+
+    it("returns plain number for counts under 1000", () => {
+      expect(formatInstallCount(500)).toBe("500");
+      expect(formatInstallCount(0)).toBe("0");
+    });
+  });
+
+  describe("hasHostedOption", () => {
+    it("returns true when capabilities match hosted adapters", () => {
+      expect(hasHostedOption(["llm"])).toBe(true);
+      expect(hasHostedOption(["tts"])).toBe(true);
+      expect(hasHostedOption(["stt"])).toBe(true);
+      expect(hasHostedOption(["embeddings"])).toBe(true);
+      expect(hasHostedOption(["image-gen"])).toBe(true);
+    });
+
+    it("returns false when no capabilities match", () => {
+      expect(hasHostedOption(["channel"])).toBe(false);
+      expect(hasHostedOption(["webhook"])).toBe(false);
+      expect(hasHostedOption(["ui"])).toBe(false);
+      expect(hasHostedOption([])).toBe(false);
+    });
+
+    it("returns true if any capability matches", () => {
+      expect(hasHostedOption(["channel", "llm"])).toBe(true);
+      expect(hasHostedOption(["stt", "webhook"])).toBe(true);
+    });
+  });
+
+  describe("getHostedAdaptersForCapabilities", () => {
+    it("returns matching hosted adapters", () => {
+      const adapters = getHostedAdaptersForCapabilities(["stt", "llm"]);
+      expect(adapters).toHaveLength(2);
+      expect(adapters.map((a) => a.capability)).toContain("llm");
+      expect(adapters.map((a) => a.capability)).toContain("stt");
+    });
+
+    it("returns empty array when no match", () => {
+      expect(getHostedAdaptersForCapabilities(["channel"])).toHaveLength(0);
+    });
+  });
+
+  describe("MOCK_MANIFESTS", () => {
+    it("has plugins for each category in use", () => {
+      const categories = new Set(MOCK_MANIFESTS.map((m) => m.category));
+      expect(categories.size).toBeGreaterThanOrEqual(5);
+    });
+
+    it("every plugin has required fields", () => {
+      for (const manifest of MOCK_MANIFESTS) {
+        expect(manifest.id).toBeTruthy();
+        expect(manifest.name).toBeTruthy();
+        expect(manifest.version).toBeTruthy();
+        expect(manifest.category).toBeTruthy();
+        expect(Array.isArray(manifest.capabilities)).toBe(true);
+        expect(Array.isArray(manifest.setup)).toBe(true);
+        expect(Array.isArray(manifest.configSchema)).toBe(true);
+        expect(Array.isArray(manifest.requires)).toBe(true);
+        expect(typeof manifest.installCount).toBe("number");
+      }
+    });
+  });
+
+  describe("HOSTED_ADAPTERS", () => {
+    it("has entries for key hosted capabilities", () => {
+      const caps = HOSTED_ADAPTERS.map((a) => a.capability);
+      expect(caps).toContain("llm");
+      expect(caps).toContain("tts");
+      expect(caps).toContain("stt");
+      expect(caps).toContain("embeddings");
+      expect(caps).toContain("image-gen");
+    });
+  });
+
+  describe("ALL_CATEGORIES", () => {
+    it("includes standard plugin categories", () => {
+      const ids = ALL_CATEGORIES.map((c) => c.id);
+      expect(ids).toContain("channel");
+      expect(ids).toContain("voice");
+      expect(ids).toContain("memory");
+      expect(ids).toContain("integration");
+      expect(ids).toContain("webhook");
+    });
+  });
+});
+
+// --- Component tests ---
+describe("MarketplacePage", () => {
+  beforeEach(() => {
+    mockPush.mockClear();
+    mockParams.plugin = undefined;
+  });
+
+  it("renders marketplace page with heading and plugin cards", async () => {
+    const { default: MarketplacePage } = await import("../app/(dashboard)/marketplace/page");
+    render(<MarketplacePage />);
+
+    // Initially shows loading
+    expect(screen.getByText("Loading marketplace...")).toBeInTheDocument();
+
+    // After loading, shows heading
+    expect(await screen.findByText("Plugin Marketplace")).toBeInTheDocument();
+
+    // Shows plugin cards
+    expect(screen.getByText("Discord")).toBeInTheDocument();
+    expect(screen.getByText("Slack")).toBeInTheDocument();
+    expect(screen.getByText("Semantic Memory")).toBeInTheDocument();
+  });
+
+  it("filters plugins by search term", async () => {
+    const user = userEvent.setup();
+    const { default: MarketplacePage } = await import("../app/(dashboard)/marketplace/page");
+    render(<MarketplacePage />);
+
+    await screen.findByText("Plugin Marketplace");
+
+    const searchInput = screen.getByPlaceholderText("Search plugins...");
+    await user.type(searchInput, "Discord");
+
+    // Discord should be visible, others should not
+    expect(screen.getByText("Discord")).toBeInTheDocument();
+    expect(screen.queryByText("Semantic Memory")).not.toBeInTheDocument();
+  });
+
+  it("filters plugins by category", async () => {
+    const user = userEvent.setup();
+    const { default: MarketplacePage } = await import("../app/(dashboard)/marketplace/page");
+    render(<MarketplacePage />);
+
+    await screen.findByText("Plugin Marketplace");
+
+    // Click "Voice" category filter
+    const voiceButton = closestButton(screen.getByText("Voice"));
+    await user.click(voiceButton);
+
+    // Should show voice plugins
+    expect(screen.getByText("ElevenLabs TTS")).toBeInTheDocument();
+    expect(screen.getByText("Deepgram STT")).toBeInTheDocument();
+
+    // Should not show non-voice plugins
+    expect(screen.queryByText("Webhooks")).not.toBeInTheDocument();
+  });
+
+  it("shows WOPR Hosted Available badge for eligible plugins", async () => {
+    const { default: MarketplacePage } = await import("../app/(dashboard)/marketplace/page");
+    render(<MarketplacePage />);
+
+    await screen.findByText("Plugin Marketplace");
+
+    // Semantic Memory has 'embeddings' capability which matches a hosted adapter
+    const hostedBadges = screen.getAllByText("WOPR Hosted Available");
+    expect(hostedBadges.length).toBeGreaterThan(0);
+  });
+
+  it("shows empty state when no plugins match search", async () => {
+    const user = userEvent.setup();
+    const { default: MarketplacePage } = await import("../app/(dashboard)/marketplace/page");
+    render(<MarketplacePage />);
+
+    await screen.findByText("Plugin Marketplace");
+
+    const searchInput = screen.getByPlaceholderText("Search plugins...");
+    await user.type(searchInput, "nonexistentplugin12345");
+
+    expect(screen.getByText("No plugins found matching your criteria.")).toBeInTheDocument();
+  });
+});
+
+describe("PluginDetailPage", () => {
+  beforeEach(() => {
+    mockPush.mockClear();
+  });
+
+  it("renders plugin detail page with manifest info", async () => {
+    mockParams.plugin = "discord-channel";
+    const { default: PluginDetailPage } = await import(
+      "../app/(dashboard)/marketplace/[plugin]/page"
+    );
+    render(<PluginDetailPage />);
+
+    // Wait for loading
+    expect(await screen.findByText("Discord")).toBeInTheDocument();
+    expect(screen.getByText("v3.2.0")).toBeInTheDocument();
+    expect(screen.getByText("Install")).toBeInTheDocument();
+    expect(screen.getByText(/12\.4k installs/)).toBeInTheDocument();
+  });
+
+  it("shows not found for invalid plugin id", async () => {
+    mockParams.plugin = "nonexistent-plugin";
+    const { default: PluginDetailPage } = await import(
+      "../app/(dashboard)/marketplace/[plugin]/page"
+    );
+    render(<PluginDetailPage />);
+
+    expect(await screen.findByText("Plugin not found.")).toBeInTheDocument();
+  });
+
+  it("shows hosted adapter info for eligible plugins", async () => {
+    mockParams.plugin = "semantic-memory";
+    const { default: PluginDetailPage } = await import(
+      "../app/(dashboard)/marketplace/[plugin]/page"
+    );
+    render(<PluginDetailPage />);
+
+    await screen.findByText("Semantic Memory");
+    expect(screen.getByText("WOPR Hosted Available")).toBeInTheDocument();
+    expect(screen.getByText("WOPR Hosted Options")).toBeInTheDocument();
+    expect(screen.getByText("WOPR Hosted Embeddings")).toBeInTheDocument();
+  });
+
+  it("shows requirements for plugins with dependencies", async () => {
+    mockParams.plugin = "meeting-transcriber";
+    const { default: PluginDetailPage } = await import(
+      "../app/(dashboard)/marketplace/[plugin]/page"
+    );
+    render(<PluginDetailPage />);
+
+    await screen.findByText("Meeting Transcriber");
+    expect(screen.getByText("Discord (for voice channels)")).toBeInTheDocument();
+  });
+
+  it("opens install wizard when Install button is clicked", async () => {
+    const user = userEvent.setup();
+    mockParams.plugin = "webhooks";
+    const { default: PluginDetailPage } = await import(
+      "../app/(dashboard)/marketplace/[plugin]/page"
+    );
+    render(<PluginDetailPage />);
+
+    await screen.findByText("Webhooks");
+    const installButton = screen.getByText("Install");
+    await user.click(installButton);
+
+    // Should now show install wizard
+    expect(screen.getByText("Install Webhooks")).toBeInTheDocument();
+  });
+
+  it("shows changelog entries", async () => {
+    mockParams.plugin = "discord-channel";
+    const { default: PluginDetailPage } = await import(
+      "../app/(dashboard)/marketplace/[plugin]/page"
+    );
+    render(<PluginDetailPage />);
+
+    await screen.findByText("Discord");
+
+    // Click changelog tab
+    const user = userEvent.setup();
+    await user.click(screen.getByText("Changelog"));
+
+    expect(screen.getByText("Added thread support and slash commands.")).toBeInTheDocument();
+    // v3.2.0 appears in both header badge and changelog; verify at least 2 are present
+    expect(screen.getAllByText("v3.2.0").length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("shows configuration schema", async () => {
+    mockParams.plugin = "discord-channel";
+    const { default: PluginDetailPage } = await import(
+      "../app/(dashboard)/marketplace/[plugin]/page"
+    );
+    render(<PluginDetailPage />);
+
+    await screen.findByText("Discord");
+
+    const user = userEvent.setup();
+    await user.click(screen.getByText("Configuration"));
+
+    expect(screen.getByText("Bot Token")).toBeInTheDocument();
+    expect(screen.getByText("Server ID")).toBeInTheDocument();
+  });
+});
+
+describe("InstallWizard", () => {
+  it("renders wizard with cancel and continue buttons", async () => {
+    const { InstallWizard } = await import("../components/marketplace/install-wizard");
+    const plugin = findManifest("webhooks");
+
+    render(<InstallWizard plugin={plugin} onComplete={vi.fn()} onCancel={vi.fn()} />);
+
+    expect(screen.getByText("Install Webhooks")).toBeInTheDocument();
+    expect(screen.getByText("Cancel")).toBeInTheDocument();
+    expect(screen.getByText("Continue")).toBeInTheDocument();
+  });
+
+  it("shows provider selector for plugins with hosted capabilities", async () => {
+    const { InstallWizard } = await import("../components/marketplace/install-wizard");
+    // meeting-transcriber has stt and llm capabilities
+    const plugin = findManifest("meeting-transcriber");
+
+    render(<InstallWizard plugin={plugin} onComplete={vi.fn()} onCancel={vi.fn()} />);
+
+    // First phase is requirements
+    expect(screen.getByText("Check plugin requirements")).toBeInTheDocument();
+
+    // Advance past requirements
+    const user = userEvent.setup();
+    await user.click(screen.getByText("Continue"));
+
+    // Should now show provider selector
+    expect(screen.getByText("Choose provider for each capability")).toBeInTheDocument();
+    expect(screen.getByText("WOPR Hosted LLM")).toBeInTheDocument();
+    expect(screen.getByText("WOPR Hosted STT")).toBeInTheDocument();
+  });
+
+  it("calls onCancel when cancel button is clicked", async () => {
+    const { InstallWizard } = await import("../components/marketplace/install-wizard");
+    const plugin = findManifest("webhooks");
+    const onCancel = vi.fn();
+
+    render(<InstallWizard plugin={plugin} onComplete={vi.fn()} onCancel={onCancel} />);
+
+    const user = userEvent.setup();
+    await user.click(screen.getByText("Cancel"));
+
+    expect(onCancel).toHaveBeenCalledOnce();
+  });
+});
+
+describe("PluginCard", () => {
+  it("renders plugin info with link to detail page", async () => {
+    const { PluginCard } = await import("../components/marketplace/plugin-card");
+    const plugin = MOCK_MANIFESTS[0]; // discord-channel
+
+    render(<PluginCard plugin={plugin} />);
+
+    expect(screen.getByText("Discord")).toBeInTheDocument();
+    expect(screen.getByText("v3.2.0")).toBeInTheDocument();
+    expect(screen.getByText("12.4k installs")).toBeInTheDocument();
+    expect(screen.getByText("WOPR Team")).toBeInTheDocument();
+
+    // Should have a link to the detail page
+    const link = screen.getByRole("link");
+    expect(link).toHaveAttribute("href", "/marketplace/discord-channel");
+  });
+
+  it("shows WOPR Hosted Available badge for eligible plugins", async () => {
+    const { PluginCard } = await import("../components/marketplace/plugin-card");
+    // semantic-memory has embeddings capability
+    const plugin = findManifest("semantic-memory");
+
+    render(<PluginCard plugin={plugin} />);
+
+    expect(screen.getByText("WOPR Hosted Available")).toBeInTheDocument();
+  });
+
+  it("does not show WOPR Hosted badge for plugins without hosted capabilities", async () => {
+    const { PluginCard } = await import("../components/marketplace/plugin-card");
+    // discord-channel only has 'channel' capability, no hosted adapter for that
+    const plugin = findManifest("discord-channel");
+
+    render(<PluginCard plugin={plugin} />);
+
+    expect(screen.queryByText("WOPR Hosted Available")).not.toBeInTheDocument();
+  });
+});
+
+describe("CategoryFilter", () => {
+  it("renders All button and category buttons with counts", async () => {
+    const { CategoryFilter } = await import("../components/marketplace/category-filter");
+    const counts = { channel: 2, voice: 3, memory: 1 };
+
+    render(<CategoryFilter selected={null} onSelect={vi.fn()} counts={counts} />);
+
+    expect(screen.getByText("All")).toBeInTheDocument();
+    expect(screen.getByText("Channel")).toBeInTheDocument();
+    expect(screen.getByText("Voice")).toBeInTheDocument();
+    expect(screen.getByText("Memory")).toBeInTheDocument();
+  });
+
+  it("calls onSelect with category when clicked", async () => {
+    const { CategoryFilter } = await import("../components/marketplace/category-filter");
+    const onSelect = vi.fn();
+    const counts = { channel: 2, voice: 3 };
+
+    render(<CategoryFilter selected={null} onSelect={onSelect} counts={counts} />);
+
+    const user = userEvent.setup();
+    await user.click(closestButton(screen.getByText("Voice")));
+
+    expect(onSelect).toHaveBeenCalledWith("voice");
+  });
+
+  it("calls onSelect with null when All is clicked", async () => {
+    const { CategoryFilter } = await import("../components/marketplace/category-filter");
+    const onSelect = vi.fn();
+    const counts = { channel: 2 };
+
+    render(<CategoryFilter selected="channel" onSelect={onSelect} counts={counts} />);
+
+    const user = userEvent.setup();
+    await user.click(closestButton(screen.getByText("All")));
+
+    expect(onSelect).toHaveBeenCalledWith(null);
+  });
+
+  it("hides categories with zero plugins", async () => {
+    const { CategoryFilter } = await import("../components/marketplace/category-filter");
+    const counts = { channel: 2 };
+
+    render(<CategoryFilter selected={null} onSelect={vi.fn()} counts={counts} />);
+
+    // Only Channel and All should be visible
+    expect(screen.getByText("Channel")).toBeInTheDocument();
+    expect(screen.queryByText("Voice")).not.toBeInTheDocument();
+    expect(screen.queryByText("Memory")).not.toBeInTheDocument();
+  });
+});
