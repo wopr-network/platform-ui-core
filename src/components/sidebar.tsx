@@ -2,6 +2,7 @@
 
 const navItems = [
   { label: "Dashboard", href: "/" },
+  { label: "Channels", href: "/channels" },
   { label: "Plugins", href: "/plugins" },
   { label: "Instances", href: "/instances" },
   { label: "Settings", href: "/settings" },

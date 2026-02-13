@@ -1,0 +1,385 @@
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import { Wizard } from "@/components/channel-wizard";
+import { FieldInteractive } from "@/components/channel-wizard/field-interactive";
+import { FieldPaste } from "@/components/channel-wizard/field-paste";
+import { StepRenderer } from "@/components/channel-wizard/step-renderer";
+import type { ChannelManifest, SetupStep } from "@/lib/mock-manifests";
+import { channelManifests, getManifest } from "@/lib/mock-manifests";
+
+// Mock next/navigation
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn() }),
+}));
+
+describe("mock-manifests", () => {
+  it("provides Discord, Slack, and Telegram manifests", () => {
+    expect(channelManifests).toHaveLength(3);
+    expect(channelManifests.map((m) => m.id)).toEqual(["discord", "slack", "telegram"]);
+  });
+
+  it("getManifest returns correct manifest by id", () => {
+    const discord = getManifest("discord");
+    expect(discord).toBeDefined();
+    expect(discord?.name).toBe("Discord");
+  });
+
+  it("getManifest returns undefined for unknown id", () => {
+    expect(getManifest("unknown")).toBeUndefined();
+  });
+
+  it("Discord manifest has 4 setup steps", () => {
+    const discord = getManifest("discord");
+    expect(discord).toBeDefined();
+    expect(discord?.setup).toHaveLength(4);
+    expect(discord?.setup.map((s) => s.id)).toEqual([
+      "create-bot",
+      "paste-token",
+      "select-guild",
+      "done",
+    ]);
+  });
+
+  it("Telegram manifest has secret token field with paste flow", () => {
+    const telegram = getManifest("telegram");
+    expect(telegram).toBeDefined();
+    const tokenStep = telegram?.setup.find((s) => s.id === "paste-token");
+    expect(tokenStep).toBeDefined();
+    const tokenField = tokenStep?.fields[0];
+    expect(tokenField?.secret).toBe(true);
+    expect(tokenField?.setupFlow).toBe("paste");
+  });
+
+  it("Slack manifest has oauth flow", () => {
+    const slack = getManifest("slack");
+    expect(slack).toBeDefined();
+    const oauthStep = slack?.setup.find((s) => s.id === "oauth");
+    expect(oauthStep).toBeDefined();
+    const oauthField = oauthStep?.fields[0];
+    expect(oauthField?.setupFlow).toBe("oauth");
+  });
+});
+
+describe("FieldPaste", () => {
+  it("renders label and input", () => {
+    const onChange = vi.fn();
+    render(
+      <FieldPaste
+        field={{
+          key: "token",
+          label: "Bot Token",
+          type: "string",
+          required: true,
+          secret: true,
+          setupFlow: "paste",
+          placeholder: "Enter token",
+        }}
+        value=""
+        onChange={onChange}
+      />,
+    );
+
+    expect(screen.getByText("Bot Token")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Enter token")).toBeInTheDocument();
+  });
+
+  it("masks secret fields by default and toggles visibility", () => {
+    const onChange = vi.fn();
+    render(
+      <FieldPaste
+        field={{
+          key: "token",
+          label: "Token",
+          type: "string",
+          required: true,
+          secret: true,
+          setupFlow: "paste",
+        }}
+        value="secret-value"
+        onChange={onChange}
+      />,
+    );
+
+    const input = screen.getByLabelText("Token") as HTMLInputElement;
+    expect(input.type).toBe("password");
+
+    fireEvent.click(screen.getByText("Show"));
+    expect(input.type).toBe("text");
+
+    fireEvent.click(screen.getByText("Hide"));
+    expect(input.type).toBe("password");
+  });
+
+  it("calls onChange when typing", () => {
+    const onChange = vi.fn();
+    render(
+      <FieldPaste
+        field={{
+          key: "token",
+          label: "Token",
+          type: "string",
+          required: true,
+          setupFlow: "paste",
+        }}
+        value=""
+        onChange={onChange}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("Token"), { target: { value: "abc" } });
+    expect(onChange).toHaveBeenCalledWith("token", "abc");
+  });
+
+  it("displays error message", () => {
+    render(
+      <FieldPaste
+        field={{
+          key: "token",
+          label: "Token",
+          type: "string",
+          required: true,
+          setupFlow: "paste",
+        }}
+        value=""
+        onChange={vi.fn()}
+        error="Token is required"
+      />,
+    );
+
+    expect(screen.getByText("Token is required")).toBeInTheDocument();
+  });
+});
+
+describe("FieldInteractive", () => {
+  it("renders select options", () => {
+    const onChange = vi.fn();
+    render(
+      <FieldInteractive
+        field={{
+          key: "guild",
+          label: "Server",
+          type: "select",
+          required: true,
+          setupFlow: "interactive",
+          options: [
+            { label: "Server A", value: "a" },
+            { label: "Server B", value: "b" },
+          ],
+        }}
+        value=""
+        onChange={onChange}
+      />,
+    );
+
+    expect(screen.getByText("Server A")).toBeInTheDocument();
+    expect(screen.getByText("Server B")).toBeInTheDocument();
+  });
+
+  it("highlights selected option and calls onChange", () => {
+    const onChange = vi.fn();
+    render(
+      <FieldInteractive
+        field={{
+          key: "guild",
+          label: "Server",
+          type: "select",
+          required: true,
+          setupFlow: "interactive",
+          options: [
+            { label: "Server A", value: "a" },
+            { label: "Server B", value: "b" },
+          ],
+        }}
+        value="a"
+        onChange={onChange}
+      />,
+    );
+
+    expect(screen.getByText("Selected")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("Server B"));
+    expect(onChange).toHaveBeenCalledWith("guild", "b");
+  });
+});
+
+describe("StepRenderer", () => {
+  it("renders instruction text and external link", () => {
+    const step: SetupStep = {
+      id: "create-bot",
+      title: "Create Bot",
+      description: "Create a bot",
+      instruction: "Go to the developer portal",
+      externalUrl: "https://discord.com/developers",
+      fields: [],
+    };
+
+    render(<StepRenderer step={step} values={{}} errors={{}} onChange={vi.fn()} />);
+
+    expect(screen.getByText("Go to the developer portal")).toBeInTheDocument();
+    expect(screen.getByText("Open discord.com")).toBeInTheDocument();
+  });
+
+  it("renders completion step with checkmark", () => {
+    const step: SetupStep = {
+      id: "done",
+      title: "Done",
+      description: "Your bot is ready to use.",
+      fields: [],
+    };
+
+    render(<StepRenderer step={step} values={{}} errors={{}} onChange={vi.fn()} />);
+
+    expect(screen.getByText("Your bot is ready to use.")).toBeInTheDocument();
+  });
+});
+
+describe("Wizard", () => {
+  const discord = getManifest("discord") as ChannelManifest;
+
+  it("renders the first step", () => {
+    render(<Wizard manifest={discord} onComplete={vi.fn()} onCancel={vi.fn()} />);
+
+    expect(screen.getByText("Create a Discord Bot")).toBeInTheDocument();
+    expect(screen.getByText("Step 1 of 4")).toBeInTheDocument();
+    expect(screen.getByText("Cancel")).toBeInTheDocument();
+    expect(screen.getByText("Continue")).toBeInTheDocument();
+  });
+
+  it("renders the Discord brand color badge", () => {
+    render(<Wizard manifest={discord} onComplete={vi.fn()} onCancel={vi.fn()} />);
+
+    const brandBadge = screen.getByText("D");
+    expect(brandBadge).toBeInTheDocument();
+  });
+
+  it("navigates to next step on Continue", () => {
+    render(<Wizard manifest={discord} onComplete={vi.fn()} onCancel={vi.fn()} />);
+
+    fireEvent.click(screen.getByText("Continue"));
+    expect(screen.getByText("Enter Bot Token")).toBeInTheDocument();
+    expect(screen.getByText("Step 2 of 4")).toBeInTheDocument();
+  });
+
+  it("navigates back on Back button", () => {
+    render(<Wizard manifest={discord} onComplete={vi.fn()} onCancel={vi.fn()} />);
+
+    fireEvent.click(screen.getByText("Continue"));
+    expect(screen.getByText("Enter Bot Token")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText("Back"));
+    expect(screen.getByText("Create a Discord Bot")).toBeInTheDocument();
+  });
+
+  it("calls onCancel when Cancel is clicked", () => {
+    const onCancel = vi.fn();
+    render(<Wizard manifest={discord} onComplete={vi.fn()} onCancel={onCancel} />);
+
+    fireEvent.click(screen.getByText("Cancel"));
+    expect(onCancel).toHaveBeenCalledOnce();
+  });
+
+  it("validates required fields before advancing", () => {
+    render(<Wizard manifest={discord} onComplete={vi.fn()} onCancel={vi.fn()} />);
+
+    // Step 1 has no fields, advance to step 2
+    fireEvent.click(screen.getByText("Continue"));
+    expect(screen.getByText("Enter Bot Token")).toBeInTheDocument();
+
+    // Try to advance without filling token
+    fireEvent.click(screen.getByText("Continue"));
+    expect(screen.getByText("Bot Token is required")).toBeInTheDocument();
+    // Should still be on step 2
+    expect(screen.getByText("Step 2 of 4")).toBeInTheDocument();
+  });
+
+  it("advances after filling required field", () => {
+    render(<Wizard manifest={discord} onComplete={vi.fn()} onCancel={vi.fn()} />);
+
+    // Step 1 -> Step 2
+    fireEvent.click(screen.getByText("Continue"));
+
+    // Fill in the token
+    fireEvent.change(screen.getByPlaceholderText("Paste your Discord bot token"), {
+      target: { value: "valid-token-123" },
+    });
+
+    // Step 2 -> Step 3
+    fireEvent.click(screen.getByText("Continue"));
+    expect(screen.getByText("Select Server")).toBeInTheDocument();
+  });
+
+  it("shows Finish on last step and calls onComplete", () => {
+    const onComplete = vi.fn();
+    render(<Wizard manifest={discord} onComplete={onComplete} onCancel={vi.fn()} />);
+
+    // Navigate through all steps
+    // Step 1 (no fields)
+    fireEvent.click(screen.getByText("Continue"));
+
+    // Step 2 (token)
+    fireEvent.change(screen.getByPlaceholderText("Paste your Discord bot token"), {
+      target: { value: "valid-token-123" },
+    });
+    fireEvent.click(screen.getByText("Continue"));
+
+    // Step 3 (select guild)
+    fireEvent.click(screen.getByText("WOPR HQ"));
+    fireEvent.click(screen.getByText("Continue"));
+
+    // Step 4 (done)
+    expect(screen.getByText("Finish")).toBeInTheDocument();
+    expect(screen.getByText("Connection Complete")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText("Finish"));
+    expect(onComplete).toHaveBeenCalledWith({
+      botToken: "valid-token-123",
+      guildId: "1234567890",
+    });
+  });
+
+  it("shows test connection button on final step", () => {
+    render(<Wizard manifest={discord} onComplete={vi.fn()} onCancel={vi.fn()} />);
+
+    // Navigate to final step
+    fireEvent.click(screen.getByText("Continue"));
+    fireEvent.change(screen.getByPlaceholderText("Paste your Discord bot token"), {
+      target: { value: "valid-token-123" },
+    });
+    fireEvent.click(screen.getByText("Continue"));
+    fireEvent.click(screen.getByText("WOPR HQ"));
+    fireEvent.click(screen.getByText("Continue"));
+
+    expect(screen.getByText("Test Bot Connection")).toBeInTheDocument();
+  });
+
+  it("renders progress bar", () => {
+    render(<Wizard manifest={discord} onComplete={vi.fn()} onCancel={vi.fn()} />);
+
+    expect(screen.getByText("25%")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("Continue"));
+    expect(screen.getByText("50%")).toBeInTheDocument();
+  });
+});
+
+describe("Wizard with Telegram (short flow)", () => {
+  const telegram = getManifest("telegram") as ChannelManifest;
+
+  it("renders Telegram wizard with 3 steps", () => {
+    render(<Wizard manifest={telegram} onComplete={vi.fn()} onCancel={vi.fn()} />);
+
+    expect(screen.getByText("Create a Telegram Bot")).toBeInTheDocument();
+    expect(screen.getByText("Step 1 of 3")).toBeInTheDocument();
+  });
+
+  it("validates token format", () => {
+    render(<Wizard manifest={telegram} onComplete={vi.fn()} onCancel={vi.fn()} />);
+
+    fireEvent.click(screen.getByText("Continue"));
+
+    // Enter invalid format
+    fireEvent.change(screen.getByPlaceholderText("123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"), {
+      target: { value: "bad token with spaces" },
+    });
+    fireEvent.click(screen.getByText("Continue"));
+    expect(screen.getByText("Invalid Telegram bot token format")).toBeInTheDocument();
+  });
+});

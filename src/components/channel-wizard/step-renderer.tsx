@@ -1,0 +1,93 @@
+"use client";
+
+import type { ConfigField, SetupStep } from "@/lib/mock-manifests";
+import { FieldInteractive } from "./field-interactive";
+import { FieldOAuth } from "./field-oauth";
+import { FieldPaste } from "./field-paste";
+import { FieldQR } from "./field-qr";
+
+interface StepRendererProps {
+  step: SetupStep;
+  values: Record<string, string>;
+  errors: Record<string, string>;
+  onChange: (key: string, value: string) => void;
+}
+
+function renderField(
+  field: ConfigField,
+  value: string,
+  onChange: (key: string, value: string) => void,
+  error?: string,
+) {
+  switch (field.setupFlow) {
+    case "oauth":
+      return (
+        <FieldOAuth key={field.key} field={field} value={value} onChange={onChange} error={error} />
+      );
+    case "qr":
+      return (
+        <FieldQR key={field.key} field={field} value={value} onChange={onChange} error={error} />
+      );
+    case "interactive":
+      return (
+        <FieldInteractive
+          key={field.key}
+          field={field}
+          value={value}
+          onChange={onChange}
+          error={error}
+        />
+      );
+    default:
+      return (
+        <FieldPaste key={field.key} field={field} value={value} onChange={onChange} error={error} />
+      );
+  }
+}
+
+export function StepRenderer({ step, values, errors, onChange }: StepRendererProps) {
+  const hasFields = step.fields.length > 0;
+
+  return (
+    <div className="space-y-6">
+      {step.instruction && (
+        <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 p-4">
+          <p className="text-sm text-blue-400">{step.instruction}</p>
+          {step.externalUrl && (
+            <a
+              href={step.externalUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-2 inline-block text-sm text-blue-400 underline underline-offset-4 hover:text-blue-300"
+            >
+              Open {(() => {
+                try {
+                  return new URL(step.externalUrl).hostname;
+                } catch {
+                  return step.externalUrl;
+                }
+              })()}
+            </a>
+          )}
+        </div>
+      )}
+
+      {!hasFields && !step.instruction && (
+        <div className="flex flex-col items-center gap-3 py-8 text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-500/10">
+            <span className="text-lg text-green-500">&#10003;</span>
+          </div>
+          <p className="text-sm text-muted-foreground">{step.description}</p>
+        </div>
+      )}
+
+      {hasFields && (
+        <div className="space-y-4">
+          {step.fields.map((field) =>
+            renderField(field, values[field.key] || "", onChange, errors[field.key]),
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
