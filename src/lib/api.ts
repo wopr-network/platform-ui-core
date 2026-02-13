@@ -557,3 +557,355 @@ export async function getFleetHealth(): Promise<FleetInstance[]> {
     return MOCK_FLEET;
   }
 }
+
+// --- Settings types ---
+
+export interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+  avatarUrl: string | null;
+  oauthConnections: { provider: string; connected: boolean }[];
+}
+
+export interface ProviderKey {
+  id: string;
+  provider: string;
+  maskedKey: string;
+  status: "valid" | "invalid" | "unchecked";
+  lastChecked: string | null;
+  defaultModel: string | null;
+  models: string[];
+}
+
+export interface PlatformApiKey {
+  id: string;
+  name: string;
+  prefix: string;
+  scope: "read-only" | "full" | "instances";
+  createdAt: string;
+  lastUsedAt: string | null;
+  expiresAt: string | null;
+}
+
+export interface OrgMember {
+  id: string;
+  name: string;
+  email: string;
+  role: "owner" | "admin" | "viewer";
+  joinedAt: string;
+}
+
+export interface Organization {
+  id: string;
+  name: string;
+  billingEmail: string;
+  members: OrgMember[];
+}
+
+// --- Settings mock data ---
+
+const MOCK_PROFILE: UserProfile = {
+  id: "user-001",
+  name: "Alice Johnson",
+  email: "alice@example.com",
+  avatarUrl: null,
+  oauthConnections: [
+    { provider: "github", connected: true },
+    { provider: "discord", connected: false },
+    { provider: "google", connected: true },
+  ],
+};
+
+const MOCK_PROVIDERS: ProviderKey[] = [
+  {
+    id: "pk-1",
+    provider: "Anthropic",
+    maskedKey: "sk-ant-...a1b2",
+    status: "valid",
+    lastChecked: "2026-02-13T14:00:00Z",
+    defaultModel: "claude-sonnet-4-5-20250514",
+    models: ["claude-sonnet-4-5-20250514", "claude-opus-4-5-20250514", "claude-haiku-4-5-20250514"],
+  },
+  {
+    id: "pk-2",
+    provider: "OpenAI",
+    maskedKey: "sk-...x9y8",
+    status: "valid",
+    lastChecked: "2026-02-13T13:55:00Z",
+    defaultModel: "gpt-4o",
+    models: ["gpt-4o", "gpt-4o-mini", "o1"],
+  },
+  {
+    id: "pk-3",
+    provider: "xAI",
+    maskedKey: "",
+    status: "unchecked",
+    lastChecked: null,
+    defaultModel: null,
+    models: ["grok-2", "grok-3"],
+  },
+];
+
+const MOCK_API_KEYS: PlatformApiKey[] = [
+  {
+    id: "ak-1",
+    name: "CI Pipeline",
+    prefix: "wopr_ci_",
+    scope: "full",
+    createdAt: "2026-01-20T10:00:00Z",
+    lastUsedAt: "2026-02-13T08:00:00Z",
+    expiresAt: "2026-04-20T10:00:00Z",
+  },
+  {
+    id: "ak-2",
+    name: "Monitoring Dashboard",
+    prefix: "wopr_mon_",
+    scope: "read-only",
+    createdAt: "2026-02-01T12:00:00Z",
+    lastUsedAt: "2026-02-12T22:00:00Z",
+    expiresAt: null,
+  },
+  {
+    id: "ak-3",
+    name: "Mobile App",
+    prefix: "wopr_mob_",
+    scope: "instances",
+    createdAt: "2026-02-10T09:00:00Z",
+    lastUsedAt: null,
+    expiresAt: "2026-05-10T09:00:00Z",
+  },
+];
+
+const MOCK_ORG: Organization = {
+  id: "org-001",
+  name: "Acme Corp",
+  billingEmail: "billing@acme.com",
+  members: [
+    {
+      id: "user-001",
+      name: "Alice Johnson",
+      email: "alice@example.com",
+      role: "owner",
+      joinedAt: "2025-12-01T00:00:00Z",
+    },
+    {
+      id: "user-002",
+      name: "Bob Smith",
+      email: "bob@example.com",
+      role: "admin",
+      joinedAt: "2026-01-15T00:00:00Z",
+    },
+    {
+      id: "user-003",
+      name: "Carol Davis",
+      email: "carol@example.com",
+      role: "viewer",
+      joinedAt: "2026-02-01T00:00:00Z",
+    },
+  ],
+};
+
+// --- Settings API ---
+
+export async function getProfile(): Promise<UserProfile> {
+  try {
+    return await apiFetch<UserProfile>("/settings/profile");
+  } catch {
+    return MOCK_PROFILE;
+  }
+}
+
+export async function updateProfile(
+  data: Partial<Pick<UserProfile, "name" | "email">>,
+): Promise<UserProfile> {
+  try {
+    return await apiFetch<UserProfile>("/settings/profile", {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
+  } catch {
+    return { ...MOCK_PROFILE, ...data };
+  }
+}
+
+export async function changePassword(_data: {
+  currentPassword: string;
+  newPassword: string;
+}): Promise<void> {
+  try {
+    await apiFetch("/settings/profile/password", { method: "POST", body: JSON.stringify(_data) });
+  } catch {
+    // mock: no-op
+  }
+}
+
+export async function deleteAccount(): Promise<void> {
+  try {
+    await apiFetch("/settings/profile", { method: "DELETE" });
+  } catch {
+    // mock: no-op
+  }
+}
+
+export async function listProviderKeys(): Promise<ProviderKey[]> {
+  try {
+    return await apiFetch<ProviderKey[]>("/settings/providers");
+  } catch {
+    return MOCK_PROVIDERS;
+  }
+}
+
+export async function testProviderKey(id: string): Promise<{ valid: boolean }> {
+  try {
+    return await apiFetch<{ valid: boolean }>(`/settings/providers/${id}/test`, { method: "POST" });
+  } catch {
+    return { valid: true };
+  }
+}
+
+export async function removeProviderKey(id: string): Promise<void> {
+  try {
+    await apiFetch(`/settings/providers/${id}`, { method: "DELETE" });
+  } catch {
+    // mock: no-op
+  }
+}
+
+export async function saveProviderKey(_provider: string, _key: string): Promise<ProviderKey> {
+  try {
+    return await apiFetch<ProviderKey>("/settings/providers", {
+      method: "POST",
+      body: JSON.stringify({ provider: _provider, key: _key }),
+    });
+  } catch {
+    return MOCK_PROVIDERS[0];
+  }
+}
+
+export async function updateProviderModel(id: string, model: string): Promise<void> {
+  try {
+    await apiFetch(`/settings/providers/${id}/model`, {
+      method: "PATCH",
+      body: JSON.stringify({ model }),
+    });
+  } catch {
+    // mock: no-op
+  }
+}
+
+export async function listApiKeys(): Promise<PlatformApiKey[]> {
+  try {
+    return await apiFetch<PlatformApiKey[]>("/settings/api-keys");
+  } catch {
+    return MOCK_API_KEYS;
+  }
+}
+
+export async function createApiKey(data: {
+  name: string;
+  scope: string;
+  expiration: string;
+}): Promise<{ key: PlatformApiKey; secret: string }> {
+  try {
+    return await apiFetch<{ key: PlatformApiKey; secret: string }>("/settings/api-keys", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  } catch {
+    const newKey: PlatformApiKey = {
+      id: `ak-${Date.now()}`,
+      name: data.name,
+      prefix: `wopr_${data.name.toLowerCase().replace(/\s+/g, "_").slice(0, 6)}_`,
+      scope: data.scope as PlatformApiKey["scope"],
+      createdAt: new Date().toISOString(),
+      lastUsedAt: null,
+      expiresAt:
+        data.expiration === "never"
+          ? null
+          : new Date(Date.now() + Number.parseInt(data.expiration, 10) * 86400000).toISOString(),
+    };
+    return { key: newKey, secret: `wopr_${crypto.randomUUID().replace(/-/g, "")}` };
+  }
+}
+
+export async function revokeApiKey(id: string): Promise<void> {
+  try {
+    await apiFetch(`/settings/api-keys/${id}`, { method: "DELETE" });
+  } catch {
+    // mock: no-op
+  }
+}
+
+export async function connectOauthProvider(provider: string): Promise<void> {
+  try {
+    await apiFetch(`/settings/profile/oauth/${provider}/connect`, { method: "POST" });
+  } catch {
+    // mock: no-op
+  }
+}
+
+export async function disconnectOauthProvider(provider: string): Promise<void> {
+  try {
+    await apiFetch(`/settings/profile/oauth/${provider}/disconnect`, { method: "POST" });
+  } catch {
+    // mock: no-op
+  }
+}
+
+export async function getOrganization(): Promise<Organization> {
+  try {
+    return await apiFetch<Organization>("/settings/org");
+  } catch {
+    return MOCK_ORG;
+  }
+}
+
+export async function updateOrganization(
+  data: Partial<Pick<Organization, "name" | "billingEmail">>,
+): Promise<Organization> {
+  try {
+    return await apiFetch<Organization>("/settings/org", {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
+  } catch {
+    return { ...MOCK_ORG, ...data };
+  }
+}
+
+export async function inviteMember(_email: string, _role: string): Promise<OrgMember> {
+  try {
+    return await apiFetch<OrgMember>("/settings/org/members", {
+      method: "POST",
+      body: JSON.stringify({ email: _email, role: _role }),
+    });
+  } catch {
+    return {
+      id: `user-${Date.now()}`,
+      name: _email.split("@")[0],
+      email: _email,
+      role: _role as OrgMember["role"],
+      joinedAt: new Date().toISOString(),
+    };
+  }
+}
+
+export async function removeMember(id: string): Promise<void> {
+  try {
+    await apiFetch(`/settings/org/members/${id}`, { method: "DELETE" });
+  } catch {
+    // mock: no-op
+  }
+}
+
+export async function transferOwnership(memberId: string): Promise<void> {
+  try {
+    await apiFetch("/settings/org/transfer", {
+      method: "POST",
+      body: JSON.stringify({ memberId }),
+    });
+  } catch {
+    // mock: no-op
+  }
+}
