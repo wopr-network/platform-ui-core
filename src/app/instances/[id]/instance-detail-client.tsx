@@ -1,0 +1,363 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import { StatusBadge } from "@/components/status-badge";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import type { InstanceDetail } from "@/lib/api";
+import { controlInstance, getInstance } from "@/lib/api";
+
+export function InstanceDetailClient({ instanceId }: { instanceId: string }) {
+  const [instance, setInstance] = useState<InstanceDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [configText, setConfigText] = useState("");
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [configStatus, setConfigStatus] = useState<"idle" | "saved" | "invalid">("idle");
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await getInstance(instanceId);
+      setInstance(data);
+      setConfigText(JSON.stringify(data.config, null, 2));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load instance");
+    } finally {
+      setLoading(false);
+    }
+  }, [instanceId]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  async function handleAction(action: "start" | "stop" | "restart" | "destroy") {
+    setActionError(null);
+    try {
+      await controlInstance(instanceId, action);
+      await load();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : `Failed to ${action} instance`);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex h-[60vh] items-center justify-center text-muted-foreground">
+        Loading instance...
+      </div>
+    );
+  }
+
+  if (error || !instance) {
+    return (
+      <div className="flex h-[60vh] flex-col items-center justify-center gap-4">
+        <p className="text-muted-foreground">{error ?? "Instance not found"}</p>
+        <Button variant="outline" asChild>
+          <a href="/instances">Back to Instances</a>
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-start justify-between">
+        <div className="space-y-1">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="sm" asChild>
+              <a href="/instances">&larr; Instances</a>
+            </Button>
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight">{instance.name}</h1>
+          <div className="flex items-center gap-3 text-sm text-muted-foreground">
+            <StatusBadge status={instance.status} />
+            <span>{instance.template}</span>
+            <span>{instance.provider}</span>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          {instance.status === "stopped" && (
+            <Button size="sm" onClick={() => handleAction("start")}>
+              Start
+            </Button>
+          )}
+          {(instance.status === "running" || instance.status === "degraded") && (
+            <>
+              <Button size="sm" variant="outline" onClick={() => handleAction("stop")}>
+                Stop
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => handleAction("restart")}>
+                Restart
+              </Button>
+            </>
+          )}
+          <Button size="sm" variant="destructive" onClick={() => handleAction("destroy")}>
+            Destroy
+          </Button>
+        </div>
+      </div>
+
+      {actionError && (
+        <div className="rounded-md border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-500">
+          {actionError}
+        </div>
+      )}
+
+      <Separator />
+
+      {/* Tabs */}
+      <Tabs defaultValue="overview">
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="plugins">Plugins</TabsTrigger>
+          <TabsTrigger value="channels">Channels</TabsTrigger>
+          <TabsTrigger value="sessions">Sessions</TabsTrigger>
+          <TabsTrigger value="config">Config</TabsTrigger>
+          <TabsTrigger value="logs">Logs</TabsTrigger>
+        </TabsList>
+
+        {/* Overview Tab */}
+        <TabsContent value="overview" className="mt-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <MetricCard title="Status" value={instance.status} />
+            <MetricCard title="Uptime" value={formatUptime(instance.uptime)} />
+            <MetricCard title="Memory" value={`${instance.resourceUsage.memoryMb} MB`} />
+            <MetricCard title="CPU" value={`${instance.resourceUsage.cpuPercent}%`} />
+            <MetricCard title="Plugins" value={String(instance.plugins.length)} />
+            <MetricCard title="Channels" value={String(instance.channelDetails.length)} />
+            <MetricCard title="Active Sessions" value={String(instance.sessions.length)} />
+            <MetricCard title="Created" value={new Date(instance.createdAt).toLocaleDateString()} />
+          </div>
+        </TabsContent>
+
+        {/* Plugins Tab */}
+        <TabsContent value="plugins" className="mt-4">
+          {instance.plugins.length === 0 ? (
+            <p className="text-muted-foreground">No plugins installed.</p>
+          ) : (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Plugin</TableHead>
+                    <TableHead>Version</TableHead>
+                    <TableHead className="w-[100px]">Enabled</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {instance.plugins.map((plugin) => (
+                    <TableRow key={plugin.id}>
+                      <TableCell className="font-medium">{plugin.name}</TableCell>
+                      <TableCell className="text-muted-foreground">{plugin.version}</TableCell>
+                      <TableCell>
+                        <Switch
+                          checked={plugin.enabled}
+                          disabled
+                          aria-label={`Toggle ${plugin.name}`}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </TabsContent>
+
+        {/* Channels Tab */}
+        <TabsContent value="channels" className="mt-4">
+          {instance.channelDetails.length === 0 ? (
+            <p className="text-muted-foreground">No channels connected.</p>
+          ) : (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Channel</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {instance.channelDetails.map((ch) => (
+                    <TableRow key={ch.id}>
+                      <TableCell className="font-medium">{ch.name}</TableCell>
+                      <TableCell className="text-muted-foreground">{ch.type}</TableCell>
+                      <TableCell>
+                        <ChannelStatusBadge status={ch.status} />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </TabsContent>
+
+        {/* Sessions Tab */}
+        <TabsContent value="sessions" className="mt-4">
+          {instance.sessions.length === 0 ? (
+            <p className="text-muted-foreground">No active sessions.</p>
+          ) : (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Session ID</TableHead>
+                    <TableHead>User</TableHead>
+                    <TableHead>Messages</TableHead>
+                    <TableHead>Started</TableHead>
+                    <TableHead>Last Activity</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {instance.sessions.map((sess) => (
+                    <TableRow key={sess.id}>
+                      <TableCell className="font-mono text-sm">{sess.id}</TableCell>
+                      <TableCell>{sess.userId}</TableCell>
+                      <TableCell>{sess.messageCount}</TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {new Date(sess.startedAt).toLocaleTimeString()}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {new Date(sess.lastActivityAt).toLocaleTimeString()}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </TabsContent>
+
+        {/* Config Tab */}
+        <TabsContent value="config" className="mt-4 space-y-4">
+          <div className="space-y-2">
+            <label htmlFor="config-editor" className="text-sm font-medium">
+              Instance Configuration (JSON)
+            </label>
+            <Textarea
+              id="config-editor"
+              className="min-h-[300px] font-mono text-sm"
+              value={configText}
+              onChange={(e) => setConfigText(e.target.value)}
+            />
+          </div>
+          <div className="flex items-center justify-end gap-3">
+            {configStatus === "saved" && (
+              <span className="text-sm text-emerald-500">
+                Config is valid JSON (save API pending)
+              </span>
+            )}
+            {configStatus === "invalid" && (
+              <span className="text-sm text-red-500">Invalid JSON</span>
+            )}
+            <Button
+              onClick={() => {
+                try {
+                  JSON.parse(configText);
+                  setConfigStatus("saved");
+                } catch {
+                  setConfigStatus("invalid");
+                }
+              }}
+            >
+              Save Config
+            </Button>
+          </div>
+        </TabsContent>
+
+        {/* Logs Tab */}
+        <TabsContent value="logs" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Real-time Logs</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[400px] rounded-md bg-zinc-950 p-4 font-mono text-xs text-zinc-400">
+                <p className="text-zinc-500">Waiting for WebSocket connection...</p>
+                <p className="text-zinc-500">
+                  Real-time log streaming will be available when the backend WebSocket endpoint is
+                  connected.
+                </p>
+                {instance.status === "running" && (
+                  <>
+                    <p className="mt-4 text-emerald-400">
+                      [INFO] Instance {instance.name} is running
+                    </p>
+                    <p className="text-zinc-400">[INFO] {instance.plugins.length} plugins loaded</p>
+                    <p className="text-zinc-400">
+                      [INFO] {instance.channelDetails.length} channels connected
+                    </p>
+                    <p className="text-zinc-400">
+                      [INFO] {instance.sessions.length} active sessions
+                    </p>
+                  </>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+function MetricCard({ title, value }: { title: string; value: string }) {
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-xs font-medium text-muted-foreground">{title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className="text-lg font-semibold">{value}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ChannelStatusBadge({ status }: { status: "connected" | "disconnected" | "error" }) {
+  const config = {
+    connected: {
+      label: "Connected",
+      className: "bg-emerald-500/15 text-emerald-500 border-emerald-500/25",
+    },
+    disconnected: {
+      label: "Disconnected",
+      className: "bg-zinc-500/15 text-zinc-400 border-zinc-500/25",
+    },
+    error: { label: "Error", className: "bg-red-500/15 text-red-500 border-red-500/25" },
+  };
+  const c = config[status];
+  return (
+    <Badge variant="outline" className={c.className}>
+      {c.label}
+    </Badge>
+  );
+}
+
+function formatUptime(seconds: number | null): string {
+  if (seconds === null) return "--";
+  const d = Math.floor(seconds / 86400);
+  const h = Math.floor((seconds % 86400) / 3600);
+  if (d > 0) return `${d}d ${h}h`;
+  const m = Math.floor((seconds % 3600) / 60);
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
