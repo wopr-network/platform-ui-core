@@ -1,17 +1,19 @@
-FROM node:22-alpine AS deps
+FROM node:20-alpine AS deps
 WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci
+RUN corepack enable && corepack prepare pnpm@10.27.0 --activate
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
 
-FROM node:22-alpine AS build
+FROM node:20-alpine AS build
 WORKDIR /app
+RUN corepack enable && corepack prepare pnpm@10.27.0 --activate
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-RUN npm run build
+RUN pnpm build
 
-FROM node:22-alpine AS runtime
+FROM node:20-alpine AS runtime
 WORKDIR /app
 
 RUN addgroup -S wopr && adduser -S wopr -G wopr
@@ -29,6 +31,6 @@ ENV PORT=3000
 ENV NODE_ENV=production
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD wget -q --spider http://localhost:3000/ || exit 1
+  CMD node -e "require('http').get('http://localhost:3000/', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"
 
 CMD ["node", "server.js"]

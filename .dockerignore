@@ -8,3 +8,6 @@ node_modules
 .idea
 coverage
 .vercel
+Dockerfile
+docker-compose.yml
+.dockerignore
