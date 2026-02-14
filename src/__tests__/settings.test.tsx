@@ -1,6 +1,12 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import type { Organization, PlatformApiKey, ProviderKey, UserProfile } from "@/lib/api";
+import type {
+  CapabilitySetting,
+  Organization,
+  PlatformApiKey,
+  ProviderKey,
+  UserProfile,
+} from "@/lib/api";
 
 // Mock next/navigation
 vi.mock("next/navigation", () => ({
@@ -120,6 +126,37 @@ const MOCK_ORG: Organization = {
   ],
 };
 
+const MOCK_CAPABILITIES: CapabilitySetting[] = [
+  {
+    capability: "transcription",
+    mode: "hosted",
+    maskedKey: null,
+    keyStatus: null,
+    provider: null,
+  },
+  {
+    capability: "image-gen",
+    mode: "hosted",
+    maskedKey: null,
+    keyStatus: null,
+    provider: null,
+  },
+  {
+    capability: "text-gen",
+    mode: "byok",
+    maskedKey: "sk-ant-...a1b2",
+    keyStatus: "valid",
+    provider: "Anthropic",
+  },
+  {
+    capability: "embeddings",
+    mode: "hosted",
+    maskedKey: null,
+    keyStatus: null,
+    provider: null,
+  },
+];
+
 // Mock @/lib/api with test fixtures
 vi.mock("@/lib/api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/api")>();
@@ -136,6 +173,9 @@ vi.mock("@/lib/api", async (importOriginal) => {
     removeProviderKey: vi.fn().mockResolvedValue(undefined),
     saveProviderKey: vi.fn().mockResolvedValue(MOCK_PROVIDERS[0]),
     updateProviderModel: vi.fn().mockResolvedValue(undefined),
+    listCapabilities: vi.fn().mockResolvedValue(MOCK_CAPABILITIES),
+    updateCapability: vi.fn().mockResolvedValue(MOCK_CAPABILITIES[0]),
+    testCapabilityKey: vi.fn().mockResolvedValue({ valid: true }),
     listApiKeys: vi.fn().mockResolvedValue(MOCK_API_KEYS),
     createApiKey: vi.fn().mockResolvedValue({ key: MOCK_API_KEYS[0], secret: "wopr_test_secret" }),
     revokeApiKey: vi.fn().mockResolvedValue(undefined),
@@ -199,11 +239,68 @@ describe("Profile page", () => {
 });
 
 describe("Providers page", () => {
-  it("renders provider keys heading", async () => {
+  it("renders provider settings heading", async () => {
     const { default: ProvidersPage } = await import("../app/(dashboard)/settings/providers/page");
     render(<ProvidersPage />);
 
     expect(screen.getByText("Loading providers...")).toBeInTheDocument();
+    expect(await screen.findByText("Provider Settings")).toBeInTheDocument();
+  });
+
+  it("renders capability toggle cards", async () => {
+    const { default: ProvidersPage } = await import("../app/(dashboard)/settings/providers/page");
+    render(<ProvidersPage />);
+
+    expect(await screen.findByText("Transcription")).toBeInTheDocument();
+    expect(screen.getByText("Image Generation")).toBeInTheDocument();
+    expect(screen.getByText("Text Generation")).toBeInTheDocument();
+    expect(screen.getByText("Embeddings")).toBeInTheDocument();
+  });
+
+  it("renders hosted pricing for each capability", async () => {
+    const { default: ProvidersPage } = await import("../app/(dashboard)/settings/providers/page");
+    render(<ProvidersPage />);
+
+    expect(await screen.findByText("$0.006/min")).toBeInTheDocument();
+    expect(screen.getByText("$0.05/image")).toBeInTheDocument();
+    expect(screen.getByText("$0.002/1K tokens")).toBeInTheDocument();
+    expect(screen.getByText("$0.0001/1K tokens")).toBeInTheDocument();
+  });
+
+  it("renders WOPR Hosted and Bring Your Own Key options", async () => {
+    const { default: ProvidersPage } = await import("../app/(dashboard)/settings/providers/page");
+    render(<ProvidersPage />);
+
+    const hostedLabels = await screen.findAllByText("WOPR Hosted");
+    expect(hostedLabels.length).toBe(4);
+
+    const byokLabels = screen.getAllByText("Bring Your Own Key");
+    expect(byokLabels.length).toBe(4);
+  });
+
+  it("shows BYOK key input for capability in byok mode", async () => {
+    const { default: ProvidersPage } = await import("../app/(dashboard)/settings/providers/page");
+    render(<ProvidersPage />);
+
+    // text-gen is in BYOK mode with a masked key -- appears in both capability and provider sections
+    const maskedKeys = await screen.findAllByText("sk-ant-...a1b2");
+    expect(maskedKeys.length).toBeGreaterThanOrEqual(1);
+    // "valid" badge appears in both sections too
+    const validBadges = screen.getAllByText("valid");
+    expect(validBadges.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("renders Test Key button for BYOK capability with key", async () => {
+    const { default: ProvidersPage } = await import("../app/(dashboard)/settings/providers/page");
+    render(<ProvidersPage />);
+
+    expect(await screen.findByRole("button", { name: "Test Key" })).toBeInTheDocument();
+  });
+
+  it("renders provider keys section", async () => {
+    const { default: ProvidersPage } = await import("../app/(dashboard)/settings/providers/page");
+    render(<ProvidersPage />);
+
     expect(await screen.findByText("Provider Keys")).toBeInTheDocument();
   });
 
@@ -211,16 +308,11 @@ describe("Providers page", () => {
     const { default: ProvidersPage } = await import("../app/(dashboard)/settings/providers/page");
     render(<ProvidersPage />);
 
-    expect(await screen.findByText("Anthropic")).toBeInTheDocument();
+    // Provider names from MOCK_PROVIDERS rendered in provider keys section
+    const anthropicElements = await screen.findAllByText("Anthropic");
+    expect(anthropicElements.length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("OpenAI")).toBeInTheDocument();
     expect(screen.getByText("xAI")).toBeInTheDocument();
-  });
-
-  it("renders BYOK messaging", async () => {
-    const { default: ProvidersPage } = await import("../app/(dashboard)/settings/providers/page");
-    render(<ProvidersPage />);
-
-    expect(await screen.findByText(/Bring Your Own Key/)).toBeInTheDocument();
   });
 
   it("renders test connection and rotate buttons for configured providers", async () => {

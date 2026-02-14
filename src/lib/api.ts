@@ -480,3 +480,38 @@ export async function updateBillingEmail(email: string): Promise<void> {
 export async function removePaymentMethod(id: string): Promise<void> {
   await apiFetch(`/billing/payment-methods/${id}`, { method: "DELETE" });
 }
+
+// --- Capability settings types ---
+
+export type CapabilityName = "transcription" | "image-gen" | "text-gen" | "embeddings";
+export type CapabilityMode = "hosted" | "byok";
+
+export interface CapabilitySetting {
+  capability: CapabilityName;
+  mode: CapabilityMode;
+  maskedKey: string | null;
+  keyStatus: "valid" | "invalid" | "unchecked" | null;
+  provider: string | null;
+}
+
+// --- Capability settings API ---
+
+export async function listCapabilities(): Promise<CapabilitySetting[]> {
+  return apiFetch<CapabilitySetting[]>("/settings/capabilities");
+}
+
+export async function updateCapability(
+  capability: CapabilityName,
+  data: { mode: CapabilityMode; key?: string },
+): Promise<CapabilitySetting> {
+  return apiFetch<CapabilitySetting>(`/settings/capabilities/${capability}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function testCapabilityKey(capability: CapabilityName): Promise<{ valid: boolean }> {
+  return apiFetch<{ valid: boolean }>(`/settings/capabilities/${capability}/test`, {
+    method: "POST",
+  });
+}
