@@ -281,13 +281,66 @@ export function CommandCenter() {
         </CardContent>
       </Card>
 
+      {/* Fleet Grid — bot cards + "Add another WOPR Bot" CTA */}
+      {!loading && instances.length > 0 && (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {instances.map((inst) => (
+            <Link key={inst.id} href={`/instances/${inst.id}`}>
+              <Card className="h-full cursor-pointer transition-all hover:shadow-md hover:border-primary/30">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <span
+                      className={`size-2 rounded-full ${
+                        inst.status === "running" ? "bg-emerald-500" : "bg-zinc-400"
+                      }`}
+                    />
+                    <p className="font-semibold">{inst.name}</p>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground capitalize">{inst.status}</p>
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
+
+          {/* Add another WOPR Bot CTA card */}
+          <Link href="/onboarding?mode=fleet-add">
+            <Card className="flex h-full cursor-pointer items-center justify-center border-dashed transition-all hover:shadow-md hover:border-primary/30">
+              <CardContent className="p-6 text-center">
+                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full border-2 border-muted-foreground/20 text-muted-foreground">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    role="img"
+                    aria-label="Add"
+                  >
+                    <path d="M12 5v14" />
+                    <path d="M5 12h14" />
+                  </svg>
+                </div>
+                <p className="font-semibold">Add another WOPR Bot</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Name it. Teach it. Give it superpowers.
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
+        </div>
+      )}
+
       {/* Quick Actions */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Button asChild size="lg" className="h-auto py-4">
-          <Link href="/instances/new">
+          <Link href="/onboarding?mode=fleet-add">
             <div className="text-center">
-              <p className="font-semibold">Launch New Instance</p>
-              <p className="text-xs opacity-70">Deploy a new WOPR Bot</p>
+              <p className="font-semibold">Add Another WOPR Bot</p>
+              <p className="text-xs opacity-70">Grow your fleet</p>
             </div>
           </Link>
         </Button>

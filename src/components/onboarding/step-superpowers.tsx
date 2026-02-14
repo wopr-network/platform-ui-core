@@ -1,25 +1,56 @@
 "use client";
 
+import { useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { superpowers } from "@/lib/onboarding-data";
+import type { ExistingBot, WizardMode } from "./use-onboarding";
 
 interface StepSuperpowersProps {
   selected: string[];
   onToggle: (id: string) => void;
+  mode?: WizardMode;
+  existingBots?: ExistingBot[];
 }
 
-export function StepSuperpowers({ selected, onToggle }: StepSuperpowersProps) {
+export function StepSuperpowers({
+  selected,
+  onToggle,
+  mode = "onboarding",
+  existingBots = [],
+}: StepSuperpowersProps) {
+  const isFleetAdd = mode === "fleet-add";
+
+  // Build a map of superpower id -> list of bot names that use it
+  const usageMap = useMemo(() => {
+    if (!isFleetAdd) return new Map<string, string[]>();
+    const map = new Map<string, string[]>();
+    for (const bot of existingBots) {
+      for (const spId of bot.superpowers) {
+        const list = map.get(spId) || [];
+        list.push(bot.name);
+        map.set(spId, list);
+      }
+    }
+    return map;
+  }, [isFleetAdd, existingBots]);
+
   return (
     <div className="space-y-6">
       <div className="text-center">
         <h2 className="text-2xl font-bold tracking-tight">Give your WOPR Bot superpowers</h2>
-        <p className="mt-2 text-muted-foreground">Pick as many as you want. All optional.</p>
+        <p className="mt-2 text-muted-foreground">
+          {isFleetAdd
+            ? "Pre-checked from your other bots. Add or remove as you like."
+            : "Pick as many as you want. All optional."}
+        </p>
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {superpowers.map((sp) => {
           const isSelected = selected.includes(sp.id);
+          const usedBy = usageMap.get(sp.id);
+          const isUsedByFleet = isFleetAdd && usedBy && usedBy.length > 0;
           return (
             <Card key={sp.id} className="py-3">
               <CardContent className="flex items-center justify-between gap-4 py-0">
@@ -33,6 +64,11 @@ export function StepSuperpowers({ selected, onToggle }: StepSuperpowersProps) {
                   <div>
                     <p className="text-sm font-medium">{sp.name}</p>
                     <p className="text-xs text-muted-foreground">{sp.tagline}</p>
+                    {isUsedByFleet && (
+                      <p className="text-xs text-primary">
+                        {usedBy.join(", ")} {usedBy.length === 1 ? "uses" : "use"} this
+                      </p>
+                    )}
                   </div>
                 </div>
                 <Switch

@@ -10,7 +10,7 @@ import { StepLaunch } from "./step-launch";
 import { StepName } from "./step-name";
 import { StepPowerSource } from "./step-power-source";
 import { StepSuperpowers } from "./step-superpowers";
-import { useOnboarding } from "./use-onboarding";
+import { useOnboarding, type WizardMode } from "./use-onboarding";
 
 const STEP_LABELS: Record<string, string> = {
   name: "Name Your WOPR Bot",
@@ -28,9 +28,13 @@ const stepTransition = {
   transition: { duration: 0.25, ease: "easeInOut" as const },
 };
 
-export function OnboardingWizard() {
+interface OnboardingWizardProps {
+  mode?: WizardMode;
+}
+
+export function OnboardingWizard({ mode = "onboarding" }: OnboardingWizardProps) {
   const router = useRouter();
-  const [state, actions] = useOnboarding();
+  const [state, actions] = useOnboarding(mode);
 
   function handleGoToDashboard() {
     router.push("/");
@@ -62,6 +66,10 @@ export function OnboardingWizard() {
               onNameChange={actions.setWoprName}
               onPersonalityChange={actions.setPersonalityId}
               onCustomPersonalityChange={actions.setCustomPersonality}
+              mode={state.mode}
+              existingBots={state.existingBots}
+              cloneFromBotId={state.cloneFromBotId}
+              onCloneFromBot={actions.setCloneFromBot}
             />
           </motion.div>
         )}
@@ -89,6 +97,8 @@ export function OnboardingWizard() {
             <StepSuperpowers
               selected={state.selectedSuperpowers}
               onToggle={actions.toggleSuperpower}
+              mode={state.mode}
+              existingBots={state.existingBots}
             />
           </motion.div>
         )}
@@ -104,6 +114,7 @@ export function OnboardingWizard() {
               byokKeyErrors={state.byokKeyErrors}
               onByokKeyChange={actions.setByokKeyValue}
               onValidateByokKey={actions.validateByokKey}
+              mode={state.mode}
             />
           </motion.div>
         )}
@@ -119,6 +130,7 @@ export function OnboardingWizard() {
               deployStatus={state.deployStatus}
               onDeploy={actions.deploy}
               onGoToDashboard={handleGoToDashboard}
+              mode={state.mode}
             />
           </motion.div>
         )}

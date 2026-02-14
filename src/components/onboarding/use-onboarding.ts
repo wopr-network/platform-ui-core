@@ -8,6 +8,8 @@ import {
   validateField,
 } from "@/lib/onboarding-data";
 
+export type WizardMode = "onboarding" | "fleet-add";
+
 export type ProviderMode = "hosted" | "byok";
 
 export type OnboardingStep =
@@ -36,7 +38,34 @@ export type DeployStatus =
   | "done"
   | "error";
 
+/** Mock data for existing bots in fleet-add mode */
+export interface ExistingBot {
+  id: string;
+  name: string;
+  personalityId: string;
+  customPersonality: string;
+  superpowers: string[];
+}
+
+const MOCK_EXISTING_BOTS: ExistingBot[] = [
+  {
+    id: "bot-1",
+    name: "Jarvis",
+    personalityId: "helpful",
+    customPersonality: "",
+    superpowers: ["image-gen", "memory"],
+  },
+  {
+    id: "bot-2",
+    name: "Friday",
+    personalityId: "creative",
+    customPersonality: "",
+    superpowers: ["voice", "memory", "search"],
+  },
+];
+
 export interface OnboardingState {
+  mode: WizardMode;
   step: OnboardingStep;
   stepIndex: number;
   totalSteps: number;
@@ -59,6 +88,9 @@ export interface OnboardingState {
   byokKeyErrors: Record<string, string | null>;
   // Step 6: Launch
   deployStatus: DeployStatus;
+  // Fleet-add mode extras
+  existingBots: ExistingBot[];
+  cloneFromBotId: string;
 }
 
 export interface OnboardingActions {
@@ -66,6 +98,7 @@ export interface OnboardingActions {
   setWoprName: (name: string) => void;
   setPersonalityId: (id: string) => void;
   setCustomPersonality: (value: string) => void;
+  setCloneFromBot: (botId: string) => void;
   // Step 2
   toggleChannel: (id: string) => void;
   // Step 3
@@ -86,19 +119,36 @@ export interface OnboardingActions {
   reset: () => void;
 }
 
-export function useOnboarding(): [OnboardingState, OnboardingActions] {
+export function useOnboarding(
+  mode: WizardMode = "onboarding",
+): [OnboardingState, OnboardingActions] {
+  const isFleetAdd = mode === "fleet-add";
+
+  // Pre-check superpowers from existing bots in fleet-add mode
+  const fleetSuperpowers = useMemo(() => {
+    if (!isFleetAdd) return [];
+    const ids = new Set<string>();
+    for (const bot of MOCK_EXISTING_BOTS) {
+      for (const sp of bot.superpowers) {
+        ids.add(sp);
+      }
+    }
+    return [...ids];
+  }, [isFleetAdd]);
+
   const [step, setStep] = useState<OnboardingStep>("name");
   // Step 1
   const [woprName, setWoprName] = useState("");
   const [personalityId, setPersonalityId] = useState("helpful");
   const [customPersonality, setCustomPersonality] = useState("");
+  const [cloneFromBotId, setCloneFromBotId] = useState("");
   // Step 2
   const [selectedChannels, setSelectedChannels] = useState<string[]>([]);
   // Step 3
   const [channelKeyValues, setChannelKeyValues] = useState<Record<string, string>>({});
   const [channelKeyErrors, setChannelKeyErrors] = useState<Record<string, string | null>>({});
-  // Step 4
-  const [selectedSuperpowers, setSelectedSuperpowers] = useState<string[]>([]);
+  // Step 4 — pre-check superpowers from fleet in fleet-add mode
+  const [selectedSuperpowers, setSelectedSuperpowers] = useState<string[]>(fleetSuperpowers);
   // Step 5
   const [providerMode, setProviderModeState] = useState<ProviderMode>("hosted");
   const [byokKeyValues, setByokKeyValues] = useState<Record<string, string>>({});
@@ -165,6 +215,16 @@ export function useOnboarding(): [OnboardingState, OnboardingActions] {
   }, [selectedSuperpowers]);
 
   // --- Actions ---
+
+  const setCloneFromBot = useCallback((botId: string) => {
+    setCloneFromBotId(botId);
+    if (!botId) return;
+    const bot = MOCK_EXISTING_BOTS.find((b) => b.id === botId);
+    if (!bot) return;
+    setPersonalityId(bot.personalityId);
+    setCustomPersonality(bot.customPersonality);
+    setSelectedSuperpowers([...bot.superpowers]);
+  }, []);
 
   const toggleChannel = useCallback((id: string) => {
     setSelectedChannels((prev) =>
@@ -322,17 +382,19 @@ export function useOnboarding(): [OnboardingState, OnboardingActions] {
     setWoprName("");
     setPersonalityId("helpful");
     setCustomPersonality("");
+    setCloneFromBotId("");
     setSelectedChannels([]);
     setChannelKeyValues({});
     setChannelKeyErrors({});
-    setSelectedSuperpowers([]);
+    setSelectedSuperpowers(isFleetAdd ? fleetSuperpowers : []);
     setProviderModeState("hosted");
     setByokKeyValues({});
     setByokKeyErrors({});
     setDeployStatus("idle");
-  }, []);
+  }, [isFleetAdd, fleetSuperpowers]);
 
   const state: OnboardingState = {
+    mode,
     step,
     stepIndex,
     totalSteps,
@@ -349,12 +411,15 @@ export function useOnboarding(): [OnboardingState, OnboardingActions] {
     byokKeyValues,
     byokKeyErrors,
     deployStatus,
+    existingBots: isFleetAdd ? MOCK_EXISTING_BOTS : [],
+    cloneFromBotId,
   };
 
   const actions: OnboardingActions = {
     setWoprName,
     setPersonalityId,
     setCustomPersonality,
+    setCloneFromBot,
     toggleChannel,
     setChannelKeyValue,
     validateChannelKey,

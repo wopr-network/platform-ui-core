@@ -3,8 +3,16 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { type Personality, personalities } from "@/lib/onboarding-data";
 import { cn } from "@/lib/utils";
+import type { ExistingBot, WizardMode } from "./use-onboarding";
 
 interface StepNameProps {
   name: string;
@@ -13,6 +21,10 @@ interface StepNameProps {
   onNameChange: (name: string) => void;
   onPersonalityChange: (id: string) => void;
   onCustomPersonalityChange: (value: string) => void;
+  mode?: WizardMode;
+  existingBots?: ExistingBot[];
+  cloneFromBotId?: string;
+  onCloneFromBot?: (botId: string) => void;
 }
 
 export function StepName({
@@ -22,12 +34,22 @@ export function StepName({
   onNameChange,
   onPersonalityChange,
   onCustomPersonalityChange,
+  mode = "onboarding",
+  existingBots = [],
+  cloneFromBotId = "",
+  onCloneFromBot,
 }: StepNameProps) {
+  const isFleetAdd = mode === "fleet-add";
+
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h2 className="text-2xl font-bold tracking-tight">Name your WOPR Bot</h2>
-        <p className="mt-2 text-muted-foreground">Give it a name and a personality.</p>
+        <h2 className="text-2xl font-bold tracking-tight">
+          {isFleetAdd ? "Name your new WOPR" : "Name your WOPR Bot"}
+        </h2>
+        <p className="mt-2 text-muted-foreground">
+          {isFleetAdd ? "What should this one be called?" : "Give it a name and a personality."}
+        </p>
       </div>
 
       <div className="space-y-2">
@@ -40,6 +62,28 @@ export function StepName({
           autoFocus
         />
       </div>
+
+      {isFleetAdd && existingBots.length > 0 && (
+        <div className="space-y-2">
+          <Label>Clone personality from existing bot</Label>
+          <Select
+            value={cloneFromBotId}
+            onValueChange={(value) => onCloneFromBot?.(value === "__none__" ? "" : value)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Start fresh" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__">Start fresh</SelectItem>
+              {existingBots.map((bot) => (
+                <SelectItem key={bot.id} value={bot.id}>
+                  Same as {bot.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       <div className="space-y-3">
         <Label>Personality</Label>

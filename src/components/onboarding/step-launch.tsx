@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { channelPlugins, superpowers } from "@/lib/onboarding-data";
 import { cn } from "@/lib/utils";
 import { NuclearLaunchModal } from "./nuclear-launch-modal";
-import type { DeployStatus, ProviderMode } from "./use-onboarding";
+import type { DeployStatus, ProviderMode, WizardMode } from "./use-onboarding";
 
 interface StepLaunchProps {
   woprName: string;
@@ -17,6 +17,7 @@ interface StepLaunchProps {
   deployStatus: DeployStatus;
   onDeploy: () => void;
   onGoToDashboard: () => void;
+  mode?: WizardMode;
 }
 
 const DEPLOY_STAGES: {
@@ -44,7 +45,9 @@ export function StepLaunch({
   deployStatus,
   onDeploy,
   onGoToDashboard,
+  mode = "onboarding",
 }: StepLaunchProps) {
+  const isFleetAdd = mode === "fleet-add";
   const [showModal, setShowModal] = useState(false);
   const currentIndex = getStageIndex(deployStatus);
   const progressValue =
@@ -103,7 +106,11 @@ export function StepLaunch({
               className="px-12 text-lg"
               onClick={deployStatus === "error" ? onDeploy : handleLaunchClick}
             >
-              {deployStatus === "error" ? "Retry Launch" : "Launch WOPR Bot"}
+              {deployStatus === "error"
+                ? "Retry Launch"
+                : isFleetAdd
+                  ? "Add to Fleet"
+                  : "Launch WOPR Bot"}
             </Button>
           </div>
         )}

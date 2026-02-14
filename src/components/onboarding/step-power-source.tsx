@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { type OnboardingConfigField, superpowers } from "@/lib/onboarding-data";
 import { cn } from "@/lib/utils";
-import type { ProviderMode } from "./use-onboarding";
+import type { ProviderMode, WizardMode } from "./use-onboarding";
 
 interface StepPowerSourceProps {
   selectedSuperpowers: string[];
@@ -19,6 +19,7 @@ interface StepPowerSourceProps {
   byokKeyErrors: Record<string, string | null>;
   onByokKeyChange: (key: string, value: string) => void;
   onValidateByokKey: (key: string) => void;
+  mode?: WizardMode;
 }
 
 export function StepPowerSource({
@@ -30,7 +31,9 @@ export function StepPowerSource({
   byokKeyErrors,
   onByokKeyChange,
   onValidateByokKey,
+  mode = "onboarding",
 }: StepPowerSourceProps) {
+  const isFleetAdd = mode === "fleet-add";
   const keySuperpowers = superpowers.filter(
     (sp) => selectedSuperpowers.includes(sp.id) && sp.requiresKey,
   );
@@ -40,9 +43,22 @@ export function StepPowerSource({
       <div className="text-center">
         <h2 className="text-2xl font-bold tracking-tight">How do you want to power them?</h2>
         <p className="mt-2 text-muted-foreground">
-          Use your signup credits or bring your own API keys.
+          {isFleetAdd
+            ? "This WOPR shares your credit pool. No extra payment needed."
+            : "Use your signup credits or bring your own API keys."}
         </p>
       </div>
+
+      {isFleetAdd && (
+        <div className="rounded-lg border border-terminal/20 bg-terminal/5 p-4 text-center">
+          <p className="text-sm font-medium">
+            You have <span className="font-bold text-terminal">{creditBalance}</span> in credits
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            New bots share your existing credit pool. No extra payment required.
+          </p>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {/* Hosted option */}

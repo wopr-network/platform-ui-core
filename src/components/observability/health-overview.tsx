@@ -70,7 +70,7 @@ export function HealthOverview({ instanceId }: { instanceId: string }) {
       <div className="space-y-4">
         <Skeleton className="h-5 w-32" />
         <div className="grid gap-4 sm:grid-cols-2">
-          {Array.from({ length: 4 }, (_, n) => `sk-${n}`).map((skId, i) => (
+          {Array.from({ length: 4 }, (_, n) => `sk-${n}`).map((skId) => (
             <div key={skId} className="rounded-sm border p-4 space-y-2">
               <Skeleton className="h-4 w-24" />
               <Skeleton className="h-6 w-16" />
