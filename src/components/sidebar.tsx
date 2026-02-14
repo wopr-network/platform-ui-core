@@ -17,7 +17,7 @@ import { signOut, useSession } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { label: "Dashboard", href: "/marketplace" },
+  { label: "Dashboard", href: "/dashboard" },
   { label: "Marketplace", href: "/marketplace" },
   { label: "Channels", href: "/channels" },
   { label: "Plugins", href: "/plugins" },
@@ -29,6 +29,7 @@ const navItems = [
 ];
 
 function isNavActive(href: string, pathname: string): boolean {
+  if (href === "/dashboard") return pathname === "/dashboard";
   if (href === "/marketplace") return pathname === "/marketplace";
   if (href === "/settings/profile") return pathname.startsWith("/settings");
   if (href === "/billing/plans")
