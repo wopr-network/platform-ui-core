@@ -16,7 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { BillingInfo } from "@/lib/api";
+import type { BillingInfo, Invoice } from "@/lib/api";
 import { getBillingInfo, removePaymentMethod, updateBillingEmail } from "@/lib/api";
 
 const statusStyles: Record<string, string> = {
@@ -31,6 +31,7 @@ export default function PaymentPage() {
   const [billingEmail, setBillingEmail] = useState("");
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
+  const [expandedInvoice, setExpandedInvoice] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -66,6 +67,10 @@ export default function PaymentPage() {
         paymentMethods: info.paymentMethods.filter((pm) => pm.id !== id),
       });
     }
+  }
+
+  function toggleInvoiceDetail(invoiceId: string) {
+    setExpandedInvoice(expandedInvoice === invoiceId ? null : invoiceId);
   }
 
   if (loading || !info) {
@@ -193,31 +198,79 @@ export default function PaymentPage() {
             </TableHeader>
             <TableBody>
               {info.invoices.map((invoice) => (
-                <TableRow key={invoice.id}>
-                  <TableCell className="font-medium">
-                    {new Date(invoice.date).toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    })}
-                  </TableCell>
-                  <TableCell>${invoice.amount.toFixed(2)}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className={statusStyles[invoice.status]}>
-                      {invoice.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Button variant="ghost" size="sm" asChild>
-                      <a href={invoice.downloadUrl}>Download</a>
-                    </Button>
-                  </TableCell>
-                </TableRow>
+                <InvoiceRow
+                  key={invoice.id}
+                  invoice={invoice}
+                  expanded={expandedInvoice === invoice.id}
+                  onToggle={() => toggleInvoiceDetail(invoice.id)}
+                />
               ))}
             </TableBody>
           </Table>
         </div>
       )}
     </div>
+  );
+}
+
+function InvoiceRow({
+  invoice,
+  expanded,
+  onToggle,
+}: {
+  invoice: Invoice;
+  expanded: boolean;
+  onToggle: () => void;
+}) {
+  const hasLineItems = invoice.hostedLineItems && invoice.hostedLineItems.length > 0;
+
+  return (
+    <>
+      <TableRow>
+        <TableCell className="font-medium">
+          {new Date(invoice.date).toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          })}
+        </TableCell>
+        <TableCell>${invoice.amount.toFixed(2)}</TableCell>
+        <TableCell>
+          <Badge variant="outline" className={statusStyles[invoice.status]}>
+            {invoice.status}
+          </Badge>
+        </TableCell>
+        <TableCell className="flex gap-1">
+          {hasLineItems && (
+            <Button variant="ghost" size="sm" onClick={onToggle}>
+              {expanded ? "Hide" : "Details"}
+            </Button>
+          )}
+          <Button variant="ghost" size="sm" asChild>
+            <a href={invoice.downloadUrl}>Download</a>
+          </Button>
+        </TableCell>
+      </TableRow>
+      {expanded && hasLineItems && (
+        <TableRow>
+          <TableCell colSpan={4} className="bg-muted/50 p-4">
+            <p className="mb-2 text-xs font-semibold text-muted-foreground">
+              Hosted Usage Line Items
+            </p>
+            <div className="space-y-1 text-xs">
+              {invoice.hostedLineItems?.map((item, i) => (
+                <div key={`${invoice.id}-item-${i}`} className="flex justify-between">
+                  <span>
+                    {item.capability} — {item.units.toLocaleString()} units @ $
+                    {item.unitPrice.toFixed(4)}/unit
+                  </span>
+                  <span className="font-medium">${item.total.toFixed(2)}</span>
+                </div>
+              ))}
+            </div>
+          </TableCell>
+        </TableRow>
+      )}
+    </>
   );
 }

@@ -12,21 +12,34 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import type { Plan, PlanTier } from "@/lib/api";
-import { changePlan, getCurrentPlan, getPlans } from "@/lib/api";
+import type { InferenceMode, Plan, PlanTier } from "@/lib/api";
+import { changePlan, getCurrentPlan, getInferenceMode, getPlans } from "@/lib/api";
 import { cn } from "@/lib/utils";
+
+const HOSTED_CREDITS: Record<string, string> = {
+  free: "$5 hosted credit/mo",
+  pro: "$50 hosted credit/mo",
+  team: "$200 hosted credit/mo",
+  enterprise: "Custom hosted credit",
+};
 
 export default function PlansPage() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [currentTier, setCurrentTier] = useState<PlanTier | null>(null);
+  const [inferenceMode, setInferenceMode] = useState<InferenceMode | null>(null);
   const [loading, setLoading] = useState(true);
   const [changingTo, setChangingTo] = useState<PlanTier | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [plansData, tier] = await Promise.all([getPlans(), getCurrentPlan()]);
+    const [plansData, tier, mode] = await Promise.all([
+      getPlans(),
+      getCurrentPlan(),
+      getInferenceMode().catch(() => "byok" as const),
+    ]);
     setPlans(plansData);
     setCurrentTier(tier);
+    setInferenceMode(mode);
     setLoading(false);
   }, []);
 
@@ -53,6 +66,8 @@ export default function PlansPage() {
       </div>
     );
   }
+
+  const isHosted = inferenceMode === "hosted";
 
   return (
     <div className="max-w-5xl space-y-6">
@@ -109,6 +124,9 @@ export default function PlansPage() {
                   <FeatureRow label="Channels" value={plan.features.channels} />
                   <FeatureRow label="Plugins" value={plan.features.plugins} />
                   <FeatureRow label="Support" value={plan.features.support} />
+                  {isHosted && HOSTED_CREDITS[plan.tier] && (
+                    <FeatureRow label="Hosted AI" value={HOSTED_CREDITS[plan.tier]} />
+                  )}
                 </div>
                 {plan.features.extras.length > 0 && (
                   <ul className="space-y-1 text-xs text-muted-foreground">
@@ -116,6 +134,11 @@ export default function PlansPage() {
                       <li key={extra}>- {extra}</li>
                     ))}
                   </ul>
+                )}
+                {isHosted && plan.tier !== "enterprise" && plan.tier !== "free" && (
+                  <p className="text-xs text-muted-foreground">
+                    Usage beyond included credit is metered at per-capability rates.
+                  </p>
                 )}
               </CardContent>
               <CardFooter>

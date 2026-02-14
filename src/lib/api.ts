@@ -399,6 +399,54 @@ export interface BillingUsage {
   apiCalls: number;
 }
 
+export type HostedCapability = "transcription" | "image_gen" | "text_gen" | "embeddings";
+
+export interface HostedCapabilityUsage {
+  capability: HostedCapability;
+  label: string;
+  units: number;
+  unitLabel: string;
+  cost: number;
+}
+
+export interface HostedUsageSummary {
+  periodStart: string;
+  periodEnd: string;
+  capabilities: HostedCapabilityUsage[];
+  totalCost: number;
+  includedCredit: number;
+  amountDue: number;
+}
+
+export interface HostedUsageEvent {
+  id: string;
+  date: string;
+  capability: HostedCapability;
+  provider: string;
+  units: number;
+  unitLabel: string;
+  cost: number;
+}
+
+export interface SpendingLimit {
+  alertAt: number | null;
+  hardCap: number | null;
+}
+
+export interface SpendingLimits {
+  global: SpendingLimit;
+  perCapability: Record<HostedCapability, SpendingLimit>;
+}
+
+export type InferenceMode = "byok" | "hosted";
+
+export interface InvoiceLineItem {
+  capability: string;
+  units: number;
+  unitPrice: number;
+  total: number;
+}
+
 export interface ProviderCost {
   provider: string;
   estimatedCost: number;
@@ -418,6 +466,7 @@ export interface Invoice {
   amount: number;
   status: "paid" | "pending" | "failed";
   downloadUrl: string;
+  hostedLineItems?: InvoiceLineItem[];
 }
 
 export interface PaymentMethod {
@@ -568,5 +617,40 @@ export async function createCreditCheckout(amount: number): Promise<CheckoutResp
   return apiFetch<CheckoutResponse>("/billing/credits/checkout", {
     method: "POST",
     body: JSON.stringify({ amount }),
+  });
+}
+
+// --- Hosted usage API ---
+
+export async function getInferenceMode(): Promise<InferenceMode> {
+  const res = await apiFetch<{ mode: InferenceMode }>("/billing/inference-mode");
+  return res.mode;
+}
+
+export async function getHostedUsageSummary(): Promise<HostedUsageSummary> {
+  return apiFetch<HostedUsageSummary>("/billing/hosted-usage");
+}
+
+export async function getHostedUsageEvents(params?: {
+  capability?: HostedCapability;
+  from?: string;
+  to?: string;
+}): Promise<HostedUsageEvent[]> {
+  const qs = new URLSearchParams();
+  if (params?.capability) qs.set("capability", params.capability);
+  if (params?.from) qs.set("from", params.from);
+  if (params?.to) qs.set("to", params.to);
+  const query = qs.toString();
+  return apiFetch<HostedUsageEvent[]>(`/billing/hosted-usage/events${query ? `?${query}` : ""}`);
+}
+
+export async function getSpendingLimits(): Promise<SpendingLimits> {
+  return apiFetch<SpendingLimits>("/billing/spending-limits");
+}
+
+export async function updateSpendingLimits(limits: SpendingLimits): Promise<void> {
+  await apiFetch("/billing/spending-limits", {
+    method: "PUT",
+    body: JSON.stringify(limits),
   });
 }

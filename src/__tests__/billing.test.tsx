@@ -1,7 +1,16 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import type { BillingInfo, BillingUsage, Plan, ProviderCost, UsageDataPoint } from "@/lib/api";
+import type {
+  BillingInfo,
+  BillingUsage,
+  HostedUsageEvent,
+  HostedUsageSummary,
+  Plan,
+  ProviderCost,
+  SpendingLimits,
+  UsageDataPoint,
+} from "@/lib/api";
 
 // Mock next/navigation
 vi.mock("next/navigation", () => ({
@@ -110,6 +119,75 @@ const MOCK_PROVIDER_COSTS: ProviderCost[] = [
   { provider: "OpenAI", estimatedCost: 8.12, inputTokens: 210000, outputTokens: 145000 },
 ];
 
+const MOCK_HOSTED_USAGE: HostedUsageSummary = {
+  periodStart: "2026-02-01T00:00:00Z",
+  periodEnd: "2026-02-28T23:59:59Z",
+  capabilities: [
+    {
+      capability: "transcription",
+      label: "Transcription",
+      units: 42,
+      unitLabel: "min",
+      cost: 0.25,
+    },
+    {
+      capability: "image_gen",
+      label: "Image Generation",
+      units: 18,
+      unitLabel: "images",
+      cost: 0.9,
+    },
+    {
+      capability: "text_gen",
+      label: "Text Generation",
+      units: 125000,
+      unitLabel: "tokens",
+      cost: 0.25,
+    },
+    {
+      capability: "embeddings",
+      label: "Embeddings",
+      units: 500000,
+      unitLabel: "tokens",
+      cost: 0.05,
+    },
+  ],
+  totalCost: 1.45,
+  includedCredit: 50,
+  amountDue: 0,
+};
+
+const MOCK_HOSTED_EVENTS: HostedUsageEvent[] = [
+  {
+    id: "evt-1",
+    date: "2026-02-10T12:00:00Z",
+    capability: "transcription",
+    provider: "Whisper",
+    units: 10,
+    unitLabel: "min",
+    cost: 0.06,
+  },
+  {
+    id: "evt-2",
+    date: "2026-02-11T14:00:00Z",
+    capability: "image_gen",
+    provider: "DALL-E",
+    units: 5,
+    unitLabel: "images",
+    cost: 0.25,
+  },
+];
+
+const MOCK_SPENDING_LIMITS: SpendingLimits = {
+  global: { alertAt: 100, hardCap: 200 },
+  perCapability: {
+    transcription: { alertAt: null, hardCap: null },
+    image_gen: { alertAt: 10, hardCap: 50 },
+    text_gen: { alertAt: null, hardCap: null },
+    embeddings: { alertAt: null, hardCap: null },
+  },
+};
+
 function generateUsageHistory(days: number): UsageDataPoint[] {
   const now = new Date();
   return Array.from({ length: days }, (_, i) => {
@@ -160,7 +238,7 @@ const MOCK_BILLING_INFO: BillingInfo = {
   ],
 };
 
-// Mock @/lib/api with test fixtures
+// Mock @/lib/api with BYOK mode by default (for backward compat with existing tests)
 vi.mock("@/lib/api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/api")>();
   return {
@@ -174,6 +252,11 @@ vi.mock("@/lib/api", async (importOriginal) => {
     getBillingInfo: vi.fn().mockResolvedValue(MOCK_BILLING_INFO),
     updateBillingEmail: vi.fn().mockResolvedValue(undefined),
     removePaymentMethod: vi.fn().mockResolvedValue(undefined),
+    getInferenceMode: vi.fn().mockResolvedValue("byok"),
+    getHostedUsageSummary: vi.fn().mockResolvedValue(MOCK_HOSTED_USAGE),
+    getHostedUsageEvents: vi.fn().mockResolvedValue(MOCK_HOSTED_EVENTS),
+    getSpendingLimits: vi.fn().mockResolvedValue(MOCK_SPENDING_LIMITS),
+    updateSpendingLimits: vi.fn().mockResolvedValue(undefined),
   };
 });
 
@@ -290,7 +373,7 @@ describe("Usage page", () => {
     const { default: UsagePage } = await import("../app/(dashboard)/billing/usage/page");
     render(<UsagePage />);
 
-    const toggle = await screen.findByRole("switch");
+    const toggle = await screen.findByRole("switch", { name: /off/i });
     await user.click(toggle);
 
     expect(await screen.findByText("Anthropic")).toBeInTheDocument();
@@ -390,5 +473,65 @@ describe("Billing layout", () => {
     expect(screen.getByText("Usage")).toBeInTheDocument();
     expect(screen.getByText("Payment")).toBeInTheDocument();
     expect(screen.getByText("child content")).toBeInTheDocument();
+  });
+
+  it("shows Hosted Usage nav for hosted users", async () => {
+    const api = await import("@/lib/api");
+    vi.mocked(api.getInferenceMode).mockResolvedValue("hosted");
+
+    const { default: BillingLayout } = await import("../app/(dashboard)/billing/layout");
+    render(
+      <BillingLayout>
+        <div>child content</div>
+      </BillingLayout>,
+    );
+
+    expect(await screen.findByText("Hosted Usage")).toBeInTheDocument();
+
+    // Reset for other tests
+    vi.mocked(api.getInferenceMode).mockResolvedValue("byok");
+  });
+});
+
+describe("Hosted usage detail page", () => {
+  it("renders hosted usage heading", async () => {
+    const { default: HostedPage } = await import("../app/(dashboard)/billing/usage/hosted/page");
+    render(<HostedPage />);
+
+    expect(screen.getByText("Loading hosted usage...")).toBeInTheDocument();
+    expect(await screen.findByText("Hosted Usage Detail")).toBeInTheDocument();
+  });
+
+  it("renders usage events table", async () => {
+    const { default: HostedPage } = await import("../app/(dashboard)/billing/usage/hosted/page");
+    render(<HostedPage />);
+
+    expect(await screen.findByText("Usage Events")).toBeInTheDocument();
+    expect(screen.getByText("Whisper")).toBeInTheDocument();
+    expect(screen.getByText("DALL-E")).toBeInTheDocument();
+    expect(screen.getByText("$0.06")).toBeInTheDocument();
+    expect(screen.getByText("$0.25")).toBeInTheDocument();
+  });
+
+  it("renders export CSV button", async () => {
+    const { default: HostedPage } = await import("../app/(dashboard)/billing/usage/hosted/page");
+    render(<HostedPage />);
+
+    expect(await screen.findByRole("button", { name: "Export CSV" })).toBeInTheDocument();
+  });
+
+  it("renders capability filter", async () => {
+    const { default: HostedPage } = await import("../app/(dashboard)/billing/usage/hosted/page");
+    render(<HostedPage />);
+
+    expect(await screen.findByLabelText("Filter by capability")).toBeInTheDocument();
+  });
+
+  it("shows total cost in description", async () => {
+    const { default: HostedPage } = await import("../app/(dashboard)/billing/usage/hosted/page");
+    render(<HostedPage />);
+
+    expect(await screen.findByText(/2 events/)).toBeInTheDocument();
+    expect(screen.getByText(/Total: \$0\.31/)).toBeInTheDocument();
   });
 });
