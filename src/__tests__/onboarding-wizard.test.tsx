@@ -216,7 +216,7 @@ describe("StepSuperpowers", () => {
   it("shows toggle switches", () => {
     render(<StepSuperpowers selected={[]} onToggle={vi.fn()} />);
     const switches = screen.getAllByRole("switch");
-    expect(switches).toHaveLength(4);
+    expect(switches).toHaveLength(5);
   });
 
   it("calls onToggle when a switch is clicked", () => {
@@ -244,6 +244,8 @@ describe("StepPowerSource", () => {
         selectedSuperpowers={["image-gen"]}
         providerMode="hosted"
         onProviderModeChange={vi.fn()}
+        byokAiProvider="openrouter"
+        onByokAiProviderChange={vi.fn()}
         creditBalance="$5.00"
         byokKeyValues={{}}
         byokKeyErrors={{}}
@@ -262,6 +264,8 @@ describe("StepPowerSource", () => {
         selectedSuperpowers={["image-gen"]}
         providerMode="hosted"
         onProviderModeChange={vi.fn()}
+        byokAiProvider="openrouter"
+        onByokAiProviderChange={vi.fn()}
         creditBalance="$5.00"
         byokKeyValues={{}}
         byokKeyErrors={{}}
@@ -279,6 +283,8 @@ describe("StepPowerSource", () => {
         selectedSuperpowers={["image-gen"]}
         providerMode="byok"
         onProviderModeChange={onModeChange}
+        byokAiProvider="openrouter"
+        onByokAiProviderChange={vi.fn()}
         creditBalance="$5.00"
         byokKeyValues={{}}
         byokKeyErrors={{}}
@@ -296,6 +302,8 @@ describe("StepPowerSource", () => {
         selectedSuperpowers={["image-gen"]}
         providerMode="byok"
         onProviderModeChange={vi.fn()}
+        byokAiProvider="openrouter"
+        onByokAiProviderChange={vi.fn()}
         creditBalance="$5.00"
         byokKeyValues={{}}
         byokKeyErrors={{}}
@@ -312,6 +320,8 @@ describe("StepPowerSource", () => {
         selectedSuperpowers={["image-gen", "voice"]}
         providerMode="byok"
         onProviderModeChange={vi.fn()}
+        byokAiProvider="openrouter"
+        onByokAiProviderChange={vi.fn()}
         creditBalance="$5.00"
         byokKeyValues={{}}
         byokKeyErrors={{}}
@@ -329,6 +339,8 @@ describe("StepPowerSource", () => {
         selectedSuperpowers={["image-gen"]}
         providerMode="hosted"
         onProviderModeChange={vi.fn()}
+        byokAiProvider="openrouter"
+        onByokAiProviderChange={vi.fn()}
         creditBalance="$5.00"
         byokKeyValues={{}}
         byokKeyErrors={{}}
@@ -337,6 +349,198 @@ describe("StepPowerSource", () => {
       />,
     );
     expect(screen.queryByText("OpenAI API Key")).not.toBeInTheDocument();
+  });
+
+  it("shows AI provider toggle when AI-key superpowers selected in BYOK mode", () => {
+    render(
+      <StepPowerSource
+        selectedSuperpowers={["memory", "search"]}
+        providerMode="byok"
+        onProviderModeChange={vi.fn()}
+        byokAiProvider="openrouter"
+        onByokAiProviderChange={vi.fn()}
+        creditBalance="$5.00"
+        byokKeyValues={{}}
+        byokKeyErrors={{}}
+        onByokKeyChange={vi.fn()}
+        onValidateByokKey={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("OpenAI")).toBeInTheDocument();
+    expect(screen.getByText("OpenRouter")).toBeInTheDocument();
+    expect(screen.getByText("Choose your AI provider")).toBeInTheDocument();
+  });
+
+  it("shows OpenRouter key field when openrouter provider selected", () => {
+    render(
+      <StepPowerSource
+        selectedSuperpowers={["memory"]}
+        providerMode="byok"
+        onProviderModeChange={vi.fn()}
+        byokAiProvider="openrouter"
+        onByokAiProviderChange={vi.fn()}
+        creditBalance="$5.00"
+        byokKeyValues={{}}
+        byokKeyErrors={{}}
+        onByokKeyChange={vi.fn()}
+        onValidateByokKey={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("OpenRouter API Key")).toBeInTheDocument();
+  });
+
+  it("shows OpenAI key field when openai provider selected", () => {
+    render(
+      <StepPowerSource
+        selectedSuperpowers={["memory"]}
+        providerMode="byok"
+        onProviderModeChange={vi.fn()}
+        byokAiProvider="openai"
+        onByokAiProviderChange={vi.fn()}
+        creditBalance="$5.00"
+        byokKeyValues={{}}
+        byokKeyErrors={{}}
+        onByokKeyChange={vi.fn()}
+        onValidateByokKey={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("OpenAI API Key")).toBeInTheDocument();
+  });
+
+  it("calls onByokAiProviderChange when provider card is clicked", () => {
+    const onProviderChange = vi.fn();
+    render(
+      <StepPowerSource
+        selectedSuperpowers={["memory"]}
+        providerMode="byok"
+        onProviderModeChange={vi.fn()}
+        byokAiProvider="openrouter"
+        onByokAiProviderChange={onProviderChange}
+        creditBalance="$5.00"
+        byokKeyValues={{}}
+        byokKeyErrors={{}}
+        onByokKeyChange={vi.fn()}
+        onValidateByokKey={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByText("OpenAI"));
+    expect(onProviderChange).toHaveBeenCalledWith("openai");
+  });
+
+  it("shows capability unlock confirmation when AI key is valid", () => {
+    render(
+      <StepPowerSource
+        selectedSuperpowers={["memory", "search", "text-gen"]}
+        providerMode="byok"
+        onProviderModeChange={vi.fn()}
+        byokAiProvider="openrouter"
+        onByokAiProviderChange={vi.fn()}
+        creditBalance="$5.00"
+        byokKeyValues={{ openrouter_api_key: "sk-or-test123" }}
+        byokKeyErrors={{}}
+        onByokKeyChange={vi.fn()}
+        onValidateByokKey={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("Key validated -- capabilities unlocked:")).toBeInTheDocument();
+    expect(screen.getByText("Embeddings for long-term recall")).toBeInTheDocument();
+    expect(screen.getByText("Web and document search")).toBeInTheDocument();
+    expect(screen.getByText("200+ AI models via OpenRouter")).toBeInTheDocument();
+  });
+
+  it("does not show capability unlock when AI key has error", () => {
+    render(
+      <StepPowerSource
+        selectedSuperpowers={["memory"]}
+        providerMode="byok"
+        onProviderModeChange={vi.fn()}
+        byokAiProvider="openrouter"
+        onByokAiProviderChange={vi.fn()}
+        creditBalance="$5.00"
+        byokKeyValues={{ openrouter_api_key: "invalid" }}
+        byokKeyErrors={{ openrouter_api_key: "Must start with sk-or-" }}
+        onByokKeyChange={vi.fn()}
+        onValidateByokKey={vi.fn()}
+      />,
+    );
+    expect(screen.queryByText("Key validated -- capabilities unlocked:")).not.toBeInTheDocument();
+  });
+
+  it("shows Switch to Hosted escape hatch in BYOK mode", () => {
+    render(
+      <StepPowerSource
+        selectedSuperpowers={["memory"]}
+        providerMode="byok"
+        onProviderModeChange={vi.fn()}
+        byokAiProvider="openrouter"
+        onByokAiProviderChange={vi.fn()}
+        creditBalance="$5.00"
+        byokKeyValues={{}}
+        byokKeyErrors={{}}
+        onByokKeyChange={vi.fn()}
+        onValidateByokKey={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("Switch to Hosted")).toBeInTheDocument();
+  });
+
+  it("calls onProviderModeChange when Switch to Hosted is clicked", () => {
+    const onModeChange = vi.fn();
+    render(
+      <StepPowerSource
+        selectedSuperpowers={["memory"]}
+        providerMode="byok"
+        onProviderModeChange={onModeChange}
+        byokAiProvider="openrouter"
+        onByokAiProviderChange={vi.fn()}
+        creditBalance="$5.00"
+        byokKeyValues={{}}
+        byokKeyErrors={{}}
+        onByokKeyChange={vi.fn()}
+        onValidateByokKey={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByText("Switch to Hosted"));
+    expect(onModeChange).toHaveBeenCalledWith("hosted");
+  });
+
+  it("does not show AI provider toggle when only non-AI superpowers selected", () => {
+    render(
+      <StepPowerSource
+        selectedSuperpowers={["voice"]}
+        providerMode="byok"
+        onProviderModeChange={vi.fn()}
+        byokAiProvider="openrouter"
+        onByokAiProviderChange={vi.fn()}
+        creditBalance="$5.00"
+        byokKeyValues={{}}
+        byokKeyErrors={{}}
+        onByokKeyChange={vi.fn()}
+        onValidateByokKey={vi.fn()}
+      />,
+    );
+    expect(screen.queryByText("Choose your AI provider")).not.toBeInTheDocument();
+    expect(screen.getByText("ElevenLabs API Key")).toBeInTheDocument();
+  });
+
+  it("shows both AI provider toggle and non-AI keys for mixed superpowers", () => {
+    render(
+      <StepPowerSource
+        selectedSuperpowers={["memory", "voice"]}
+        providerMode="byok"
+        onProviderModeChange={vi.fn()}
+        byokAiProvider="openrouter"
+        onByokAiProviderChange={vi.fn()}
+        creditBalance="$5.00"
+        byokKeyValues={{}}
+        byokKeyErrors={{}}
+        onByokKeyChange={vi.fn()}
+        onValidateByokKey={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("Choose your AI provider")).toBeInTheDocument();
+    expect(screen.getByText("OpenRouter API Key")).toBeInTheDocument();
+    expect(screen.getByText("ElevenLabs API Key")).toBeInTheDocument();
   });
 });
 

@@ -13,6 +13,33 @@ export const personalities: Personality[] = [
   { id: "custom", name: "Custom", description: "Describe your own personality." },
 ];
 
+// --- BYOK AI Provider choice ---
+
+export type ByokAiProvider = "openai" | "openrouter";
+
+export const openaiKeyField: OnboardingConfigField = {
+  key: "openai_api_key",
+  label: "OpenAI API Key",
+  secret: true,
+  placeholder: "sk-...",
+  helpUrl: "https://platform.openai.com/api-keys",
+  helpText: "Covers embeddings, search, and text generation.",
+  validation: { pattern: "^sk-", message: "Must start with sk-" },
+};
+
+export const openrouterKeyField: OnboardingConfigField = {
+  key: "openrouter_api_key",
+  label: "OpenRouter API Key",
+  secret: true,
+  placeholder: "sk-or-...",
+  helpUrl: "https://openrouter.ai/keys",
+  helpText: "Covers embeddings, search, and 200+ AI models.",
+  validation: { pattern: "^sk-or-", message: "Must start with sk-or-" },
+};
+
+/** Superpower IDs that share a single OpenAI/OpenRouter key */
+export const AI_KEY_SUPERPOWER_IDS = ["memory", "search", "text-gen"] as const;
+
 // --- Superpowers ---
 
 export interface Superpower {
@@ -25,6 +52,8 @@ export interface Superpower {
   /** Whether this superpower needs an API key under BYOK mode */
   requiresKey: boolean;
   configFields: OnboardingConfigField[];
+  /** If true, this superpower uses the shared OpenAI/OpenRouter key */
+  usesAiKey?: boolean;
 }
 
 export const superpowers: Superpower[] = [
@@ -74,8 +103,9 @@ export const superpowers: Superpower[] = [
     description: "Long-term memory with semantic search across conversations.",
     icon: "Brain",
     color: "#10B981",
-    requiresKey: false,
-    configFields: [],
+    requiresKey: true,
+    usesAiKey: true,
+    configFields: [openaiKeyField],
   },
   {
     id: "search",
@@ -85,16 +115,19 @@ export const superpowers: Superpower[] = [
     icon: "Search",
     color: "#3B82F6",
     requiresKey: true,
-    configFields: [
-      {
-        key: "serper_api_key",
-        label: "Serper API Key",
-        secret: true,
-        placeholder: "Paste your Serper API key",
-        helpUrl: "https://serper.dev/",
-        helpText: "Used for web search. Free tier available.",
-      },
-    ],
+    usesAiKey: true,
+    configFields: [openaiKeyField],
+  },
+  {
+    id: "text-gen",
+    name: "Text-gen",
+    tagline: "AI chat models",
+    description: "Access text generation models for chat and reasoning.",
+    icon: "MessageSquare",
+    color: "#6366F1",
+    requiresKey: true,
+    usesAiKey: true,
+    configFields: [openaiKeyField],
   },
 ];
 
@@ -856,6 +889,38 @@ export function resolveDependencies(
 
   return [...resolved];
 }
+
+/** Returns the config field for the shared AI key based on provider choice */
+export function getAiKeyField(provider: ByokAiProvider): OnboardingConfigField {
+  return provider === "openrouter" ? openrouterKeyField : openaiKeyField;
+}
+
+/** Returns superpowers that use the shared AI key */
+export function getAiKeySuperpowers(selectedIds: string[]): Superpower[] {
+  return superpowers.filter((sp) => selectedIds.includes(sp.id) && sp.usesAiKey);
+}
+
+/** Capability descriptions shown after key validation */
+export const AI_CAPABILITY_DESCRIPTIONS: Record<
+  string,
+  { label: string; openai: string; openrouter: string }
+> = {
+  memory: {
+    label: "Memory",
+    openai: "Embeddings for long-term recall",
+    openrouter: "Embeddings for long-term recall",
+  },
+  search: {
+    label: "Search",
+    openai: "Web and document search",
+    openrouter: "Web and document search",
+  },
+  "text-gen": {
+    label: "Text-gen",
+    openai: "GPT-4o, o3 text generation",
+    openrouter: "200+ AI models via OpenRouter",
+  },
+};
 
 export function validateField(field: OnboardingConfigField, value: string): string | null {
   if (!value.trim()) {
