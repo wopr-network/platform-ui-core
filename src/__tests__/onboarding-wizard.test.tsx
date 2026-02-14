@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { StepBilling } from "@/components/onboarding/step-billing";
 import { StepChannels } from "@/components/onboarding/step-channels";
 import { StepDeploy } from "@/components/onboarding/step-deploy";
 import { StepDone } from "@/components/onboarding/step-done";
@@ -70,24 +71,99 @@ describe("StepChannels", () => {
 });
 
 describe("StepProviders", () => {
-  it("renders all provider options", () => {
-    render(<StepProviders selected={[]} onToggle={vi.fn()} />);
+  it("renders WOPR Hosted hero card", () => {
+    render(
+      <StepProviders
+        selected={[]}
+        onToggle={vi.fn()}
+        providerMode="hosted"
+        onProviderModeChange={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("WOPR Hosted")).toBeInTheDocument();
+    expect(screen.getByText("Recommended")).toBeInTheDocument();
+  });
+
+  it("renders BYOK section with toggle", () => {
+    render(
+      <StepProviders
+        selected={[]}
+        onToggle={vi.fn()}
+        providerMode="hosted"
+        onProviderModeChange={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("Already have API keys? Bring your own.")).toBeInTheDocument();
+  });
+
+  it("shows provider grid when BYOK is expanded", () => {
+    render(
+      <StepProviders
+        selected={[]}
+        onToggle={vi.fn()}
+        providerMode="byok"
+        onProviderModeChange={vi.fn()}
+      />,
+    );
     expect(screen.getByText("Anthropic")).toBeInTheDocument();
     expect(screen.getByText("OpenAI")).toBeInTheDocument();
     expect(screen.getByText("Kimi")).toBeInTheDocument();
     expect(screen.getByText("OpenCode")).toBeInTheDocument();
   });
 
-  it("shows Selected label for selected providers", () => {
-    render(<StepProviders selected={["anthropic"]} onToggle={vi.fn()} />);
+  it("shows Selected label for selected providers in BYOK mode", () => {
+    render(
+      <StepProviders
+        selected={["anthropic"]}
+        onToggle={vi.fn()}
+        providerMode="byok"
+        onProviderModeChange={vi.fn()}
+      />,
+    );
     expect(screen.getByText("Selected")).toBeInTheDocument();
   });
 
-  it("calls onToggle when a provider is clicked", () => {
+  it("calls onToggle when a provider is clicked in BYOK mode", () => {
     const onToggle = vi.fn();
-    render(<StepProviders selected={[]} onToggle={onToggle} />);
+    render(
+      <StepProviders
+        selected={[]}
+        onToggle={onToggle}
+        providerMode="byok"
+        onProviderModeChange={vi.fn()}
+      />,
+    );
     fireEvent.click(screen.getByText("Anthropic"));
     expect(onToggle).toHaveBeenCalledWith("anthropic");
+  });
+
+  it("calls onProviderModeChange when hosted is selected", () => {
+    const onModeChange = vi.fn();
+    render(
+      <StepProviders
+        selected={[]}
+        onToggle={vi.fn()}
+        providerMode="byok"
+        onProviderModeChange={onModeChange}
+      />,
+    );
+    fireEvent.click(screen.getByText("WOPR Hosted"));
+    expect(onModeChange).toHaveBeenCalledWith("hosted");
+  });
+
+  it("shows hosted capabilities", () => {
+    render(
+      <StepProviders
+        selected={[]}
+        onToggle={vi.fn()}
+        providerMode="hosted"
+        onProviderModeChange={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("Text Generation")).toBeInTheDocument();
+    expect(screen.getByText("Image Generation")).toBeInTheDocument();
+    expect(screen.getByText("Transcription")).toBeInTheDocument();
+    expect(screen.getByText("Embeddings")).toBeInTheDocument();
   });
 });
 
@@ -301,6 +377,86 @@ describe("StepKeys", () => {
       />,
     );
     expect(screen.getByText("No keys required for your current selection.")).toBeInTheDocument();
+  });
+});
+
+describe("StepBilling", () => {
+  it("renders the payment heading", () => {
+    render(
+      <StepBilling
+        billingEmail=""
+        cardComplete={false}
+        onEmailChange={vi.fn()}
+        onCardCompleteChange={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("Payment method")).toBeInTheDocument();
+  });
+
+  it("renders billing email input", () => {
+    render(
+      <StepBilling
+        billingEmail="test@example.com"
+        cardComplete={false}
+        onEmailChange={vi.fn()}
+        onCardCompleteChange={vi.fn()}
+      />,
+    );
+    const input = screen.getByLabelText("Billing email") as HTMLInputElement;
+    expect(input.value).toBe("test@example.com");
+  });
+
+  it("calls onEmailChange when email is typed", () => {
+    const onEmailChange = vi.fn();
+    render(
+      <StepBilling
+        billingEmail=""
+        cardComplete={false}
+        onEmailChange={onEmailChange}
+        onCardCompleteChange={vi.fn()}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText("Billing email"), {
+      target: { value: "user@test.com" },
+    });
+    expect(onEmailChange).toHaveBeenCalledWith("user@test.com");
+  });
+
+  it("shows no-commitment messaging", () => {
+    render(
+      <StepBilling
+        billingEmail=""
+        cardComplete={false}
+        onEmailChange={vi.fn()}
+        onCardCompleteChange={vi.fn()}
+      />,
+    );
+    expect(screen.getByText(/No minimum, no commitment/)).toBeInTheDocument();
+  });
+
+  it("renders stripe placeholder", () => {
+    render(
+      <StepBilling
+        billingEmail=""
+        cardComplete={false}
+        onEmailChange={vi.fn()}
+        onCardCompleteChange={vi.fn()}
+      />,
+    );
+    expect(screen.getByTestId("stripe-card-placeholder")).toBeInTheDocument();
+  });
+});
+
+describe("StepPlugins hosted mode", () => {
+  it("shows 'Included with WOPR Hosted' badge for hosted-included plugins", () => {
+    render(<StepPlugins selected={[]} onToggle={vi.fn()} providerMode="hosted" />);
+    const badges = screen.getAllByText("Included with WOPR Hosted");
+    expect(badges.length).toBeGreaterThan(0);
+  });
+
+  it("does not show hosted badge in byok mode", () => {
+    render(<StepPlugins selected={[]} onToggle={vi.fn()} providerMode="byok" />);
+    expect(screen.queryByText("Included with WOPR Hosted")).not.toBeInTheDocument();
   });
 });
 

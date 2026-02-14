@@ -1,15 +1,21 @@
 "use client";
 
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { pluginCategories } from "@/lib/onboarding-data";
+import type { ProviderMode } from "./use-onboarding";
 
 interface StepPluginsProps {
   selected: string[];
   onToggle: (id: string) => void;
+  providerMode?: ProviderMode;
 }
 
-export function StepPlugins({ selected, onToggle }: StepPluginsProps) {
+/** Plugin IDs whose API key requirement is covered by WOPR Hosted */
+const HOSTED_INCLUDED_PLUGINS = new Set(["elevenlabs-tts", "deepgram-stt", "openai-tts"]);
+
+export function StepPlugins({ selected, onToggle, providerMode }: StepPluginsProps) {
   return (
     <div className="space-y-6">
       <div className="text-center">
@@ -27,6 +33,8 @@ export function StepPlugins({ selected, onToggle }: StepPluginsProps) {
             <div className="space-y-2">
               {category.plugins.map((plugin) => {
                 const isSelected = selected.includes(plugin.id);
+                const isHostedIncluded =
+                  providerMode === "hosted" && HOSTED_INCLUDED_PLUGINS.has(plugin.id);
                 return (
                   <Card key={plugin.id} className="py-3">
                     <CardContent className="flex items-center justify-between gap-4 py-0">
@@ -38,7 +46,14 @@ export function StepPlugins({ selected, onToggle }: StepPluginsProps) {
                           {plugin.name[0]}
                         </div>
                         <div>
-                          <p className="text-sm font-medium">{plugin.name}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-medium">{plugin.name}</p>
+                            {isHostedIncluded && (
+                              <Badge variant="secondary" className="text-xs">
+                                Included with WOPR Hosted
+                              </Badge>
+                            )}
+                          </div>
                           <p className="text-xs text-muted-foreground">{plugin.description}</p>
                           {plugin.requires && plugin.requires.length > 0 && (
                             <p className="mt-0.5 text-xs text-muted-foreground/70">

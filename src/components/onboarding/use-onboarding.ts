@@ -10,12 +10,15 @@ import {
   validateField,
 } from "@/lib/onboarding-data";
 
+export type ProviderMode = "hosted" | "byok";
+
 export type OnboardingStep =
   | "presets"
   | "channels"
   | "providers"
   | "plugins"
   | "keys"
+  | "billing"
   | "deploy"
   | "done";
 
@@ -29,11 +32,30 @@ const STEP_ORDER: OnboardingStep[] = [
   "done",
 ];
 
+const HOSTED_STEP_ORDER: OnboardingStep[] = [
+  "presets",
+  "providers",
+  "billing",
+  "channels",
+  "plugins",
+  "deploy",
+  "done",
+];
+
 const CUSTOM_STEP_ORDER: OnboardingStep[] = [
   "channels",
   "providers",
   "plugins",
   "keys",
+  "deploy",
+  "done",
+];
+
+const CUSTOM_HOSTED_STEP_ORDER: OnboardingStep[] = [
+  "providers",
+  "billing",
+  "channels",
+  "plugins",
   "deploy",
   "done",
 ];
@@ -53,6 +75,9 @@ export interface OnboardingState {
   configFields: OnboardingConfigField[];
   deployStatus: DeployStatus;
   isCustomFlow: boolean;
+  providerMode: ProviderMode;
+  billingEmail: string;
+  billingCardComplete: boolean;
 }
 
 export type DeployStatus =
@@ -66,12 +91,15 @@ export type DeployStatus =
 
 export interface OnboardingActions {
   selectPreset: (preset: Preset) => void;
+  setProviderMode: (mode: ProviderMode) => void;
   toggleChannel: (id: string) => void;
   toggleProvider: (id: string) => void;
   togglePlugin: (id: string) => void;
   setKeyValue: (key: string, value: string) => void;
   validateKey: (key: string) => void;
   validateAllKeys: () => boolean;
+  setBillingEmail: (email: string) => void;
+  setBillingCardComplete: (complete: boolean) => void;
   next: () => void;
   back: () => void;
   deploy: () => void;
@@ -90,6 +118,9 @@ export function useOnboarding(): [OnboardingState, OnboardingActions] {
   const [keyValidating, setKeyValidating] = useState<Record<string, boolean>>({});
   const [deployStatus, setDeployStatus] = useState<DeployStatus>("idle");
   const [isCustomFlow, setIsCustomFlow] = useState(false);
+  const [providerMode, setProviderModeState] = useState<ProviderMode>("hosted");
+  const [billingEmail, setBillingEmailState] = useState("");
+  const [billingCardComplete, setBillingCardCompleteState] = useState(false);
 
   const deployIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const validateTimeoutsRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
@@ -101,7 +132,13 @@ export function useOnboarding(): [OnboardingState, OnboardingActions] {
     };
   }, []);
 
-  const stepOrder = isCustomFlow ? CUSTOM_STEP_ORDER : STEP_ORDER;
+  const stepOrder = isCustomFlow
+    ? providerMode === "hosted"
+      ? CUSTOM_HOSTED_STEP_ORDER
+      : CUSTOM_STEP_ORDER
+    : providerMode === "hosted"
+      ? HOSTED_STEP_ORDER
+      : STEP_ORDER;
   const stepIndex = stepOrder.indexOf(step);
   const totalSteps = stepOrder.length;
   const progress = totalSteps > 1 ? ((stepIndex + 1) / totalSteps) * 100 : 0;
@@ -132,8 +169,21 @@ export function useOnboarding(): [OnboardingState, OnboardingActions] {
       setSelectedChannels(preset.channels);
       setSelectedProviders(preset.providers);
       setSelectedPlugins(preset.plugins);
+      setProviderModeState("byok");
       setStep("keys");
     }
+  }, []);
+
+  const setProviderMode = useCallback((mode: ProviderMode) => {
+    setProviderModeState(mode);
+  }, []);
+
+  const setBillingEmail = useCallback((email: string) => {
+    setBillingEmailState(email);
+  }, []);
+
+  const setBillingCardComplete = useCallback((complete: boolean) => {
+    setBillingCardCompleteState(complete);
   }, []);
 
   const toggleChannel = useCallback((id: string) => {
@@ -199,7 +249,7 @@ export function useOnboarding(): [OnboardingState, OnboardingActions] {
       case "channels":
         return selectedChannels.length > 0;
       case "providers":
-        return selectedProviders.length > 0;
+        return providerMode === "hosted" || selectedProviders.length > 0;
       case "plugins":
         return true; // plugins are optional
       case "keys":
@@ -207,12 +257,24 @@ export function useOnboarding(): [OnboardingState, OnboardingActions] {
           const value = keyValues[f.key] || "";
           return validateField(f, value) === null;
         });
+      case "billing":
+        return billingCardComplete && billingEmail.trim().length > 0;
       case "deploy":
         return deployStatus === "done";
       case "done":
         return false;
     }
-  }, [step, selectedChannels, selectedProviders, configFields, keyValues, deployStatus]);
+  }, [
+    step,
+    selectedChannels,
+    selectedProviders,
+    providerMode,
+    configFields,
+    keyValues,
+    billingCardComplete,
+    billingEmail,
+    deployStatus,
+  ]);
 
   const next = useCallback(() => {
     const currentIndex = stepOrder.indexOf(step);
@@ -266,6 +328,9 @@ export function useOnboarding(): [OnboardingState, OnboardingActions] {
     setKeyValidating({});
     setDeployStatus("idle");
     setIsCustomFlow(false);
+    setProviderModeState("hosted");
+    setBillingEmailState("");
+    setBillingCardCompleteState(false);
   }, []);
 
   const state: OnboardingState = {
@@ -283,16 +348,22 @@ export function useOnboarding(): [OnboardingState, OnboardingActions] {
     configFields,
     deployStatus,
     isCustomFlow,
+    providerMode,
+    billingEmail,
+    billingCardComplete,
   };
 
   const actions: OnboardingActions = {
     selectPreset,
+    setProviderMode,
     toggleChannel,
     toggleProvider,
     togglePlugin,
     setKeyValue,
     validateKey,
     validateAllKeys,
+    setBillingEmail,
+    setBillingCardComplete,
     next,
     back,
     deploy,

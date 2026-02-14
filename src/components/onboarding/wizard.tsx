@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { presets as presetData } from "@/lib/onboarding-data";
+import { StepBilling } from "./step-billing";
 import { StepChannels } from "./step-channels";
 import { StepDeploy } from "./step-deploy";
 import { StepDone } from "./step-done";
@@ -19,6 +20,7 @@ const STEP_LABELS: Record<string, string> = {
   providers: "Providers",
   plugins: "Plugins",
   keys: "Configuration",
+  billing: "Payment",
   deploy: "Deploy",
   done: "Done",
 };
@@ -56,11 +58,20 @@ export function OnboardingWizard() {
       )}
 
       {state.step === "providers" && (
-        <StepProviders selected={state.selectedProviders} onToggle={actions.toggleProvider} />
+        <StepProviders
+          selected={state.selectedProviders}
+          onToggle={actions.toggleProvider}
+          providerMode={state.providerMode}
+          onProviderModeChange={actions.setProviderMode}
+        />
       )}
 
       {state.step === "plugins" && (
-        <StepPlugins selected={state.selectedPlugins} onToggle={actions.togglePlugin} />
+        <StepPlugins
+          selected={state.selectedPlugins}
+          onToggle={actions.togglePlugin}
+          providerMode={state.providerMode}
+        />
       )}
 
       {state.step === "keys" && (
@@ -71,6 +82,15 @@ export function OnboardingWizard() {
           validating={state.keyValidating}
           onChange={actions.setKeyValue}
           onValidate={actions.validateKey}
+        />
+      )}
+
+      {state.step === "billing" && (
+        <StepBilling
+          billingEmail={state.billingEmail}
+          cardComplete={state.billingCardComplete}
+          onEmailChange={actions.setBillingEmail}
+          onCardCompleteChange={actions.setBillingCardComplete}
         />
       )}
 
