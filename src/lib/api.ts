@@ -563,9 +563,13 @@ export async function updateCapability(
   });
 }
 
-export async function testCapabilityKey(capability: CapabilityName): Promise<{ valid: boolean }> {
+export async function testCapabilityKey(
+  capability: CapabilityName,
+  key?: string,
+): Promise<{ valid: boolean }> {
   return apiFetch<{ valid: boolean }>(`/settings/capabilities/${capability}/test`, {
     method: "POST",
+    ...(key ? { body: JSON.stringify({ key }) } : {}),
   });
 }
 
@@ -681,6 +685,17 @@ export async function updateModelSelection(data: ModelSelection): Promise<ModelS
 export interface KeyValidationResult {
   valid: boolean;
   message?: string;
+}
+
+export async function validateDeepgramKey(key: string): Promise<KeyValidationResult> {
+  try {
+    const result = await testCapabilityKey("transcription", key);
+    return result.valid
+      ? { valid: true }
+      : { valid: false, message: "Invalid API key. Please check and try again." };
+  } catch {
+    return { valid: false, message: "Could not validate key. Please try again." };
+  }
 }
 
 export async function validateElevenLabsKey(key: string): Promise<KeyValidationResult> {

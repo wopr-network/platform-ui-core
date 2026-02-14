@@ -412,7 +412,7 @@ export const pluginCategories: PluginCategory[] = [
             label: "Deepgram API Key",
             secret: true,
             placeholder: "Paste your Deepgram API key",
-            helpUrl: "https://console.deepgram.com/",
+            helpUrl: "https://console.deepgram.com/api-keys",
             helpText: "Get an API key from Deepgram Console.",
           },
         ],
