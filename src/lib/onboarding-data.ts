@@ -449,6 +449,257 @@ export const presets: Preset[] = [
   },
 ];
 
+// --- Model catalog ---
+
+export interface ModelOption {
+  id: string;
+  name: string;
+  provider: string;
+  providerId: string;
+  description: string;
+  costPerMessage: string;
+  hero: boolean;
+  recommended: boolean;
+  category: "reasoning" | "general" | "fast" | "code" | "vision" | "open-source";
+}
+
+export const heroModels: ModelOption[] = [
+  {
+    id: "anthropic/claude-sonnet-4-20250514",
+    name: "Claude Sonnet 4",
+    provider: "Anthropic",
+    providerId: "anthropic",
+    description: "Best at reasoning, coding, and conversation",
+    costPerMessage: "~$0.01/msg",
+    hero: true,
+    recommended: true,
+    category: "reasoning",
+  },
+  {
+    id: "openai/gpt-4o",
+    name: "GPT-4o",
+    provider: "OpenAI",
+    providerId: "openai",
+    description: "Great all-rounder, fast and reliable",
+    costPerMessage: "~$0.005/msg",
+    hero: true,
+    recommended: false,
+    category: "general",
+  },
+  {
+    id: "meta-llama/llama-3.3-70b-instruct",
+    name: "Llama 3.3 70B",
+    provider: "Meta",
+    providerId: "meta",
+    description: "Open source and fast, good for simple tasks",
+    costPerMessage: "~$0.001/msg",
+    hero: true,
+    recommended: false,
+    category: "open-source",
+  },
+];
+
+export const additionalModels: ModelOption[] = [
+  {
+    id: "anthropic/claude-opus-4-20250514",
+    name: "Claude Opus 4",
+    provider: "Anthropic",
+    providerId: "anthropic",
+    description: "Most capable, deep reasoning",
+    costPerMessage: "~$0.08/msg",
+    hero: false,
+    recommended: false,
+    category: "reasoning",
+  },
+  {
+    id: "anthropic/claude-haiku-4-20250514",
+    name: "Claude Haiku 4",
+    provider: "Anthropic",
+    providerId: "anthropic",
+    description: "Fast and affordable",
+    costPerMessage: "~$0.001/msg",
+    hero: false,
+    recommended: false,
+    category: "fast",
+  },
+  {
+    id: "openai/gpt-4o-mini",
+    name: "GPT-4o Mini",
+    provider: "OpenAI",
+    providerId: "openai",
+    description: "Lightweight and fast",
+    costPerMessage: "~$0.001/msg",
+    hero: false,
+    recommended: false,
+    category: "fast",
+  },
+  {
+    id: "openai/o3",
+    name: "o3",
+    provider: "OpenAI",
+    providerId: "openai",
+    description: "Advanced reasoning model",
+    costPerMessage: "~$0.04/msg",
+    hero: false,
+    recommended: false,
+    category: "reasoning",
+  },
+  {
+    id: "google/gemini-2.5-pro",
+    name: "Gemini 2.5 Pro",
+    provider: "Google",
+    providerId: "google",
+    description: "Multimodal with long context",
+    costPerMessage: "~$0.01/msg",
+    hero: false,
+    recommended: false,
+    category: "vision",
+  },
+  {
+    id: "google/gemini-2.5-flash",
+    name: "Gemini 2.5 Flash",
+    provider: "Google",
+    providerId: "google",
+    description: "Fast and cost-effective",
+    costPerMessage: "~$0.002/msg",
+    hero: false,
+    recommended: false,
+    category: "fast",
+  },
+  {
+    id: "mistralai/mistral-large",
+    name: "Mistral Large",
+    provider: "Mistral",
+    providerId: "mistral",
+    description: "Strong multilingual model",
+    costPerMessage: "~$0.008/msg",
+    hero: false,
+    recommended: false,
+    category: "general",
+  },
+  {
+    id: "mistralai/mistral-small",
+    name: "Mistral Small",
+    provider: "Mistral",
+    providerId: "mistral",
+    description: "Efficient and affordable",
+    costPerMessage: "~$0.001/msg",
+    hero: false,
+    recommended: false,
+    category: "fast",
+  },
+  {
+    id: "cohere/command-r-plus",
+    name: "Command R+",
+    provider: "Cohere",
+    providerId: "cohere",
+    description: "Retrieval-augmented generation specialist",
+    costPerMessage: "~$0.005/msg",
+    hero: false,
+    recommended: false,
+    category: "general",
+  },
+  {
+    id: "deepseek/deepseek-chat-v3",
+    name: "DeepSeek V3",
+    provider: "DeepSeek",
+    providerId: "deepseek",
+    description: "Strong reasoning at low cost",
+    costPerMessage: "~$0.002/msg",
+    hero: false,
+    recommended: false,
+    category: "reasoning",
+  },
+  {
+    id: "meta-llama/llama-3.1-8b-instruct",
+    name: "Llama 3.1 8B",
+    provider: "Meta",
+    providerId: "meta",
+    description: "Small and very fast",
+    costPerMessage: "~$0.0002/msg",
+    hero: false,
+    recommended: false,
+    category: "fast",
+  },
+  {
+    id: "qwen/qwen-2.5-72b-instruct",
+    name: "Qwen 2.5 72B",
+    provider: "Qwen",
+    providerId: "qwen",
+    description: "Multilingual powerhouse",
+    costPerMessage: "~$0.003/msg",
+    hero: false,
+    recommended: false,
+    category: "general",
+  },
+];
+
+export const allModels: ModelOption[] = [...heroModels, ...additionalModels];
+
+export const MODEL_COUNT = "200+";
+
+// --- BYOK Providers ---
+
+export interface ByokProvider {
+  id: string;
+  name: string;
+  description: string;
+  models: string;
+  color: string;
+}
+
+export const byokProviders: ByokProvider[] = [
+  {
+    id: "anthropic",
+    name: "Anthropic",
+    description: "Claude models directly",
+    models: "Claude Opus, Sonnet, Haiku",
+    color: "#D4A574",
+  },
+  {
+    id: "openai",
+    name: "OpenAI",
+    description: "GPT-4, o1, GPT-4o directly",
+    models: "GPT-4o, o1, o3",
+    color: "#10A37F",
+  },
+  {
+    id: "openrouter",
+    name: "OpenRouter",
+    description: "200+ models, one key",
+    models: "All providers",
+    color: "#6366F1",
+  },
+  {
+    id: "google",
+    name: "Google AI",
+    description: "Gemini models directly",
+    models: "Gemini 2.5 Pro, Flash",
+    color: "#4285F4",
+  },
+  {
+    id: "mistral",
+    name: "Mistral",
+    description: "Mistral models directly",
+    models: "Large, Small, Codestral",
+    color: "#FF7000",
+  },
+  {
+    id: "groq",
+    name: "Groq",
+    description: "Ultra-fast inference",
+    models: "Llama, Mixtral",
+    color: "#F55036",
+  },
+  {
+    id: "together",
+    name: "Together",
+    description: "Open-source model hosting",
+    models: "Llama, Qwen, Mistral",
+    color: "#0066FF",
+  },
+];
+
 // --- Helpers ---
 
 export function getAllPlugins(): PluginOption[] {

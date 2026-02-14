@@ -15,6 +15,7 @@ export type ProviderMode = "hosted" | "byok";
 export type OnboardingStep =
   | "presets"
   | "channels"
+  | "model"
   | "providers"
   | "plugins"
   | "keys"
@@ -25,6 +26,7 @@ export type OnboardingStep =
 const STEP_ORDER: OnboardingStep[] = [
   "presets",
   "channels",
+  "model",
   "providers",
   "plugins",
   "keys",
@@ -34,6 +36,7 @@ const STEP_ORDER: OnboardingStep[] = [
 
 const HOSTED_STEP_ORDER: OnboardingStep[] = [
   "presets",
+  "model",
   "providers",
   "billing",
   "channels",
@@ -44,6 +47,7 @@ const HOSTED_STEP_ORDER: OnboardingStep[] = [
 
 const CUSTOM_STEP_ORDER: OnboardingStep[] = [
   "channels",
+  "model",
   "providers",
   "plugins",
   "keys",
@@ -52,6 +56,7 @@ const CUSTOM_STEP_ORDER: OnboardingStep[] = [
 ];
 
 const CUSTOM_HOSTED_STEP_ORDER: OnboardingStep[] = [
+  "model",
   "providers",
   "billing",
   "channels",
@@ -66,6 +71,7 @@ export interface OnboardingState {
   totalSteps: number;
   progress: number;
   selectedPreset: Preset | null;
+  selectedModel: string | null;
   selectedChannels: string[];
   selectedProviders: string[];
   selectedPlugins: string[];
@@ -91,6 +97,7 @@ export type DeployStatus =
 
 export interface OnboardingActions {
   selectPreset: (preset: Preset) => void;
+  selectModel: (modelId: string) => void;
   setProviderMode: (mode: ProviderMode) => void;
   toggleChannel: (id: string) => void;
   toggleProvider: (id: string) => void;
@@ -110,6 +117,9 @@ export interface OnboardingActions {
 export function useOnboarding(): [OnboardingState, OnboardingActions] {
   const [step, setStep] = useState<OnboardingStep>("presets");
   const [selectedPreset, setSelectedPreset] = useState<Preset | null>(null);
+  const [selectedModel, setSelectedModel] = useState<string | null>(
+    "anthropic/claude-sonnet-4-20250514",
+  );
   const [selectedChannels, setSelectedChannels] = useState<string[]>([]);
   const [selectedProviders, setSelectedProviders] = useState<string[]>([]);
   const [selectedPlugins, setSelectedPlugins] = useState<string[]>([]);
@@ -172,6 +182,10 @@ export function useOnboarding(): [OnboardingState, OnboardingActions] {
       setProviderModeState("byok");
       setStep("keys");
     }
+  }, []);
+
+  const selectModel = useCallback((modelId: string) => {
+    setSelectedModel(modelId);
   }, []);
 
   const setProviderMode = useCallback((mode: ProviderMode) => {
@@ -248,6 +262,8 @@ export function useOnboarding(): [OnboardingState, OnboardingActions] {
         return true; // user picks a preset which auto-advances
       case "channels":
         return selectedChannels.length > 0;
+      case "model":
+        return selectedModel !== null;
       case "providers":
         return providerMode === "hosted" || selectedProviders.length > 0;
       case "plugins":
@@ -266,6 +282,7 @@ export function useOnboarding(): [OnboardingState, OnboardingActions] {
     }
   }, [
     step,
+    selectedModel,
     selectedChannels,
     selectedProviders,
     providerMode,
@@ -320,6 +337,7 @@ export function useOnboarding(): [OnboardingState, OnboardingActions] {
     validateTimeoutsRef.current = {};
     setStep("presets");
     setSelectedPreset(null);
+    setSelectedModel("anthropic/claude-sonnet-4-20250514");
     setSelectedChannels([]);
     setSelectedProviders([]);
     setSelectedPlugins([]);
@@ -339,6 +357,7 @@ export function useOnboarding(): [OnboardingState, OnboardingActions] {
     totalSteps,
     progress,
     selectedPreset,
+    selectedModel,
     selectedChannels,
     selectedProviders,
     selectedPlugins: resolvedPlugins,
@@ -355,6 +374,7 @@ export function useOnboarding(): [OnboardingState, OnboardingActions] {
 
   const actions: OnboardingActions = {
     selectPreset,
+    selectModel,
     setProviderMode,
     toggleChannel,
     toggleProvider,

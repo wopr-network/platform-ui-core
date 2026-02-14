@@ -654,3 +654,24 @@ export async function updateSpendingLimits(limits: SpendingLimits): Promise<void
     body: JSON.stringify(limits),
   });
 }
+
+// --- Model selection types ---
+
+export interface ModelSelection {
+  modelId: string;
+  providerId: string;
+  mode: "hosted" | "byok";
+}
+
+// --- Model selection API ---
+
+export async function getModelSelection(): Promise<ModelSelection> {
+  return apiFetch<ModelSelection>("/settings/model");
+}
+
+export async function updateModelSelection(data: ModelSelection): Promise<ModelSelection> {
+  return apiFetch<ModelSelection>("/settings/model", {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}

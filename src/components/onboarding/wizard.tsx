@@ -10,6 +10,7 @@ import { StepChannels } from "./step-channels";
 import { StepDeploy } from "./step-deploy";
 import { StepDone } from "./step-done";
 import { StepKeys } from "./step-keys";
+import { StepModelSelect } from "./step-model-select";
 import { StepPlugins } from "./step-plugins";
 import { StepPresets } from "./step-presets";
 import { StepProviders } from "./step-providers";
@@ -18,6 +19,7 @@ import { useOnboarding } from "./use-onboarding";
 const STEP_LABELS: Record<string, string> = {
   presets: "Getting Started",
   channels: "Channels",
+  model: "Brain",
   providers: "Providers",
   plugins: "Plugins",
   keys: "Configuration",
@@ -67,6 +69,15 @@ export function OnboardingWizard() {
         {state.step === "channels" && (
           <motion.div key="channels" {...stepTransition}>
             <StepChannels selected={state.selectedChannels} onToggle={actions.toggleChannel} />
+          </motion.div>
+        )}
+
+        {state.step === "model" && (
+          <motion.div key="model" {...stepTransition}>
+            <StepModelSelect
+              selectedModel={state.selectedModel}
+              onSelectModel={actions.selectModel}
+            />
           </motion.div>
         )}
 
