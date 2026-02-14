@@ -82,6 +82,13 @@ export function LandingPage() {
         <p className="text-sm text-muted-foreground">
           Credits in, credits out. You&apos;re always in control.
         </p>
+
+        <Link
+          href="/pricing"
+          className="text-sm text-terminal underline underline-offset-4 hover:text-terminal-dim"
+        >
+          See full pricing
+        </Link>
       </section>
 
       {/* ─── Final CTA ─── */}
@@ -99,6 +106,9 @@ export function LandingPage() {
 
       {/* ─── Footer ─── */}
       <footer className="flex justify-center gap-6 px-6 pb-8 text-sm text-muted-foreground">
+        <Link href="/pricing" className="underline underline-offset-4 hover:text-foreground">
+          Pricing
+        </Link>
         <Link href="/terms" className="underline underline-offset-4 hover:text-foreground">
           Terms
         </Link>
