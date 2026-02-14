@@ -203,6 +203,7 @@ describe("StepSuperpowers", () => {
   it("renders all superpowers", () => {
     render(<StepSuperpowers selected={[]} onToggle={vi.fn()} />);
     expect(screen.getByText("ImageGen")).toBeInTheDocument();
+    expect(screen.getByText("VideoGen")).toBeInTheDocument();
     expect(screen.getByText("Voice")).toBeInTheDocument();
     expect(screen.getByText("Memory")).toBeInTheDocument();
     expect(screen.getByText("Search")).toBeInTheDocument();
@@ -229,6 +230,7 @@ describe("StepSuperpowers", () => {
   it("shows taglines", () => {
     render(<StepSuperpowers selected={[]} onToggle={vi.fn()} />);
     expect(screen.getByText("/imagine anything")).toBeInTheDocument();
+    expect(screen.getByText("/video in any channel")).toBeInTheDocument();
     expect(screen.getByText("Talk out loud")).toBeInTheDocument();
     expect(screen.getByText("Remembers everything")).toBeInTheDocument();
     expect(screen.getByText("Web + docs")).toBeInTheDocument();
@@ -311,7 +313,7 @@ describe("StepPowerSource", () => {
         onValidateByokKey={vi.fn()}
       />,
     );
-    expect(screen.getByText("OpenAI API Key")).toBeInTheDocument();
+    expect(screen.getByText("Replicate API Token")).toBeInTheDocument();
   });
 
   it("lists required keys for selected superpowers", () => {
@@ -348,7 +350,7 @@ describe("StepPowerSource", () => {
         onValidateByokKey={vi.fn()}
       />,
     );
-    expect(screen.queryByText("OpenAI API Key")).not.toBeInTheDocument();
+    expect(screen.queryByText("Replicate API Token")).not.toBeInTheDocument();
   });
 
   it("shows AI provider toggle when AI-key superpowers selected in BYOK mode", () => {
