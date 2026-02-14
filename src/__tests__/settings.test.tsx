@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import type { Organization, PlatformApiKey, ProviderKey, UserProfile } from "@/lib/api";
 
 // Mock next/navigation
 vi.mock("next/navigation", () => ({
@@ -17,6 +18,134 @@ vi.mock("better-auth/react", () => ({
     signOut: vi.fn(),
   }),
 }));
+
+const MOCK_PROFILE: UserProfile = {
+  id: "user-001",
+  name: "Alice Johnson",
+  email: "alice@example.com",
+  avatarUrl: null,
+  oauthConnections: [
+    { provider: "github", connected: true },
+    { provider: "discord", connected: false },
+    { provider: "google", connected: true },
+  ],
+};
+
+const MOCK_PROVIDERS: ProviderKey[] = [
+  {
+    id: "pk-1",
+    provider: "Anthropic",
+    maskedKey: "sk-ant-...a1b2",
+    status: "valid",
+    lastChecked: "2026-02-13T14:00:00Z",
+    defaultModel: "claude-sonnet-4-5-20250514",
+    models: ["claude-sonnet-4-5-20250514", "claude-opus-4-5-20250514", "claude-haiku-4-5-20250514"],
+  },
+  {
+    id: "pk-2",
+    provider: "OpenAI",
+    maskedKey: "sk-...x9y8",
+    status: "valid",
+    lastChecked: "2026-02-13T13:55:00Z",
+    defaultModel: "gpt-4o",
+    models: ["gpt-4o", "gpt-4o-mini", "o1"],
+  },
+  {
+    id: "pk-3",
+    provider: "xAI",
+    maskedKey: "",
+    status: "unchecked",
+    lastChecked: null,
+    defaultModel: null,
+    models: ["grok-2", "grok-3"],
+  },
+];
+
+const MOCK_API_KEYS: PlatformApiKey[] = [
+  {
+    id: "ak-1",
+    name: "CI Pipeline",
+    prefix: "wopr_ci_",
+    scope: "full",
+    createdAt: "2026-01-20T10:00:00Z",
+    lastUsedAt: "2026-02-13T08:00:00Z",
+    expiresAt: "2026-04-20T10:00:00Z",
+  },
+  {
+    id: "ak-2",
+    name: "Monitoring Dashboard",
+    prefix: "wopr_mon_",
+    scope: "read-only",
+    createdAt: "2026-02-01T12:00:00Z",
+    lastUsedAt: "2026-02-12T22:00:00Z",
+    expiresAt: null,
+  },
+  {
+    id: "ak-3",
+    name: "Mobile App",
+    prefix: "wopr_mob_",
+    scope: "instances",
+    createdAt: "2026-02-10T09:00:00Z",
+    lastUsedAt: null,
+    expiresAt: "2026-05-10T09:00:00Z",
+  },
+];
+
+const MOCK_ORG: Organization = {
+  id: "org-001",
+  name: "Acme Corp",
+  billingEmail: "billing@acme.com",
+  members: [
+    {
+      id: "user-001",
+      name: "Alice Johnson",
+      email: "alice@example.com",
+      role: "owner",
+      joinedAt: "2025-12-01T00:00:00Z",
+    },
+    {
+      id: "user-002",
+      name: "Bob Smith",
+      email: "bob@example.com",
+      role: "admin",
+      joinedAt: "2026-01-15T00:00:00Z",
+    },
+    {
+      id: "user-003",
+      name: "Carol Davis",
+      email: "carol@example.com",
+      role: "viewer",
+      joinedAt: "2026-02-01T00:00:00Z",
+    },
+  ],
+};
+
+// Mock @/lib/api with test fixtures
+vi.mock("@/lib/api", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/api")>();
+  return {
+    ...actual,
+    getProfile: vi.fn().mockResolvedValue(MOCK_PROFILE),
+    updateProfile: vi.fn().mockResolvedValue(MOCK_PROFILE),
+    changePassword: vi.fn().mockResolvedValue(undefined),
+    deleteAccount: vi.fn().mockResolvedValue(undefined),
+    connectOauthProvider: vi.fn().mockResolvedValue(undefined),
+    disconnectOauthProvider: vi.fn().mockResolvedValue(undefined),
+    listProviderKeys: vi.fn().mockResolvedValue(MOCK_PROVIDERS),
+    testProviderKey: vi.fn().mockResolvedValue({ valid: true }),
+    removeProviderKey: vi.fn().mockResolvedValue(undefined),
+    saveProviderKey: vi.fn().mockResolvedValue(MOCK_PROVIDERS[0]),
+    updateProviderModel: vi.fn().mockResolvedValue(undefined),
+    listApiKeys: vi.fn().mockResolvedValue(MOCK_API_KEYS),
+    createApiKey: vi.fn().mockResolvedValue({ key: MOCK_API_KEYS[0], secret: "wopr_test_secret" }),
+    revokeApiKey: vi.fn().mockResolvedValue(undefined),
+    getOrganization: vi.fn().mockResolvedValue(MOCK_ORG),
+    updateOrganization: vi.fn().mockResolvedValue(MOCK_ORG),
+    inviteMember: vi.fn().mockResolvedValue(MOCK_ORG.members[2]),
+    removeMember: vi.fn().mockResolvedValue(undefined),
+    transferOwnership: vi.fn().mockResolvedValue(undefined),
+  };
+});
 
 describe("Profile page", () => {
   it("renders profile heading and form fields", async () => {

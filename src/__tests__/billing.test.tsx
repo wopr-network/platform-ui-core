@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import type { BillingInfo, BillingUsage, Plan, ProviderCost, UsageDataPoint } from "@/lib/api";
 
 // Mock next/navigation
 vi.mock("next/navigation", () => ({
@@ -18,6 +19,163 @@ vi.mock("better-auth/react", () => ({
     signOut: vi.fn(),
   }),
 }));
+
+const MOCK_PLANS: Plan[] = [
+  {
+    id: "plan-free",
+    tier: "free",
+    name: "Free",
+    price: 0,
+    priceLabel: "$0 / month",
+    features: {
+      instanceCap: 1,
+      channels: "Web chat only",
+      plugins: "Community plugins",
+      support: "Community support",
+      extras: ["1 GB storage", "1,000 API calls/month"],
+    },
+  },
+  {
+    id: "plan-pro",
+    tier: "pro",
+    name: "Pro",
+    price: 29,
+    priceLabel: "$29 / month",
+    recommended: true,
+    features: {
+      instanceCap: 5,
+      channels: "All channels",
+      plugins: "Marketplace plugins",
+      support: "Priority support",
+      extras: ["10 GB storage", "50,000 API calls/month", "Custom system prompts"],
+    },
+  },
+  {
+    id: "plan-team",
+    tier: "team",
+    name: "Team",
+    price: 99,
+    priceLabel: "$99 / month",
+    features: {
+      instanceCap: 20,
+      channels: "All channels",
+      plugins: "Marketplace + private plugins",
+      support: "SLA-backed support",
+      extras: [
+        "50 GB storage",
+        "200,000 API calls/month",
+        "Org management",
+        "Fleet tools",
+        "Audit logs",
+      ],
+    },
+  },
+  {
+    id: "plan-enterprise",
+    tier: "enterprise",
+    name: "Enterprise",
+    price: null,
+    priceLabel: "Contact sales",
+    features: {
+      instanceCap: null,
+      channels: "All channels + custom",
+      plugins: "All plugins + custom development",
+      support: "Dedicated support engineer",
+      extras: [
+        "Unlimited storage",
+        "Unlimited API calls",
+        "Self-hosted option",
+        "SSO / SAML",
+        "Custom SLA",
+        "Dedicated infrastructure",
+      ],
+    },
+  },
+];
+
+const MOCK_USAGE: BillingUsage = {
+  plan: "pro",
+  planName: "Pro",
+  billingPeriodStart: "2026-02-01T00:00:00Z",
+  billingPeriodEnd: "2026-02-28T23:59:59Z",
+  instancesRunning: 3,
+  instanceCap: 5,
+  storageUsedGb: 2.1,
+  storageCapGb: 10,
+  apiCalls: 12450,
+};
+
+const MOCK_PROVIDER_COSTS: ProviderCost[] = [
+  { provider: "Anthropic", estimatedCost: 23.4, inputTokens: 580000, outputTokens: 410000 },
+  { provider: "OpenAI", estimatedCost: 8.12, inputTokens: 210000, outputTokens: 145000 },
+];
+
+function generateUsageHistory(days: number): UsageDataPoint[] {
+  const now = new Date();
+  return Array.from({ length: days }, (_, i) => {
+    const d = new Date(now);
+    d.setDate(d.getDate() - (days - 1 - i));
+    return {
+      date: d.toISOString().split("T")[0],
+      apiCalls: Math.floor(Math.random() * 800) + 200,
+      instances: Math.floor(Math.random() * 3) + 1,
+    };
+  });
+}
+
+const MOCK_BILLING_INFO: BillingInfo = {
+  email: "billing@acme.com",
+  paymentMethods: [
+    {
+      id: "pm-1",
+      brand: "Visa",
+      last4: "4242",
+      expiryMonth: 12,
+      expiryYear: 2027,
+      isDefault: true,
+    },
+  ],
+  invoices: [
+    {
+      id: "inv-003",
+      date: "2026-02-01T00:00:00Z",
+      amount: 29,
+      status: "pending",
+      downloadUrl: "#",
+    },
+    {
+      id: "inv-002",
+      date: "2026-01-01T00:00:00Z",
+      amount: 29,
+      status: "paid",
+      downloadUrl: "#",
+    },
+    {
+      id: "inv-001",
+      date: "2025-12-01T00:00:00Z",
+      amount: 29,
+      status: "paid",
+      downloadUrl: "#",
+    },
+  ],
+};
+
+// Mock @/lib/api with test fixtures
+vi.mock("@/lib/api", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/api")>();
+  return {
+    ...actual,
+    getPlans: vi.fn().mockResolvedValue(MOCK_PLANS),
+    getCurrentPlan: vi.fn().mockResolvedValue("pro" as const),
+    changePlan: vi.fn().mockResolvedValue(undefined),
+    getBillingUsage: vi.fn().mockResolvedValue(MOCK_USAGE),
+    getProviderCosts: vi.fn().mockResolvedValue(MOCK_PROVIDER_COSTS),
+    getUsageHistory: vi.fn().mockResolvedValue(generateUsageHistory(30)),
+    getBillingInfo: vi.fn().mockResolvedValue(MOCK_BILLING_INFO),
+    updateBillingEmail: vi.fn().mockResolvedValue(undefined),
+    removePaymentMethod: vi.fn().mockResolvedValue(undefined),
+  };
+});
 
 describe("Plans page", () => {
   it("renders plans heading", async () => {
