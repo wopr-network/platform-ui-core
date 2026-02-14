@@ -1,0 +1,284 @@
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
+import type { CreditBalance, CreditHistoryResponse } from "@/lib/api";
+
+// Mock next/navigation
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(),
+  usePathname: () => "/billing/credits",
+}));
+
+// Mock better-auth/react
+vi.mock("better-auth/react", () => ({
+  createAuthClient: () => ({
+    useSession: () => ({ data: null, isPending: false, error: null }),
+    signIn: { email: vi.fn(), social: vi.fn() },
+    signUp: { email: vi.fn() },
+    signOut: vi.fn(),
+  }),
+}));
+
+const MOCK_BALANCE: CreditBalance = {
+  balance: 12.5,
+  dailyBurn: 0.33,
+  runway: 37,
+};
+
+const MOCK_HISTORY: CreditHistoryResponse = {
+  transactions: [
+    {
+      id: "tx-1",
+      type: "signup_credit",
+      description: "Signup credit",
+      amount: 5.0,
+      createdAt: "2026-02-14T00:00:00Z",
+    },
+    {
+      id: "tx-2",
+      type: "bot_runtime",
+      description: "Bot runtime (wopr-1)",
+      amount: -0.17,
+      createdAt: "2026-02-14T12:00:00Z",
+    },
+    {
+      id: "tx-3",
+      type: "purchase",
+      description: "Credit purchase",
+      amount: 25.5,
+      createdAt: "2026-02-15T00:00:00Z",
+    },
+  ],
+  nextCursor: "cursor-abc",
+};
+
+const MOCK_HISTORY_PAGE2: CreditHistoryResponse = {
+  transactions: [
+    {
+      id: "tx-4",
+      type: "bot_runtime",
+      description: "Bot runtime (wopr-2)",
+      amount: -0.17,
+      createdAt: "2026-02-15T12:00:00Z",
+    },
+  ],
+  nextCursor: null,
+};
+
+vi.mock("@/lib/api", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/api")>();
+  return {
+    ...actual,
+    getCreditBalance: vi.fn().mockResolvedValue(MOCK_BALANCE),
+    getCreditHistory: vi.fn().mockImplementation((cursor?: string) => {
+      if (cursor) return Promise.resolve(MOCK_HISTORY_PAGE2);
+      return Promise.resolve(MOCK_HISTORY);
+    }),
+    createCreditCheckout: vi
+      .fn()
+      .mockResolvedValue({ checkoutUrl: "https://checkout.stripe.com/test" }),
+  };
+});
+
+describe("Credits page", () => {
+  it("renders credits heading", async () => {
+    const { default: CreditsPage } = await import("../app/(dashboard)/billing/credits/page");
+    render(<CreditsPage />);
+
+    expect(screen.getByText("Loading credits...")).toBeInTheDocument();
+    expect(await screen.findByText("Credits")).toBeInTheDocument();
+  });
+
+  it("renders balance display", async () => {
+    const { default: CreditsPage } = await import("../app/(dashboard)/billing/credits/page");
+    render(<CreditsPage />);
+
+    expect(await screen.findByText("$12.50")).toBeInTheDocument();
+    expect(screen.getByText("$0.33/day")).toBeInTheDocument();
+    expect(screen.getByText("~37 days")).toBeInTheDocument();
+  });
+
+  it("renders buy credits panel with tiers", async () => {
+    const { default: CreditsPage } = await import("../app/(dashboard)/billing/credits/page");
+    render(<CreditsPage />);
+
+    expect(await screen.findByText("Buy Credits")).toBeInTheDocument();
+    expect(screen.getByText("$5")).toBeInTheDocument();
+    expect(screen.getByText("$10")).toBeInTheDocument();
+    expect(screen.getByText("$25")).toBeInTheDocument();
+    expect(screen.getByText("$50")).toBeInTheDocument();
+    expect(screen.getByText("$100")).toBeInTheDocument();
+  });
+
+  it("renders bonus badges on higher tiers", async () => {
+    const { default: CreditsPage } = await import("../app/(dashboard)/billing/credits/page");
+    render(<CreditsPage />);
+
+    await screen.findByText("Buy Credits");
+    expect(screen.getByText("+2%")).toBeInTheDocument();
+    expect(screen.getByText("+5%")).toBeInTheDocument();
+    expect(screen.getByText("+10%")).toBeInTheDocument();
+  });
+
+  it("renders transaction history", async () => {
+    const { default: CreditsPage } = await import("../app/(dashboard)/billing/credits/page");
+    render(<CreditsPage />);
+
+    expect(await screen.findByText("Transaction History")).toBeInTheDocument();
+    // "Signup credit" appears in both the description and the type badge
+    expect((await screen.findAllByText("Signup credit")).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("Bot runtime (wopr-1)")).toBeInTheDocument();
+    expect(screen.getByText("Credit purchase")).toBeInTheDocument();
+  });
+
+  it("renders positive and negative amounts with correct coloring", async () => {
+    const { default: CreditsPage } = await import("../app/(dashboard)/billing/credits/page");
+    render(<CreditsPage />);
+
+    const positiveAmount = await screen.findByText("+$5.00");
+    expect(positiveAmount).toHaveClass("text-emerald-500");
+
+    const negativeAmount = screen.getByText("-$0.17");
+    expect(negativeAmount).toHaveClass("text-red-500");
+  });
+
+  it("renders load more button when there is a next cursor", async () => {
+    const { default: CreditsPage } = await import("../app/(dashboard)/billing/credits/page");
+    render(<CreditsPage />);
+
+    expect(await screen.findByRole("button", { name: "Load more" })).toBeInTheDocument();
+  });
+
+  it("loads next page of transactions on load more click", async () => {
+    const user = userEvent.setup();
+    const { default: CreditsPage } = await import("../app/(dashboard)/billing/credits/page");
+    render(<CreditsPage />);
+
+    const loadMoreBtn = await screen.findByRole("button", { name: "Load more" });
+    await user.click(loadMoreBtn);
+
+    expect(await screen.findByText("Bot runtime (wopr-2)")).toBeInTheDocument();
+  });
+
+  it("buy credits button is disabled without selection", async () => {
+    const { default: CreditsPage } = await import("../app/(dashboard)/billing/credits/page");
+    render(<CreditsPage />);
+
+    const buyBtn = await screen.findByRole("button", { name: "Buy credits" });
+    expect(buyBtn).toBeDisabled();
+  });
+
+  it("enables buy button after selecting a tier", async () => {
+    const user = userEvent.setup();
+    const { default: CreditsPage } = await import("../app/(dashboard)/billing/credits/page");
+    render(<CreditsPage />);
+
+    await screen.findByText("Buy Credits");
+    const tier10 = screen.getByText("$10");
+    await user.click(tier10);
+
+    const buyBtn = screen.getByRole("button", { name: "Buy credits" });
+    expect(buyBtn).not.toBeDisabled();
+  });
+});
+
+describe("CreditBalance component", () => {
+  it("renders suspended when runway is 0", async () => {
+    const { CreditBalance } = await import("../components/billing/credit-balance");
+    render(<CreditBalance data={{ balance: 0, dailyBurn: 0.33, runway: 0 }} />);
+
+    expect(screen.getByText("Suspended")).toBeInTheDocument();
+    expect(screen.getByText("$0.00")).toBeInTheDocument();
+  });
+
+  it("renders N/A when runway is null", async () => {
+    const { CreditBalance } = await import("../components/billing/credit-balance");
+    render(<CreditBalance data={{ balance: 5, dailyBurn: 0, runway: null }} />);
+
+    expect(screen.getByText("N/A")).toBeInTheDocument();
+  });
+
+  it("renders singular day text", async () => {
+    const { CreditBalance } = await import("../components/billing/credit-balance");
+    render(<CreditBalance data={{ balance: 0.33, dailyBurn: 0.33, runway: 1 }} />);
+
+    expect(screen.getByText("~1 day")).toBeInTheDocument();
+  });
+});
+
+describe("LowBalanceBanner", () => {
+  it("shows no banner when balance > $2", async () => {
+    const { LowBalanceBanner } = await import("../components/billing/low-balance-banner");
+    const { container } = render(<LowBalanceBanner balance={5} runway={15} />);
+
+    expect(container.innerHTML).toBe("");
+  });
+
+  it("shows warning banner when balance is between $1 and $2", async () => {
+    const { LowBalanceBanner } = await import("../components/billing/low-balance-banner");
+    render(<LowBalanceBanner balance={1.5} runway={4} />);
+
+    expect(screen.getByText(/Credits running low/)).toBeInTheDocument();
+    expect(screen.getByText(/~4 days left/)).toBeInTheDocument();
+  });
+
+  it("shows critical banner when balance < $1", async () => {
+    const { LowBalanceBanner } = await import("../components/billing/low-balance-banner");
+    render(<LowBalanceBanner balance={0.5} runway={1} />);
+
+    expect(screen.getByText(/Credits critically low/)).toBeInTheDocument();
+  });
+
+  it("shows suspension banner when balance is $0", async () => {
+    const { LowBalanceBanner } = await import("../components/billing/low-balance-banner");
+    render(<LowBalanceBanner balance={0} runway={0} />);
+
+    expect(screen.getByText(/Bots suspended/)).toBeInTheDocument();
+  });
+
+  it("hides warning banner in global mode", async () => {
+    const { LowBalanceBanner } = await import("../components/billing/low-balance-banner");
+    const { container } = render(<LowBalanceBanner balance={1.5} runway={4} global />);
+
+    expect(container.innerHTML).toBe("");
+  });
+
+  it("shows critical banner in global mode", async () => {
+    const { LowBalanceBanner } = await import("../components/billing/low-balance-banner");
+    render(<LowBalanceBanner balance={0.5} runway={1} global />);
+
+    expect(screen.getByText(/Credits critically low/)).toBeInTheDocument();
+  });
+
+  it("shows suspension banner in global mode", async () => {
+    const { LowBalanceBanner } = await import("../components/billing/low-balance-banner");
+    render(<LowBalanceBanner balance={0} runway={0} global />);
+
+    expect(screen.getByText(/Bots suspended/)).toBeInTheDocument();
+  });
+
+  it("renders buy credits link", async () => {
+    const { LowBalanceBanner } = await import("../components/billing/low-balance-banner");
+    render(<LowBalanceBanner balance={0} runway={0} />);
+
+    const link = screen.getByRole("link", { name: "Buy credits" });
+    expect(link).toHaveAttribute("href", "/billing/credits");
+  });
+});
+
+describe("Billing layout with Credits nav", () => {
+  it("renders Credits navigation link", async () => {
+    const { default: BillingLayout } = await import("../app/(dashboard)/billing/layout");
+    render(
+      <BillingLayout>
+        <div>child content</div>
+      </BillingLayout>,
+    );
+
+    expect(screen.getByText("Credits")).toBeInTheDocument();
+    expect(screen.getByText("Plans")).toBeInTheDocument();
+    expect(screen.getByText("Usage")).toBeInTheDocument();
+    expect(screen.getByText("Payment")).toBeInTheDocument();
+  });
+});

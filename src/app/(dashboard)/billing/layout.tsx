@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 
 const billingNav = [
   { label: "Plans", href: "/billing/plans" },
+  { label: "Credits", href: "/billing/credits" },
   { label: "Usage", href: "/billing/usage" },
   { label: "Payment", href: "/billing/payment" },
 ];

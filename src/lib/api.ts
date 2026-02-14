@@ -515,3 +515,54 @@ export async function testCapabilityKey(capability: CapabilityName): Promise<{ v
     method: "POST",
   });
 }
+
+// --- Credits types ---
+
+export interface CreditBalance {
+  balance: number;
+  dailyBurn: number;
+  runway: number | null;
+}
+
+export type CreditTransactionType =
+  | "purchase"
+  | "signup_credit"
+  | "bot_runtime"
+  | "refund"
+  | "bonus"
+  | "adjustment";
+
+export interface CreditTransaction {
+  id: string;
+  type: CreditTransactionType;
+  description: string;
+  amount: number;
+  createdAt: string;
+}
+
+export interface CreditHistoryResponse {
+  transactions: CreditTransaction[];
+  nextCursor: string | null;
+}
+
+export interface CheckoutResponse {
+  checkoutUrl: string;
+}
+
+// --- Credits API ---
+
+export async function getCreditBalance(): Promise<CreditBalance> {
+  return apiFetch<CreditBalance>("/billing/credits");
+}
+
+export async function getCreditHistory(cursor?: string): Promise<CreditHistoryResponse> {
+  const qs = cursor ? `?cursor=${encodeURIComponent(cursor)}` : "";
+  return apiFetch<CreditHistoryResponse>(`/billing/credits/history${qs}`);
+}
+
+export async function createCreditCheckout(amount: number): Promise<CheckoutResponse> {
+  return apiFetch<CheckoutResponse>("/billing/credits/checkout", {
+    method: "POST",
+    body: JSON.stringify({ amount }),
+  });
+}

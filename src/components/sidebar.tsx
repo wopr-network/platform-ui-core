@@ -1,9 +1,9 @@
 "use client";
 
 import { LogOutIcon, SettingsIcon, UserIcon } from "lucide-react";
-
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,6 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { getCreditBalance } from "@/lib/api";
 import { signOut, useSession } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 
@@ -22,6 +23,7 @@ const navItems = [
   { label: "Plugins", href: "/plugins" },
   { label: "Instances", href: "/instances" },
   { label: "Fleet Health", href: "/fleet/health" },
+  { label: "Credits", href: "/billing/credits" },
   { label: "Billing", href: "/billing/plans" },
   { label: "Settings", href: "/settings/profile" },
 ];
@@ -29,8 +31,17 @@ const navItems = [
 function isNavActive(href: string, pathname: string): boolean {
   if (href === "/marketplace") return pathname === "/marketplace";
   if (href === "/settings/profile") return pathname.startsWith("/settings");
-  if (href === "/billing/plans") return pathname.startsWith("/billing");
+  if (href === "/billing/plans")
+    return pathname.startsWith("/billing") && !pathname.startsWith("/billing/credits");
+  if (href === "/billing/credits") return pathname.startsWith("/billing/credits");
   return pathname.startsWith(href);
+}
+
+function balanceColorClass(balance: number): string {
+  if (balance === 0) return "text-red-500";
+  if (balance < 1) return "text-red-500";
+  if (balance <= 2) return "text-amber-500";
+  return "text-muted-foreground";
 }
 
 function getInitials(name: string): string {
@@ -47,8 +58,22 @@ export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { data: session, isPending } = useSession();
+  const [creditBalance, setCreditBalance] = useState<number | null>(null);
 
   const user = session?.user;
+
+  const loadBalance = useCallback(async () => {
+    try {
+      const data = await getCreditBalance();
+      setCreditBalance(data.balance);
+    } catch {
+      // Silently fail — balance is non-critical UI decoration
+    }
+  }, []);
+
+  useEffect(() => {
+    if (user) loadBalance();
+  }, [user, loadBalance]);
 
   async function handleSignOut() {
     await signOut();
@@ -66,13 +91,18 @@ export function Sidebar() {
             key={item.href}
             href={item.href}
             className={cn(
-              "flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+              "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
               isNavActive(item.href, pathname)
                 ? "bg-sidebar-accent text-sidebar-accent-foreground"
                 : "text-sidebar-foreground/70",
             )}
           >
             {item.label}
+            {item.label === "Credits" && creditBalance !== null && (
+              <span className={cn("text-xs font-mono", balanceColorClass(creditBalance))}>
+                ${creditBalance.toFixed(2)}
+              </span>
+            )}
           </Link>
         ))}
       </nav>
