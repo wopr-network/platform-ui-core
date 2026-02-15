@@ -404,6 +404,7 @@ export default function ProvidersPage() {
 
 // --- Billing gate dialog ---
 
+// biome-ignore lint/correctness/noUnusedFunctionParameters: capability reserved for future use
 function BillingGateDialog({
   capability,
   meta,

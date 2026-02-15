@@ -84,7 +84,7 @@ export function CreateInstanceClient() {
         <p className="text-muted-foreground">
           Your instance &ldquo;{name}&rdquo; has been created successfully.
         </p>
-        <Button asChild>
+        <Button variant="terminal" asChild>
           <a href="/instances">Back to Instances</a>
         </Button>
       </div>
@@ -108,8 +108,9 @@ export function CreateInstanceClient() {
             <Card
               key={tmpl.id}
               className={cn(
-                "cursor-pointer transition-colors hover:border-primary/50",
-                selectedTemplate === tmpl.id && "border-primary bg-primary/5",
+                "cursor-pointer transition-all hover:border-terminal/50",
+                selectedTemplate === tmpl.id &&
+                  "border-terminal bg-terminal/5 shadow-[0_0_8px_rgba(0,255,65,0.15)]",
               )}
               onClick={() => handleTemplateSelect(tmpl.id)}
               role="button"
@@ -219,7 +220,11 @@ export function CreateInstanceClient() {
         <Button variant="outline" asChild>
           <a href="/instances">Cancel</a>
         </Button>
-        <Button onClick={handleSubmit} disabled={!name.trim() || !selectedTemplate || submitting}>
+        <Button
+          variant="terminal"
+          onClick={handleSubmit}
+          disabled={!name.trim() || !selectedTemplate || submitting}
+        >
           {submitting ? "Creating..." : "Create Instance"}
         </Button>
       </div>

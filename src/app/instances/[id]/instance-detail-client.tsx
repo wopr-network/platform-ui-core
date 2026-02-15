@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowLeft } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { HealthOverview } from "@/components/observability/health-overview";
 import { LogsViewer } from "@/components/observability/logs-viewer";
@@ -21,8 +22,9 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import type { InstanceDetail } from "@/lib/api";
+import type { InstanceDetail, InstanceStatus } from "@/lib/api";
 import { controlInstance, getInstance } from "@/lib/api";
+import { cn } from "@/lib/utils";
 
 export function InstanceDetailClient({ instanceId }: { instanceId: string }) {
   const [instance, setInstance] = useState<InstanceDetail | null>(null);
@@ -104,10 +106,25 @@ export function InstanceDetailClient({ instanceId }: { instanceId: string }) {
         <div className="space-y-1">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="sm" asChild>
-              <a href="/instances">&larr; Instances</a>
+              <a href="/instances" className="inline-flex items-center gap-1">
+                <ArrowLeft className="size-4" />
+                Instances
+              </a>
             </Button>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight">{instance.name}</h1>
+          <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
+            {instance.name}
+            <span
+              className={cn("size-2 rounded-full", {
+                "bg-emerald-500 animate-[pulse-dot_2s_ease-in-out_infinite]":
+                  instance.status === "running",
+                "bg-zinc-400": instance.status === "stopped",
+                "bg-yellow-500": instance.status === "degraded",
+                "bg-red-500 animate-[pulse-dot_0.8s_ease-in-out_infinite]":
+                  instance.status === "error",
+              })}
+            />
+          </h1>
           <div className="flex items-center gap-3 text-sm text-muted-foreground">
             <StatusBadge status={instance.status} />
             <span>{instance.template}</span>
@@ -116,7 +133,7 @@ export function InstanceDetailClient({ instanceId }: { instanceId: string }) {
         </div>
         <div className="flex gap-2">
           {instance.status === "stopped" && (
-            <Button size="sm" onClick={() => handleAction("start")}>
+            <Button size="sm" variant="terminal" onClick={() => handleAction("start")}>
               Start
             </Button>
           )}
@@ -146,24 +163,42 @@ export function InstanceDetailClient({ instanceId }: { instanceId: string }) {
 
       {/* Tabs */}
       <Tabs defaultValue="overview">
-        <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="health">Health</TabsTrigger>
-          <TabsTrigger value="metrics">Metrics</TabsTrigger>
-          <TabsTrigger value="logs">Logs</TabsTrigger>
-          <TabsTrigger value="plugins">Plugins</TabsTrigger>
-          <TabsTrigger value="channels">Channels</TabsTrigger>
-          <TabsTrigger value="sessions">Sessions</TabsTrigger>
-          <TabsTrigger value="config">Config</TabsTrigger>
+        <TabsList className="bg-transparent border-b border-border rounded-none p-0 h-auto gap-0">
+          {[
+            "overview",
+            "health",
+            "metrics",
+            "logs",
+            "plugins",
+            "channels",
+            "sessions",
+            "config",
+          ].map((tab) => (
+            <TabsTrigger
+              key={tab}
+              value={tab}
+              className="rounded-none border-b-2 border-transparent px-4 py-2 text-sm capitalize text-muted-foreground data-[state=active]:border-b-terminal data-[state=active]:text-terminal data-[state=active]:shadow-none data-[state=active]:bg-transparent"
+            >
+              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            </TabsTrigger>
+          ))}
         </TabsList>
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="mt-4">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <MetricCard title="Status" value={instance.status} />
+            <MetricCard title="Status" value={instance.status} status={instance.status} />
             <MetricCard title="Uptime" value={formatUptime(instance.uptime)} />
-            <MetricCard title="Memory" value={`${instance.resourceUsage.memoryMb} MB`} />
-            <MetricCard title="CPU" value={`${instance.resourceUsage.cpuPercent}%`} />
+            <MetricCard
+              title="Memory"
+              value={`${instance.resourceUsage.memoryMb} MB`}
+              progress={instance.resourceUsage.memoryMb / 10.24}
+            />
+            <MetricCard
+              title="CPU"
+              value={`${instance.resourceUsage.cpuPercent}%`}
+              progress={instance.resourceUsage.cpuPercent}
+            />
             <MetricCard title="Plugins" value={String(instance.plugins.length)} />
             <MetricCard title="Channels" value={String(instance.channelDetails.length)} />
             <MetricCard title="Active Sessions" value={String(instance.sessions.length)} />
@@ -202,7 +237,10 @@ export function InstanceDetailClient({ instanceId }: { instanceId: string }) {
                 </TableHeader>
                 <TableBody>
                   {instance.plugins.map((plugin) => (
-                    <TableRow key={plugin.id}>
+                    <TableRow
+                      key={plugin.id}
+                      className="transition-colors hover:bg-muted/50 even:bg-muted/20"
+                    >
                       <TableCell className="font-medium">{plugin.name}</TableCell>
                       <TableCell className="text-muted-foreground">{plugin.version}</TableCell>
                       <TableCell>
@@ -236,7 +274,10 @@ export function InstanceDetailClient({ instanceId }: { instanceId: string }) {
                 </TableHeader>
                 <TableBody>
                   {instance.channelDetails.map((ch) => (
-                    <TableRow key={ch.id}>
+                    <TableRow
+                      key={ch.id}
+                      className="transition-colors hover:bg-muted/50 even:bg-muted/20"
+                    >
                       <TableCell className="font-medium">{ch.name}</TableCell>
                       <TableCell className="text-muted-foreground">{ch.type}</TableCell>
                       <TableCell>
@@ -268,7 +309,10 @@ export function InstanceDetailClient({ instanceId }: { instanceId: string }) {
                 </TableHeader>
                 <TableBody>
                   {instance.sessions.map((sess) => (
-                    <TableRow key={sess.id}>
+                    <TableRow
+                      key={sess.id}
+                      className="transition-colors hover:bg-muted/50 even:bg-muted/20"
+                    >
                       <TableCell className="font-mono text-sm">{sess.id}</TableCell>
                       <TableCell>{sess.userId}</TableCell>
                       <TableCell>{sess.messageCount}</TableCell>
@@ -292,12 +336,19 @@ export function InstanceDetailClient({ instanceId }: { instanceId: string }) {
             <label htmlFor="config-editor" className="text-sm font-medium">
               Instance Configuration (JSON)
             </label>
-            <Textarea
-              id="config-editor"
-              className="min-h-[300px] font-mono text-sm"
-              value={configText}
-              onChange={(e) => setConfigText(e.target.value)}
-            />
+            <div className="relative rounded-md border border-border bg-black/80 overflow-hidden">
+              <div className="flex items-center gap-2 border-b border-border/50 px-3 py-1.5 text-xs text-muted-foreground">
+                <span className="inline-block h-2 w-2 rounded-full bg-terminal" />
+                <span>CONFIG EDITOR</span>
+              </div>
+              <Textarea
+                id="config-editor"
+                className="min-h-[300px] font-mono text-sm bg-transparent border-0 rounded-none focus-visible:ring-0 text-terminal/90 resize-y"
+                value={configText}
+                onChange={(e) => setConfigText(e.target.value)}
+                spellCheck={false}
+              />
+            </div>
           </div>
           <div className="flex items-center justify-end gap-3">
             {configStatus === "saved" && (
@@ -327,14 +378,50 @@ export function InstanceDetailClient({ instanceId }: { instanceId: string }) {
   );
 }
 
-function MetricCard({ title, value }: { title: string; value: string }) {
+function MetricCard({
+  title,
+  value,
+  status,
+  progress,
+}: {
+  title: string;
+  value: string;
+  status?: InstanceStatus;
+  progress?: number;
+}) {
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-xs font-medium text-muted-foreground">{title}</CardTitle>
+    <Card className="py-4">
+      <CardHeader className="pb-1">
+        <CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          {title}
+        </CardTitle>
       </CardHeader>
-      <CardContent>
-        <p className="text-lg font-semibold">{value}</p>
+      <CardContent className="space-y-2">
+        <div className="flex items-center gap-2">
+          {status && (
+            <span
+              className={cn("size-2 rounded-full", {
+                "bg-emerald-500 animate-[pulse-dot_2s_ease-in-out_infinite]": status === "running",
+                "bg-zinc-400": status === "stopped",
+                "bg-yellow-500": status === "degraded",
+                "bg-red-500 animate-[pulse-dot_0.8s_ease-in-out_infinite]": status === "error",
+              })}
+            />
+          )}
+          <p className="text-2xl font-bold tracking-tight">{value}</p>
+        </div>
+        {progress !== undefined && (
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+            <div
+              className={cn("h-full rounded-full transition-all", {
+                "bg-terminal": progress < 70,
+                "bg-yellow-500": progress >= 70 && progress < 90,
+                "bg-red-500": progress >= 90,
+              })}
+              style={{ width: `${Math.min(progress, 100)}%` }}
+            />
+          </div>
+        )}
       </CardContent>
     </Card>
   );

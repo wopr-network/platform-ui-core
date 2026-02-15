@@ -27,10 +27,10 @@ export function StatusBadge({ status }: { status: InstanceStatus }) {
     <Badge variant="outline" className={cn("gap-1.5", config.className)}>
       <span
         className={cn("size-1.5 rounded-full", {
-          "bg-emerald-500": status === "running",
+          "bg-emerald-500 animate-[pulse-dot_2s_ease-in-out_infinite]": status === "running",
           "bg-zinc-400": status === "stopped",
           "bg-yellow-500": status === "degraded",
-          "bg-red-500": status === "error",
+          "bg-red-500 animate-[pulse-dot_0.8s_ease-in-out_infinite]": status === "error",
         })}
       />
       {config.label}

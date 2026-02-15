@@ -83,7 +83,7 @@ export default function PaymentPage() {
         </div>
         <div className="rounded-sm border p-6 space-y-4">
           <Skeleton className="h-5 w-36" />
-          {Array.from({ length: 2 }, (_, n) => `sk-${n}`).map((skId, i) => (
+          {Array.from({ length: 2 }, (_, n) => `sk-${n}`).map((skId, _i) => (
             <div key={skId} className="flex items-center justify-between rounded-md border p-3">
               <div className="flex items-center gap-3">
                 <Skeleton className="h-8 w-12" />

@@ -1,5 +1,6 @@
 "use client";
 
+import { MoreHorizontal } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ import {
 } from "@/components/ui/table";
 import type { Instance, InstanceStatus } from "@/lib/api";
 import { controlInstance, listInstances } from "@/lib/api";
+import { cn } from "@/lib/utils";
 
 export function InstanceListClient() {
   const [instances, setInstances] = useState<Instance[]>([]);
@@ -88,7 +90,7 @@ export function InstanceListClient() {
           <h1 className="text-2xl font-bold tracking-tight">Instances</h1>
           <p className="text-sm text-muted-foreground">Manage your WOPR instances</p>
         </div>
-        <Button asChild>
+        <Button variant="terminal" asChild>
           <a href="/instances/new">New Instance</a>
         </Button>
       </div>
@@ -167,8 +169,19 @@ export function InstanceListClient() {
           </Table>
         </div>
       ) : filtered.length === 0 ? (
-        <div className="flex h-40 items-center justify-center text-muted-foreground">
-          {instances.length === 0 ? "No instances yet." : "No instances match your filters."}
+        <div className="flex h-40 flex-col items-center justify-center gap-4">
+          {instances.length === 0 ? (
+            <>
+              <p className="font-mono text-sm text-terminal">
+                {">"} NO WOPR BOT INSTANCES DEPLOYED. AWAITING LAUNCH ORDERS.
+              </p>
+              <Button variant="terminal" size="sm" asChild>
+                <a href="/instances/new">Deploy Instance</a>
+              </Button>
+            </>
+          ) : (
+            <p className="text-muted-foreground">No instances match your filters.</p>
+          )}
         </div>
       ) : (
         <div className="rounded-md border">
@@ -186,7 +199,20 @@ export function InstanceListClient() {
             </TableHeader>
             <TableBody>
               {filtered.map((inst) => (
-                <TableRow key={inst.id}>
+                <TableRow
+                  key={inst.id}
+                  className={cn(
+                    "border-l-2 border-transparent transition-colors",
+                    "hover:bg-muted/50",
+                    {
+                      "border-l-emerald-500/30 hover:border-l-emerald-500":
+                        inst.status === "running",
+                      "hover:border-l-zinc-500": inst.status === "stopped",
+                      "hover:border-l-yellow-500": inst.status === "degraded",
+                      "hover:border-l-red-500": inst.status === "error",
+                    },
+                  )}
+                >
                   <TableCell>
                     <a href={`/instances/${inst.id}`} className="font-medium hover:underline">
                       {inst.name}
@@ -206,7 +232,7 @@ export function InstanceListClient() {
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon-xs">
                           <span className="sr-only">Actions</span>
-                          <MoreHorizontalIcon />
+                          <MoreHorizontal className="size-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
@@ -231,7 +257,7 @@ export function InstanceListClient() {
                         )}
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
-                          className="text-destructive"
+                          className="text-destructive focus:bg-destructive/10 focus:text-destructive"
                           onClick={() => handleAction(inst.id, "destroy")}
                         >
                           Destroy
@@ -246,27 +272,5 @@ export function InstanceListClient() {
         </div>
       )}
     </div>
-  );
-}
-
-function MoreHorizontalIcon() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      role="img"
-      aria-label="More actions"
-    >
-      <circle cx="12" cy="12" r="1" />
-      <circle cx="19" cy="12" r="1" />
-      <circle cx="5" cy="12" r="1" />
-    </svg>
   );
 }
