@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { type FormEvent, Suspense, useState } from "react";
+import { AuthError } from "@/components/auth/auth-error";
+import { AuthShell } from "@/components/auth/auth-shell";
 import { OAuthButtons } from "@/components/oauth-buttons";
 import { Button } from "@/components/ui/button";
 import {
@@ -53,69 +55,84 @@ function LoginForm() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-xl">Sign in</CardTitle>
-        <CardDescription>Sign in to your WOPR account</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4" id="login-form">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="you@example.com"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="password">Password</Label>
-              <Link
-                href="/forgot-password"
-                className="text-xs text-muted-foreground hover:text-foreground"
-              >
-                Forgot password?
-              </Link>
+    <AuthShell>
+      <Card className="crt-scanlines border-terminal/20 bg-black/80 shadow-[0_0_30px_rgba(0,255,65,0.08)]">
+        <CardHeader>
+          <CardTitle className="text-sm font-medium uppercase tracking-widest text-terminal">
+            Sign in
+          </CardTitle>
+          <CardDescription>Access your WOPR Bot terminal</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4" id="login-form">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="operator@wopr.bot"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="placeholder:text-muted-foreground/50"
+              />
             </div>
-            <Input
-              id="password"
-              type="password"
-              placeholder="Enter your password"
-              autoComplete="current-password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Password</Label>
+                <Link
+                  href="/forgot-password"
+                  className="text-xs text-terminal-dim hover:text-terminal"
+                >
+                  Forgot password?
+                </Link>
+              </div>
+              <Input
+                id="password"
+                type="password"
+                placeholder="••••••••••••"
+                autoComplete="current-password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="placeholder:text-muted-foreground/50"
+              />
+            </div>
+            {error && <AuthError message={error} />}
+            <Button type="submit" variant="terminal" className="w-full" disabled={loading}>
+              {loading ? (
+                <span className="inline-flex items-center gap-1">
+                  AUTHENTICATING
+                  <span className="h-4 w-1.5 animate-pulse bg-terminal" />
+                </span>
+              ) : (
+                "Sign in"
+              )}
+            </Button>
+          </form>
+          <div className="relative my-4 flex items-center">
+            <Separator className="flex-1" />
+            <span className="mx-3 text-xs uppercase tracking-wider text-muted-foreground">
+              {/* alternative access */}
+            </span>
+            <Separator className="flex-1" />
           </div>
-          {error && <p className="text-sm text-destructive">{error}</p>}
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Signing in..." : "Sign in"}
-          </Button>
-        </form>
-        <div className="relative my-4 flex items-center">
-          <Separator className="flex-1" />
-          <span className="mx-3 text-xs text-muted-foreground">or</span>
-          <Separator className="flex-1" />
-        </div>
-        <OAuthButtons />
-      </CardContent>
-      <CardFooter className="justify-center">
-        <p className="text-sm text-muted-foreground">
-          Don&apos;t have an account?{" "}
-          <Link
-            href="/signup"
-            className="text-foreground underline underline-offset-4 hover:text-primary"
-          >
-            Sign up
-          </Link>
-        </p>
-      </CardFooter>
-    </Card>
+          <OAuthButtons />
+        </CardContent>
+        <CardFooter className="justify-center">
+          <p className="text-sm text-muted-foreground">
+            Don&apos;t have an account?{" "}
+            <Link
+              href="/signup"
+              className="text-terminal-dim underline underline-offset-4 hover:text-terminal"
+            >
+              Sign up
+            </Link>
+          </p>
+        </CardFooter>
+      </Card>
+    </AuthShell>
   );
 }
 

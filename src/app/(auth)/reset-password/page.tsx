@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { type FormEvent, Suspense, useState } from "react";
+import { AuthError } from "@/components/auth/auth-error";
+import { AuthShell } from "@/components/auth/auth-shell";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -28,20 +30,24 @@ function ResetPasswordForm() {
 
   if (!token) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-xl">Invalid link</CardTitle>
-          <CardDescription>This password reset link is invalid or has expired.</CardDescription>
-        </CardHeader>
-        <CardFooter className="justify-center">
-          <Link
-            href="/forgot-password"
-            className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground"
-          >
-            Request a new reset link
-          </Link>
-        </CardFooter>
-      </Card>
+      <AuthShell>
+        <Card className="crt-scanlines border-terminal/20 bg-black/80 shadow-[0_0_30px_rgba(0,255,65,0.08)]">
+          <CardHeader>
+            <CardTitle className="text-sm font-medium uppercase tracking-widest text-destructive">
+              Access denied
+            </CardTitle>
+            <CardDescription>This password reset link is invalid or has expired.</CardDescription>
+          </CardHeader>
+          <CardFooter className="justify-center">
+            <Link
+              href="/forgot-password"
+              className="text-sm text-terminal-dim underline underline-offset-4 hover:text-terminal"
+            >
+              Request a new reset link
+            </Link>
+          </CardFooter>
+        </Card>
+      </AuthShell>
     );
   }
 
@@ -76,53 +82,66 @@ function ResetPasswordForm() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-xl">Set new password</CardTitle>
-        <CardDescription>Enter your new password below</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4" id="reset-password-form">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="password">New password</Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="Enter new password"
-              autoComplete="new-password"
-              required
-              minLength={8}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="confirm-password">Confirm password</Label>
-            <Input
-              id="confirm-password"
-              type="password"
-              placeholder="Confirm new password"
-              autoComplete="new-password"
-              required
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-            />
-          </div>
-          {error && <p className="text-sm text-destructive">{error}</p>}
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Resetting..." : "Reset password"}
-          </Button>
-        </form>
-      </CardContent>
-      <CardFooter className="justify-center">
-        <Link
-          href="/login"
-          className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground"
-        >
-          Back to sign in
-        </Link>
-      </CardFooter>
-    </Card>
+    <AuthShell>
+      <Card className="crt-scanlines border-terminal/20 bg-black/80 shadow-[0_0_30px_rgba(0,255,65,0.08)]">
+        <CardHeader>
+          <CardTitle className="text-sm font-medium uppercase tracking-widest text-terminal">
+            Set new credentials
+          </CardTitle>
+          <CardDescription>Enter new access credentials</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4" id="reset-password-form">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="password">New password</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="••••••••••••"
+                autoComplete="new-password"
+                required
+                minLength={8}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="placeholder:text-muted-foreground/50"
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="confirm-password">Confirm password</Label>
+              <Input
+                id="confirm-password"
+                type="password"
+                placeholder="••••••••••••"
+                autoComplete="new-password"
+                required
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="placeholder:text-muted-foreground/50"
+              />
+            </div>
+            {error && <AuthError message={error} />}
+            <Button type="submit" variant="terminal" className="w-full" disabled={loading}>
+              {loading ? (
+                <span className="inline-flex items-center gap-1">
+                  UPDATING
+                  <span className="h-4 w-1.5 animate-pulse bg-terminal" />
+                </span>
+              ) : (
+                "Reset password"
+              )}
+            </Button>
+          </form>
+        </CardContent>
+        <CardFooter className="justify-center">
+          <Link
+            href="/login"
+            className="text-sm text-terminal-dim underline underline-offset-4 hover:text-terminal"
+          >
+            Back to sign in
+          </Link>
+        </CardFooter>
+      </Card>
+    </AuthShell>
   );
 }
 

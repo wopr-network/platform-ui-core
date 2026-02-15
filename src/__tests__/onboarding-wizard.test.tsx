@@ -217,7 +217,7 @@ describe("StepSuperpowers", () => {
   it("shows toggle switches", () => {
     render(<StepSuperpowers selected={[]} onToggle={vi.fn()} />);
     const switches = screen.getAllByRole("switch");
-    expect(switches).toHaveLength(5);
+    expect(switches).toHaveLength(6);
   });
 
   it("calls onToggle when a switch is clicked", () => {

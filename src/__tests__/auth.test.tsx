@@ -25,6 +25,15 @@ vi.mock("better-auth/react", () => ({
   }),
 }));
 
+// Mock framer-motion to prevent animation issues in JSDOM
+vi.mock("framer-motion", () => ({
+  motion: {
+    div: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
+      <div {...props}>{children}</div>
+    ),
+  },
+}));
+
 describe("Login page", () => {
   it("renders email and password fields", async () => {
     const { default: LoginPage } = await import("../app/(auth)/login/page");
@@ -111,11 +120,11 @@ describe("Forgot password page", () => {
 });
 
 describe("Reset password page", () => {
-  it("shows invalid link when no token is present", async () => {
+  it("shows access denied when no token is present", async () => {
     const { default: ResetPasswordPage } = await import("../app/(auth)/reset-password/page");
     render(<ResetPasswordPage />);
 
-    expect(screen.getByText("Invalid link")).toBeInTheDocument();
+    expect(screen.getByText("Access denied")).toBeInTheDocument();
     expect(screen.getByText("Request a new reset link")).toBeInTheDocument();
   });
 });

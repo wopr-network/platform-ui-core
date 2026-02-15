@@ -1,7 +1,10 @@
 "use client";
 
+import { motion } from "framer-motion";
 import Link from "next/link";
 import { type FormEvent, useState } from "react";
+import { AuthError } from "@/components/auth/auth-error";
+import { AuthShell } from "@/components/auth/auth-shell";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -47,66 +50,87 @@ export default function ForgotPasswordPage() {
 
   if (sent) {
     return (
-      <Card>
+      <AuthShell>
+        <Card className="crt-scanlines border-terminal/20 bg-black/80 shadow-[0_0_30px_rgba(0,255,65,0.08)]">
+          <CardHeader>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3 }}
+            >
+              <CardTitle className="text-sm font-medium uppercase tracking-widest text-terminal">
+                Transmission sent
+              </CardTitle>
+              <CardDescription>
+                We sent a password reset link to <code className="text-terminal">{email}</code>
+              </CardDescription>
+            </motion.div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Click the link in the email to reset your password. If you don&apos;t see it, check
+              your spam folder.
+            </p>
+          </CardContent>
+          <CardFooter className="justify-center">
+            <Link
+              href="/login"
+              className="text-sm text-terminal-dim underline underline-offset-4 hover:text-terminal"
+            >
+              Back to sign in
+            </Link>
+          </CardFooter>
+        </Card>
+      </AuthShell>
+    );
+  }
+
+  return (
+    <AuthShell>
+      <Card className="crt-scanlines border-terminal/20 bg-black/80 shadow-[0_0_30px_rgba(0,255,65,0.08)]">
         <CardHeader>
-          <CardTitle className="text-xl">Check your email</CardTitle>
-          <CardDescription>
-            We sent a password reset link to{" "}
-            <span className="font-medium text-foreground">{email}</span>
-          </CardDescription>
+          <CardTitle className="text-sm font-medium uppercase tracking-widest text-terminal">
+            Password Recovery
+          </CardTitle>
+          <CardDescription>Enter operator email for recovery code</CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">
-            Click the link in the email to reset your password. If you don&apos;t see it, check your
-            spam folder.
-          </p>
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4" id="forgot-password-form">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="operator@wopr.bot"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="placeholder:text-muted-foreground/50"
+              />
+            </div>
+            {error && <AuthError message={error} />}
+            <Button type="submit" variant="terminal" className="w-full" disabled={loading}>
+              {loading ? (
+                <span className="inline-flex items-center gap-1">
+                  TRANSMITTING
+                  <span className="h-4 w-1.5 animate-pulse bg-terminal" />
+                </span>
+              ) : (
+                "Send reset link"
+              )}
+            </Button>
+          </form>
         </CardContent>
         <CardFooter className="justify-center">
           <Link
             href="/login"
-            className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground"
+            className="text-sm text-terminal-dim underline underline-offset-4 hover:text-terminal"
           >
             Back to sign in
           </Link>
         </CardFooter>
       </Card>
-    );
-  }
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-xl">Reset password</CardTitle>
-        <CardDescription>Enter your email to receive a reset link</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4" id="forgot-password-form">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="you@example.com"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
-          {error && <p className="text-sm text-destructive">{error}</p>}
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Sending..." : "Send reset link"}
-          </Button>
-        </form>
-      </CardContent>
-      <CardFooter className="justify-center">
-        <Link
-          href="/login"
-          className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground"
-        >
-          Back to sign in
-        </Link>
-      </CardFooter>
-    </Card>
+    </AuthShell>
   );
 }

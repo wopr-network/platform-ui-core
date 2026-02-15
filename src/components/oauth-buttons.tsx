@@ -28,11 +28,18 @@ export function OAuthButtons() {
         <Button
           key={p.id}
           variant="outline"
-          className="w-full"
+          className="w-full border-terminal/30 hover:border-terminal hover:bg-terminal/5 hover:text-terminal"
           disabled={loading !== null}
           onClick={() => handleOAuth(p.id)}
         >
-          {loading === p.id ? "Redirecting..." : `Continue with ${p.label}`}
+          {loading === p.id ? (
+            <span className="inline-flex items-center gap-1">
+              CONNECTING
+              <span className="h-4 w-1.5 animate-pulse bg-terminal" />
+            </span>
+          ) : (
+            `Continue with ${p.label}`
+          )}
         </Button>
       ))}
     </div>
