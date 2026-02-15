@@ -390,7 +390,7 @@ describe("Usage page", () => {
     render(<UsagePage />);
 
     expect(await screen.findByText("Usage Over Time")).toBeInTheDocument();
-    expect(screen.getByRole("img", { name: "Usage bar chart" })).toBeInTheDocument();
+    expect(screen.getByText("Daily API calls over the last 30 days")).toBeInTheDocument();
   });
 });
 
@@ -501,7 +501,8 @@ describe("Hosted usage detail page", () => {
     const { default: HostedPage } = await import("../app/(dashboard)/billing/usage/hosted/page");
     render(<HostedPage />);
 
-    expect(screen.getByText("Loading hosted usage...")).toBeInTheDocument();
+    // Loading state now uses Skeleton components, no text
+    expect(document.querySelector('[data-slot="skeleton"]')).toBeInTheDocument();
     expect(await screen.findByText("Hosted Usage Detail")).toBeInTheDocument();
   });
 

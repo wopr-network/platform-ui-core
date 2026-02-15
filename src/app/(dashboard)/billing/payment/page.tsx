@@ -1,5 +1,7 @@
 "use client";
 
+import { AnimatePresence, motion } from "framer-motion";
+import { CreditCardIcon, LockIcon, ShieldCheckIcon } from "lucide-react";
 import { type FormEvent, useCallback, useEffect, useState } from "react";
 import { ByokCallout } from "@/components/billing/byok-callout";
 import { Badge } from "@/components/ui/badge";
@@ -19,11 +21,27 @@ import {
 } from "@/components/ui/table";
 import type { BillingInfo, Invoice } from "@/lib/api";
 import { getBillingInfo, removePaymentMethod, updateBillingEmail } from "@/lib/api";
+import { cn } from "@/lib/utils";
 
 const statusStyles: Record<string, string> = {
   paid: "bg-emerald-500/15 text-emerald-500 border-emerald-500/25",
   pending: "bg-yellow-500/15 text-yellow-500 border-yellow-500/25",
   failed: "bg-red-500/15 text-red-500 border-red-500/25",
+};
+
+const BRAND_STYLES: Record<string, string> = {
+  visa: "bg-blue-600/20 text-blue-400",
+  mastercard: "bg-orange-500/20 text-orange-400",
+  amex: "bg-sky-500/20 text-sky-400",
+};
+
+const staggerItem = {
+  hidden: { opacity: 0, x: -12 },
+  visible: (i: number) => ({
+    opacity: 1,
+    x: 0,
+    transition: { delay: Math.min(i, 20) * 0.05, duration: 0.3, ease: "easeOut" as const },
+  }),
 };
 
 export default function PaymentPage() {
@@ -83,7 +101,7 @@ export default function PaymentPage() {
         </div>
         <div className="rounded-sm border p-6 space-y-4">
           <Skeleton className="h-5 w-36" />
-          {Array.from({ length: 2 }, (_, n) => `sk-${n}`).map((skId, _i) => (
+          {["sk-pay-a", "sk-pay-b"].map((skId) => (
             <div key={skId} className="flex items-center justify-between rounded-md border p-3">
               <div className="flex items-center gap-3">
                 <Skeleton className="h-8 w-12" />
@@ -129,42 +147,65 @@ export default function PaymentPage() {
             <p className="text-sm text-muted-foreground">No payment methods on file.</p>
           ) : (
             <div className="space-y-3">
-              {info.paymentMethods.map((pm) => (
-                <div
-                  key={pm.id}
-                  className="flex items-center justify-between rounded-md border p-3"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-8 w-12 items-center justify-center rounded bg-muted text-xs font-medium">
-                      {pm.brand}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">
-                        **** **** **** {pm.last4}
-                        {pm.isDefault && (
-                          <Badge variant="outline" className="ml-2">
-                            Default
-                          </Badge>
-                        )}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Expires {String(pm.expiryMonth).padStart(2, "0")}/{pm.expiryYear}
-                      </p>
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-destructive"
-                    onClick={() => handleRemovePayment(pm.id)}
+              {info.paymentMethods.map((pm) => {
+                const brandClass =
+                  BRAND_STYLES[pm.brand.toLowerCase()] ?? "bg-muted text-muted-foreground";
+                return (
+                  <div
+                    key={pm.id}
+                    className="flex items-center justify-between rounded-md border p-3"
                   >
-                    Remove
-                  </Button>
-                </div>
-              ))}
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={cn(
+                          "flex h-8 w-12 items-center justify-center rounded text-xs font-medium",
+                          brandClass,
+                        )}
+                      >
+                        {pm.brand}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">
+                          **** **** **** {pm.last4}
+                          {pm.isDefault && (
+                            <Badge variant="outline" className="ml-2">
+                              Default
+                            </Badge>
+                          )}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Expires {String(pm.expiryMonth).padStart(2, "0")}/{pm.expiryYear}
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive"
+                      onClick={() => handleRemovePayment(pm.id)}
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                );
+              })}
             </div>
           )}
           <Button variant="outline">Add payment method</Button>
+          <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <LockIcon className="size-3" />
+              256-bit SSL
+            </span>
+            <span className="flex items-center gap-1">
+              <ShieldCheckIcon className="size-3" />
+              PCI compliant
+            </span>
+            <span className="flex items-center gap-1">
+              <CreditCardIcon className="size-3" />
+              Powered by Stripe
+            </span>
+          </div>
           <p className="text-xs text-muted-foreground">
             Stripe integration coming soon. Payment methods will be managed via Stripe Elements.
           </p>
@@ -221,10 +262,11 @@ export default function PaymentPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {info.invoices.map((invoice) => (
+              {info.invoices.map((invoice, index) => (
                 <InvoiceRow
                   key={invoice.id}
                   invoice={invoice}
+                  index={index}
                   expanded={expandedInvoice === invoice.id}
                   onToggle={() => toggleInvoiceDetail(invoice.id)}
                 />
@@ -239,10 +281,12 @@ export default function PaymentPage() {
 
 function InvoiceRow({
   invoice,
+  index,
   expanded,
   onToggle,
 }: {
   invoice: Invoice;
+  index: number;
   expanded: boolean;
   onToggle: () => void;
 }) {
@@ -250,7 +294,13 @@ function InvoiceRow({
 
   return (
     <>
-      <TableRow>
+      <motion.tr
+        variants={staggerItem}
+        initial="hidden"
+        animate="visible"
+        custom={index}
+        className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
+      >
         <TableCell className="font-medium">
           {new Date(invoice.date).toLocaleDateString("en-US", {
             month: "short",
@@ -274,27 +324,34 @@ function InvoiceRow({
             <a href={invoice.downloadUrl}>Download</a>
           </Button>
         </TableCell>
-      </TableRow>
-      {expanded && hasLineItems && (
-        <TableRow>
-          <TableCell colSpan={4} className="bg-muted/50 p-4">
-            <p className="mb-2 text-xs font-semibold text-muted-foreground">
-              Hosted Usage Line Items
-            </p>
-            <div className="space-y-1 text-xs">
-              {invoice.hostedLineItems?.map((item, i) => (
-                <div key={`${invoice.id}-item-${i}`} className="flex justify-between">
-                  <span>
-                    {item.capability} — {item.units.toLocaleString()} units @ $
-                    {item.unitPrice.toFixed(4)}/unit
-                  </span>
-                  <span className="font-medium">${item.total.toFixed(2)}</span>
-                </div>
-              ))}
-            </div>
-          </TableCell>
-        </TableRow>
-      )}
+      </motion.tr>
+      <AnimatePresence>
+        {expanded && hasLineItems && (
+          <motion.tr
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+          >
+            <TableCell colSpan={4} className="bg-muted/50 p-4">
+              <p className="mb-2 text-xs font-semibold text-muted-foreground">
+                Hosted Usage Line Items
+              </p>
+              <div className="space-y-1 text-xs">
+                {invoice.hostedLineItems?.map((item, i) => (
+                  <div key={`${invoice.id}-item-${i}`} className="flex justify-between">
+                    <span>
+                      {item.capability} — {item.units.toLocaleString()} units @ $
+                      {item.unitPrice.toFixed(4)}/unit
+                    </span>
+                    <span className="font-medium">${item.total.toFixed(2)}</span>
+                  </div>
+                ))}
+              </div>
+            </TableCell>
+          </motion.tr>
+        )}
+      </AnimatePresence>
     </>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { motion } from "framer-motion";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -47,24 +48,27 @@ export function BuyCreditsPanel() {
       <CardContent className="space-y-4">
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5">
           {TIERS.map((tier) => (
-            <button
+            <motion.button
               key={tier.amount}
               type="button"
               onClick={() => setSelected(tier.amount)}
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.98 }}
+              transition={{ type: "spring", stiffness: 400, damping: 25 }}
               className={cn(
                 "relative flex flex-col items-center gap-1 rounded-md border p-3 text-sm font-medium transition-colors hover:bg-accent",
                 selected === tier.amount
-                  ? "border-primary bg-primary/5 ring-1 ring-primary"
+                  ? "border-primary bg-primary/5 ring-1 ring-primary shadow-[0_0_15px_rgba(0,255,65,0.3)]"
                   : "border-border",
               )}
             >
               <span className="text-lg font-bold">{tier.label}</span>
               {tier.bonus !== null && (
-                <Badge variant="secondary" className="text-xs">
+                <Badge className="bg-primary/15 text-primary border-primary/25 text-xs">
                   +{tier.bonus}%
                 </Badge>
               )}
-            </button>
+            </motion.button>
           ))}
         </div>
         {error && <p className="text-sm text-destructive">{error}</p>}

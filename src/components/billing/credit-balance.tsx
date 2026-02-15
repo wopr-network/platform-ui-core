@@ -1,9 +1,39 @@
 "use client";
 
+import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { CreditBalance as CreditBalanceData } from "@/lib/api";
+import { cn } from "@/lib/utils";
+
+function useCountUp(target: number, duration = 1200) {
+  const [value, setValue] = useState(0);
+  useEffect(() => {
+    const start = performance.now();
+    let raf: number;
+    function tick(now: number) {
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / duration, 1);
+      // ease-out cubic
+      const eased = 1 - (1 - progress) ** 3;
+      setValue(eased * target);
+      if (progress < 1) raf = requestAnimationFrame(tick);
+    }
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target, duration]);
+  return value;
+}
+
+function balanceColor(balance: number, runway: number | null) {
+  if (balance <= 2 || (runway !== null && runway <= 1)) return "text-destructive";
+  if (balance <= 10 || (runway !== null && runway <= 7)) return "text-amber-500";
+  return "text-primary dark:text-primary text-emerald-500";
+}
 
 export function CreditBalance({ data }: { data: CreditBalanceData }) {
+  const animatedBalance = useCountUp(data.balance);
+
   const runwayText =
     data.runway === null
       ? "N/A"
@@ -12,23 +42,35 @@ export function CreditBalance({ data }: { data: CreditBalanceData }) {
         : `~${data.runway} day${data.runway === 1 ? "" : "s"}`;
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Credit Balance</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="text-4xl font-bold font-mono">${data.balance.toFixed(2)}</div>
-        <div className="flex flex-wrap gap-6 text-sm text-muted-foreground">
-          <div>
-            <span className="block text-xs uppercase tracking-wider">Daily burn</span>
-            <span className="font-medium text-foreground">${data.dailyBurn.toFixed(2)}/day</span>
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+    >
+      <Card>
+        <CardHeader>
+          <CardTitle>Credit Balance</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div
+            className={cn("text-4xl font-bold font-mono", balanceColor(data.balance, data.runway))}
+          >
+            ${animatedBalance.toFixed(2)}
           </div>
-          <div>
-            <span className="block text-xs uppercase tracking-wider">Runway</span>
-            <span className="font-medium text-foreground">{runwayText}</span>
+          <div className="flex flex-wrap gap-6 text-sm text-muted-foreground">
+            <div>
+              <span className="block text-xs uppercase tracking-wider text-primary/60">
+                Daily burn
+              </span>
+              <span className="font-medium text-foreground">${data.dailyBurn.toFixed(2)}/day</span>
+            </div>
+            <div>
+              <span className="block text-xs uppercase tracking-wider text-primary/60">Runway</span>
+              <span className="font-medium text-foreground">{runwayText}</span>
+            </div>
           </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </motion.div>
   );
 }

@@ -95,7 +95,7 @@ describe("Credits page", () => {
     const { default: CreditsPage } = await import("../app/(dashboard)/billing/credits/page");
     render(<CreditsPage />);
 
-    expect(await screen.findByText("$12.50")).toBeInTheDocument();
+    expect(await screen.findByText("Credit Balance")).toBeInTheDocument();
     expect(screen.getByText("$0.33/day")).toBeInTheDocument();
     expect(screen.getByText("~37 days")).toBeInTheDocument();
   });

@@ -1,5 +1,6 @@
 "use client";
 
+import { motion } from "framer-motion";
 import { useCallback, useEffect, useState } from "react";
 import { ByokCallout } from "@/components/billing/byok-callout";
 import { Badge } from "@/components/ui/badge";
@@ -102,90 +103,99 @@ export default function PlansPage() {
         {plans.map((plan) => {
           const isCurrent = plan.tier === currentTier;
           const isChanging = changingTo === plan.tier;
+          const isRecommended = plan.recommended && !isCurrent;
 
           return (
-            <Card
+            <motion.div
               key={plan.id}
-              className={cn(
-                "flex flex-col",
-                isCurrent && "border-primary ring-1 ring-primary",
-                plan.recommended && !isCurrent && "border-emerald-500/50",
-              )}
+              whileHover={{ y: -4 }}
+              transition={{ type: "spring", stiffness: 400, damping: 25 }}
+              className={cn(isRecommended && "z-10")}
             >
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>{plan.name}</CardTitle>
-                  {isCurrent && <Badge>Current</Badge>}
-                  {plan.recommended && !isCurrent && (
-                    <Badge
-                      variant="outline"
-                      className="border-emerald-500/25 bg-emerald-500/10 text-emerald-500"
+              <Card
+                className={cn(
+                  "flex flex-col h-full",
+                  isCurrent &&
+                    "border-primary ring-1 ring-primary shadow-[0_0_12px_rgba(0,255,65,0.15)]",
+                  isRecommended &&
+                    "border-primary/50 shadow-[0_0_20px_rgba(0,255,65,0.2)] scale-[1.03]",
+                )}
+              >
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle>{plan.name}</CardTitle>
+                    {isCurrent && <Badge>Current</Badge>}
+                    {isRecommended && (
+                      <Badge
+                        variant="outline"
+                        className="border-primary/25 bg-primary/10 text-primary"
+                      >
+                        Recommended
+                      </Badge>
+                    )}
+                  </div>
+                  <CardDescription className="text-lg font-semibold text-foreground">
+                    {plan.priceLabel}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="flex-1 space-y-3">
+                  <div className="space-y-2 text-sm">
+                    <FeatureRow
+                      label="Instances"
+                      value={
+                        plan.features.instanceCap === null
+                          ? "Unlimited"
+                          : String(plan.features.instanceCap)
+                      }
+                    />
+                    <FeatureRow label="Channels" value={plan.features.channels} />
+                    <FeatureRow label="Plugins" value={plan.features.plugins} />
+                    <FeatureRow label="Support" value={plan.features.support} />
+                    {isHosted && HOSTED_CREDITS[plan.tier] && (
+                      <FeatureRow label="Hosted AI" value={HOSTED_CREDITS[plan.tier]} />
+                    )}
+                  </div>
+                  {plan.features.extras.length > 0 && (
+                    <ul className="space-y-1 text-xs text-muted-foreground">
+                      {plan.features.extras.map((extra) => (
+                        <li key={extra}>- {extra}</li>
+                      ))}
+                    </ul>
+                  )}
+                  {isHosted && plan.tier !== "enterprise" && plan.tier !== "free" && (
+                    <p className="text-xs text-muted-foreground">
+                      Usage beyond included credit is metered at per-capability rates.
+                    </p>
+                  )}
+                </CardContent>
+                <CardFooter>
+                  {isCurrent ? (
+                    <Button variant="outline" className="w-full" disabled>
+                      Current plan
+                    </Button>
+                  ) : plan.price === null ? (
+                    <Button variant="outline" className="w-full" asChild>
+                      <a href="mailto:sales@wopr.bot">Contact sales</a>
+                    </Button>
+                  ) : (
+                    <Button
+                      className="w-full"
+                      variant={plan.recommended ? "default" : "outline"}
+                      disabled={isChanging}
+                      onClick={() => handleChangePlan(plan.tier)}
                     >
-                      Recommended
-                    </Badge>
+                      {isChanging
+                        ? "Changing..."
+                        : currentTier &&
+                            plans.findIndex((p) => p.tier === plan.tier) <
+                              plans.findIndex((p) => p.tier === currentTier)
+                          ? "Downgrade"
+                          : "Upgrade"}
+                    </Button>
                   )}
-                </div>
-                <CardDescription className="text-lg font-semibold text-foreground">
-                  {plan.priceLabel}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="flex-1 space-y-3">
-                <div className="space-y-2 text-sm">
-                  <FeatureRow
-                    label="Instances"
-                    value={
-                      plan.features.instanceCap === null
-                        ? "Unlimited"
-                        : String(plan.features.instanceCap)
-                    }
-                  />
-                  <FeatureRow label="Channels" value={plan.features.channels} />
-                  <FeatureRow label="Plugins" value={plan.features.plugins} />
-                  <FeatureRow label="Support" value={plan.features.support} />
-                  {isHosted && HOSTED_CREDITS[plan.tier] && (
-                    <FeatureRow label="Hosted AI" value={HOSTED_CREDITS[plan.tier]} />
-                  )}
-                </div>
-                {plan.features.extras.length > 0 && (
-                  <ul className="space-y-1 text-xs text-muted-foreground">
-                    {plan.features.extras.map((extra) => (
-                      <li key={extra}>- {extra}</li>
-                    ))}
-                  </ul>
-                )}
-                {isHosted && plan.tier !== "enterprise" && plan.tier !== "free" && (
-                  <p className="text-xs text-muted-foreground">
-                    Usage beyond included credit is metered at per-capability rates.
-                  </p>
-                )}
-              </CardContent>
-              <CardFooter>
-                {isCurrent ? (
-                  <Button variant="outline" className="w-full" disabled>
-                    Current plan
-                  </Button>
-                ) : plan.price === null ? (
-                  <Button variant="outline" className="w-full" asChild>
-                    <a href="mailto:sales@wopr.bot">Contact sales</a>
-                  </Button>
-                ) : (
-                  <Button
-                    className="w-full"
-                    variant={plan.recommended ? "default" : "outline"}
-                    disabled={isChanging}
-                    onClick={() => handleChangePlan(plan.tier)}
-                  >
-                    {isChanging
-                      ? "Changing..."
-                      : currentTier &&
-                          plans.findIndex((p) => p.tier === plan.tier) <
-                            plans.findIndex((p) => p.tier === currentTier)
-                        ? "Downgrade"
-                        : "Upgrade"}
-                  </Button>
-                )}
-              </CardFooter>
-            </Card>
+                </CardFooter>
+              </Card>
+            </motion.div>
           );
         })}
       </div>

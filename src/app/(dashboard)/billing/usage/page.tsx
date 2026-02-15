@@ -2,6 +2,17 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { ByokCallout } from "@/components/billing/byok-callout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,6 +40,7 @@ import {
   getUsageHistory,
   updateSpendingLimits,
 } from "@/lib/api";
+import { cn } from "@/lib/utils";
 
 const CAPABILITY_LABELS: Record<HostedCapability, string> = {
   transcription: "Transcription",
@@ -182,6 +194,46 @@ export default function UsagePage() {
             <CardDescription>Per-capability breakdown for this billing period</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {hostedUsage.capabilities.length > 0 && (
+              <div className="w-full">
+                <ResponsiveContainer
+                  width="100%"
+                  height={hostedUsage.capabilities.length * 40 + 20}
+                >
+                  <BarChart
+                    data={hostedUsage.capabilities.map((cap) => ({
+                      label: CAPABILITY_LABELS[cap.capability] ?? cap.label,
+                      cost: cap.cost,
+                    }))}
+                    layout="vertical"
+                    margin={{ left: 0, right: 12, top: 0, bottom: 0 }}
+                  >
+                    <XAxis
+                      type="number"
+                      tick={{ fontSize: 11, fill: "#888" }}
+                      tickFormatter={(v: number) => `$${v}`}
+                    />
+                    <YAxis
+                      dataKey="label"
+                      type="category"
+                      width={120}
+                      tick={{ fontSize: 11, fill: "#888" }}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "#0a0a0a",
+                        border: "1px solid #00ff4133",
+                        fontFamily: "JetBrains Mono",
+                        fontSize: 12,
+                      }}
+                      labelStyle={{ color: "#a0a0a0" }}
+                      formatter={(value) => [`$${Number(value).toFixed(2)}`, "Cost"]}
+                    />
+                    <Bar dataKey="cost" fill="#00ff41" radius={[0, 4, 4, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
             <div className="space-y-2">
               {hostedUsage.capabilities.map((cap) => (
                 <div key={cap.capability} className="flex items-center justify-between text-sm">
@@ -461,7 +513,13 @@ function UsageMeter({
           {unit ? ` ${unit}` : ""}
         </span>
       </div>
-      <Progress value={pct} />
+      <Progress
+        value={pct}
+        className={cn(
+          pct > 90 && "[&>[data-slot=progress-indicator]]:bg-destructive",
+          pct > 70 && pct <= 90 && "[&>[data-slot=progress-indicator]]:bg-amber-500",
+        )}
+      />
     </div>
   );
 }
@@ -471,27 +529,35 @@ function UsageChart({ data }: { data: UsageDataPoint[] }) {
     return <p className="text-sm text-muted-foreground">No usage data available.</p>;
   }
 
-  const maxCalls = Math.max(...data.map((d) => d.apiCalls), 1);
-
   return (
-    <div className="space-y-2">
-      <div className="flex h-32 items-end gap-0.5" role="img" aria-label="Usage bar chart">
-        {data.map((point) => {
-          const height = (point.apiCalls / maxCalls) * 100;
-          return (
-            <div
-              key={point.date}
-              className="flex-1 rounded-t bg-primary/80 transition-all hover:bg-primary"
-              style={{ height: `${height}%` }}
-              title={`${point.date}: ${point.apiCalls} API calls`}
-            />
-          );
-        })}
-      </div>
-      <div className="flex justify-between text-xs text-muted-foreground">
-        <span>{data[0].date}</span>
-        <span>{data[data.length - 1].date}</span>
-      </div>
-    </div>
+    <ResponsiveContainer width="100%" height={200}>
+      <AreaChart data={data}>
+        <defs>
+          <linearGradient id="greenGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#00ff41" stopOpacity={0.3} />
+            <stop offset="100%" stopColor="#00ff41" stopOpacity={0.05} />
+          </linearGradient>
+        </defs>
+        <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+        <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#888" }} />
+        <YAxis tick={{ fontSize: 11, fill: "#888" }} />
+        <Tooltip
+          contentStyle={{
+            backgroundColor: "#0a0a0a",
+            border: "1px solid #00ff4133",
+            fontFamily: "JetBrains Mono",
+            fontSize: 12,
+          }}
+          labelStyle={{ color: "#a0a0a0" }}
+        />
+        <Area
+          type="monotone"
+          dataKey="apiCalls"
+          stroke="#00ff41"
+          fill="url(#greenGradient)"
+          strokeWidth={2}
+        />
+      </AreaChart>
+    </ResponsiveContainer>
   );
 }

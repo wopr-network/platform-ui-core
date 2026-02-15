@@ -1,5 +1,7 @@
 "use client";
 
+import { motion } from "framer-motion";
+import { ChevronDownIcon, ChevronUpIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -31,6 +34,15 @@ const CAPABILITY_LABELS: Record<HostedCapability, string> = {
 
 type SortField = "date" | "capability" | "provider" | "units" | "cost";
 type SortDir = "asc" | "desc";
+
+const staggerRow = {
+  hidden: { opacity: 0, x: -12 },
+  visible: (i: number) => ({
+    opacity: 1,
+    x: 0,
+    transition: { delay: Math.min(i, 20) * 0.05, duration: 0.3, ease: "easeOut" as const },
+  }),
+};
 
 export default function HostedUsageDetailPage() {
   const [events, setEvents] = useState<HostedUsageEvent[]>([]);
@@ -105,15 +117,40 @@ export default function HostedUsageDetailPage() {
     URL.revokeObjectURL(url);
   }
 
-  function sortIndicator(field: SortField) {
-    if (sortField !== field) return "";
-    return sortDir === "asc" ? " ^" : " v";
+  function SortIcon({ field }: { field: SortField }) {
+    if (sortField !== field) return null;
+    return sortDir === "asc" ? (
+      <ChevronUpIcon className="inline size-3.5 ml-0.5" />
+    ) : (
+      <ChevronDownIcon className="inline size-3.5 ml-0.5" />
+    );
   }
 
   if (loading) {
     return (
-      <div className="flex h-40 items-center justify-center text-muted-foreground">
-        Loading hosted usage...
+      <div className="max-w-4xl space-y-6">
+        <div className="space-y-2">
+          <Skeleton className="h-7 w-48" />
+          <Skeleton className="h-4 w-72" />
+        </div>
+        <div className="rounded-sm border p-6 space-y-4">
+          <div className="flex justify-between">
+            <Skeleton className="h-5 w-32" />
+            <div className="flex gap-2">
+              <Skeleton className="h-9 w-36" />
+              <Skeleton className="h-9 w-24" />
+            </div>
+          </div>
+          {["sk-a", "sk-b", "sk-c", "sk-d", "sk-e"].map((skId) => (
+            <div key={skId} className="flex justify-between py-2">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-5 w-20" />
+              <Skeleton className="h-4 w-28" />
+              <Skeleton className="h-4 w-16 text-right" />
+              <Skeleton className="h-4 w-16 text-right" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -169,34 +206,46 @@ export default function HostedUsageDetailPage() {
                   <TableRow>
                     <TableHead>
                       <button type="button" onClick={() => handleSort("date")}>
-                        Date{sortIndicator("date")}
+                        Date
+                        <SortIcon field="date" />
                       </button>
                     </TableHead>
                     <TableHead>
                       <button type="button" onClick={() => handleSort("capability")}>
-                        Capability{sortIndicator("capability")}
+                        Capability
+                        <SortIcon field="capability" />
                       </button>
                     </TableHead>
                     <TableHead>
                       <button type="button" onClick={() => handleSort("provider")}>
-                        Provider{sortIndicator("provider")}
+                        Provider
+                        <SortIcon field="provider" />
                       </button>
                     </TableHead>
                     <TableHead className="text-right">
                       <button type="button" onClick={() => handleSort("units")}>
-                        Units{sortIndicator("units")}
+                        Units
+                        <SortIcon field="units" />
                       </button>
                     </TableHead>
                     <TableHead className="text-right">
                       <button type="button" onClick={() => handleSort("cost")}>
-                        Cost{sortIndicator("cost")}
+                        Cost
+                        <SortIcon field="cost" />
                       </button>
                     </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredEvents.map((event) => (
-                    <TableRow key={event.id}>
+                  {filteredEvents.map((event, index) => (
+                    <motion.tr
+                      key={event.id}
+                      variants={staggerRow}
+                      initial="hidden"
+                      animate="visible"
+                      custom={index}
+                      className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
+                    >
                       <TableCell className="font-medium">
                         {new Date(event.date).toLocaleDateString("en-US", {
                           month: "short",
@@ -216,7 +265,7 @@ export default function HostedUsageDetailPage() {
                       <TableCell className="text-right font-medium">
                         ${event.cost.toFixed(2)}
                       </TableCell>
-                    </TableRow>
+                    </motion.tr>
                   ))}
                 </TableBody>
               </Table>

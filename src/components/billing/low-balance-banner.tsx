@@ -14,7 +14,7 @@ export function LowBalanceBanner({ balance, runway, global }: LowBalanceBannerPr
 
   if (balance === 0) {
     return (
-      <Banner variant="destructive" role="alert">
+      <Banner variant="destructive" role="alert" className="animate-gentle-pulse">
         <span className="flex-1">Bots suspended — buy credits to reactivate</span>
         <Link href="/billing/credits" className="font-semibold underline underline-offset-4">
           Buy credits
@@ -25,7 +25,7 @@ export function LowBalanceBanner({ balance, runway, global }: LowBalanceBannerPr
 
   if (balance < 1) {
     return (
-      <Banner variant="destructive" role="alert">
+      <Banner variant="destructive" role="alert" className="animate-gentle-pulse">
         <span className="flex-1">Credits critically low — buy now to avoid suspension</span>
         <Link href="/billing/credits" className="font-semibold underline underline-offset-4">
           Buy credits
@@ -40,10 +40,10 @@ export function LowBalanceBanner({ balance, runway, global }: LowBalanceBannerPr
   const daysText = runway !== null ? `~${runway} day${runway === 1 ? "" : "s"} left` : "low";
 
   return (
-    <Banner variant="warning" role="alert">
+    <Banner variant="warning" role="alert" className="animate-gentle-pulse">
       <span className="flex-1">Credits running low — {daysText}</span>
       <Link href="/billing/credits" className="font-semibold underline underline-offset-4">
-        Buy credits
+        Top up now
       </Link>
     </Banner>
   );
