@@ -317,7 +317,6 @@ export default function ProvidersPage() {
       {/* Billing gate dialog */}
       {billingGate && (
         <BillingGateDialog
-          capability={billingGate}
           meta={CAPABILITY_META[billingGate]}
           onConfirm={() => handleHostedConfirm(billingGate)}
           onCancel={() => setBillingGate(null)}
@@ -404,14 +403,11 @@ export default function ProvidersPage() {
 
 // --- Billing gate dialog ---
 
-// biome-ignore lint/correctness/noUnusedFunctionParameters: capability reserved for future use
 function BillingGateDialog({
-  capability,
   meta,
   onConfirm,
   onCancel,
 }: {
-  capability: CapabilityName;
   meta: CapabilityMeta;
   onConfirm: () => void;
   onCancel: () => void;

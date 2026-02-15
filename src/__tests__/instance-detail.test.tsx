@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { InstanceDetailClient } from "../app/instances/[id]/instance-detail-client";
 
@@ -30,6 +31,11 @@ vi.mock("@/lib/api", () => ({
     resourceUsage: { memoryMb: 256, cpuPercent: 12.5 },
   }),
   controlInstance: vi.fn().mockResolvedValue(undefined),
+  getInstanceLogs: vi
+    .fn()
+    .mockResolvedValue([
+      { id: "log-1", level: "info", message: "Bot started", timestamp: "2026-02-14T10:00:00Z" },
+    ]),
 }));
 
 describe("InstanceDetailClient", () => {
@@ -75,5 +81,63 @@ describe("InstanceDetailClient", () => {
     });
     expect(screen.getByText("Restart")).toBeInTheDocument();
     expect(screen.getByText("Destroy")).toBeInTheDocument();
+  });
+
+  it("tabs can be clicked and become selected", async () => {
+    const user = userEvent.setup();
+    render(<InstanceDetailClient instanceId="inst-001" />);
+
+    await waitFor(() => {
+      expect(screen.getByText("test-instance")).toBeInTheDocument();
+    });
+
+    // Verify all tabs are rendered
+    const pluginsTab = screen.getByRole("tab", { name: "Plugins" });
+    const channelsTab = screen.getByRole("tab", { name: "Channels" });
+    const sessionsTab = screen.getByRole("tab", { name: "Sessions" });
+    const configTab = screen.getByRole("tab", { name: "Config" });
+    const logsTab = screen.getByRole("tab", { name: "Logs" });
+
+    expect(pluginsTab).toBeInTheDocument();
+    expect(channelsTab).toBeInTheDocument();
+    expect(sessionsTab).toBeInTheDocument();
+    expect(configTab).toBeInTheDocument();
+    expect(logsTab).toBeInTheDocument();
+
+    // Click Plugins tab and verify it becomes selected
+    await user.click(pluginsTab);
+    expect(pluginsTab).toHaveAttribute("aria-selected", "true");
+
+    // Click Channels tab and verify it becomes selected
+    await user.click(channelsTab);
+    expect(channelsTab).toHaveAttribute("aria-selected", "true");
+
+    // Click Config tab and verify it becomes selected
+    await user.click(configTab);
+    expect(configTab).toHaveAttribute("aria-selected", "true");
+
+    // Click Sessions tab and verify it becomes selected
+    await user.click(sessionsTab);
+    expect(sessionsTab).toHaveAttribute("aria-selected", "true");
+
+    // Click Logs tab and verify it becomes selected
+    await user.click(logsTab);
+    expect(logsTab).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByText("Bot started")).toBeInTheDocument();
+  });
+
+  it("clicking Stop button calls controlInstance with correct args", async () => {
+    const user = userEvent.setup();
+    const { controlInstance } = await import("@/lib/api");
+    render(<InstanceDetailClient instanceId="inst-001" />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Stop")).toBeInTheDocument();
+    });
+
+    const stopBtn = screen.getByText("Stop");
+    await user.click(stopBtn);
+
+    expect(controlInstance).toHaveBeenCalledWith("inst-001", "stop");
   });
 });

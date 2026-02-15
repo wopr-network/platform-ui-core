@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { StepChannels } from "@/components/onboarding/step-channels";
 import { StepConnect } from "@/components/onboarding/step-connect";
@@ -635,5 +635,157 @@ describe("StepLaunch", () => {
     );
     fireEvent.click(screen.getByText("Retry Launch"));
     expect(onDeploy).toHaveBeenCalledOnce();
+  });
+});
+
+// ---- Wizard Integration ----
+
+// Mock dependencies for OnboardingWizard
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn() }),
+}));
+
+vi.mock("better-auth/react", () => ({
+  createAuthClient: () => ({
+    useSession: () => ({ data: null, isPending: false, error: null }),
+  }),
+}));
+
+vi.mock("@/lib/api", () => ({
+  getCreditBalance: vi.fn().mockResolvedValue({ balance: 5.0, dailyBurn: 0.33, runway: 15 }),
+}));
+
+describe("OnboardingWizard integration", () => {
+  it("renders progress bar with MISSION BRIEFING and percentage", async () => {
+    const { OnboardingWizard } = await import("@/components/onboarding/wizard");
+    render(<OnboardingWizard />);
+
+    expect(screen.getByText("MISSION BRIEFING")).toBeInTheDocument();
+    // Progress percentage appears as [20%] for step 1 of 5 (power-source skipped when no superpowers need keys)
+    expect(screen.getByText(/\[20%\]/)).toBeInTheDocument();
+  });
+
+  it("shows step tick marks for all steps", async () => {
+    const { OnboardingWizard } = await import("@/components/onboarding/wizard");
+    render(<OnboardingWizard />);
+
+    // Check tick marks by uppercase labels (5 steps when no superpowers selected, 6 when superpowers need keys)
+    expect(screen.getByText("NAME")).toBeInTheDocument();
+    expect(screen.getByText("CHANNELS")).toBeInTheDocument();
+    expect(screen.getByText("CONNECT")).toBeInTheDocument();
+    expect(screen.getByText("SUPERPOWERS")).toBeInTheDocument();
+    expect(screen.getByText("LAUNCH")).toBeInTheDocument();
+  });
+
+  it("Back button disabled on first step (name)", async () => {
+    const { OnboardingWizard } = await import("@/components/onboarding/wizard");
+    render(<OnboardingWizard />);
+
+    const backBtn = screen.getByRole("button", { name: "Back" });
+    expect(backBtn).toBeDisabled();
+  });
+
+  it("Continue button advances from name to channels step", async () => {
+    const { OnboardingWizard } = await import("@/components/onboarding/wizard");
+    render(<OnboardingWizard />);
+
+    // Fill in name
+    const nameInput = screen.getByLabelText("Name");
+    fireEvent.change(nameInput, { target: { value: "jarvis" } });
+
+    // Click Continue
+    const continueBtn = screen.getByRole("button", { name: "Continue" });
+    fireEvent.click(continueBtn);
+
+    // Should now show channels step heading
+    await waitFor(() => {
+      expect(screen.getByText("Pick your channels")).toBeInTheDocument();
+    });
+  });
+
+  it("Continue button disabled when canAdvance returns false (empty name)", async () => {
+    const { OnboardingWizard } = await import("@/components/onboarding/wizard");
+    render(<OnboardingWizard />);
+
+    const continueBtn = screen.getByRole("button", { name: "Continue" });
+    expect(continueBtn).toBeDisabled();
+  });
+
+  it("Full flow: continues through multiple steps when valid data entered", async () => {
+    const { OnboardingWizard } = await import("@/components/onboarding/wizard");
+    render(<OnboardingWizard />);
+
+    // Step 1: Name - can advance when name is filled
+    expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled();
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "jarvis" } });
+    expect(screen.getByRole("button", { name: "Continue" })).not.toBeDisabled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+
+    // Step 2: Channels - heading should show
+    await waitFor(() => {
+      expect(screen.getByText("Pick your channels")).toBeInTheDocument();
+    });
+
+    // Verify we can see we're on step 2 (40% progress)
+    expect(screen.getByText(/\[40%\]/)).toBeInTheDocument();
+  });
+
+  it("Progress percentage increases as steps advance", async () => {
+    const { OnboardingWizard } = await import("@/components/onboarding/wizard");
+    render(<OnboardingWizard />);
+
+    // Step 1: 20% (1/5 steps since power-source is skipped)
+    expect(screen.getByText(/\[20%\]/)).toBeInTheDocument();
+
+    // Advance to step 2
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "jarvis" } });
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+
+    // Step 2: 40% (2/5)
+    await waitFor(() => {
+      expect(screen.getByText(/\[40%\]/)).toBeInTheDocument();
+    });
+  });
+
+  it("Back/Continue buttons control navigation between steps", async () => {
+    const { OnboardingWizard } = await import("@/components/onboarding/wizard");
+    render(<OnboardingWizard />);
+
+    // On step 1, back is disabled
+    expect(screen.getByRole("button", { name: "Back" })).toBeDisabled();
+
+    // Advance to step 2
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "jarvis" } });
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Pick your channels")).toBeInTheDocument();
+    });
+
+    // On step 2, back is enabled
+    expect(screen.getByRole("button", { name: "Back" })).not.toBeDisabled();
+
+    // Click back to return to step 1
+    fireEvent.click(screen.getByRole("button", { name: "Back" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Name your WOPR Bot")).toBeInTheDocument();
+    });
+  });
+
+  it("handles getCreditBalance API error gracefully", async () => {
+    const { getCreditBalance } = await import("@/lib/api");
+    vi.mocked(getCreditBalance).mockRejectedValueOnce(new Error("API failure"));
+
+    const { OnboardingWizard } = await import("@/components/onboarding/wizard");
+    render(<OnboardingWizard />);
+
+    // Wizard should still render despite API error
+    await waitFor(() => {
+      expect(screen.getByText("MISSION BRIEFING")).toBeInTheDocument();
+    });
+
+    expect(screen.getByText("Name your WOPR Bot")).toBeInTheDocument();
   });
 });
