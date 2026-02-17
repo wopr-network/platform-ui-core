@@ -34,6 +34,29 @@ vi.mock("@/lib/api", () => ({
       provider: "openai",
     },
   ]),
+  getActivityFeed: vi.fn().mockResolvedValue([
+    {
+      id: "evt-1",
+      timestamp: "2026-02-14T16:30:00Z",
+      actor: "admin",
+      action: "created instance",
+      target: "prod-assistant",
+      targetHref: "/instances/inst-001",
+    },
+    {
+      id: "evt-2",
+      timestamp: "2026-02-14T16:15:00Z",
+      actor: "admin",
+      action: "installed plugin",
+      target: "memory v1.2.0",
+      targetHref: "/plugins",
+    },
+  ]),
+  getFleetResources: vi.fn().mockResolvedValue({
+    totalCpuPercent: 35,
+    totalMemoryMb: 768,
+    memoryCapacityMb: 2048,
+  }),
 }));
 
 import { CommandCenter } from "../components/dashboard/command-center";
@@ -64,10 +87,12 @@ describe("CommandCenter", () => {
     expect(screen.getByTestId("memory-usage")).not.toHaveTextContent("--");
   });
 
-  it("renders the activity feed", () => {
+  it("renders the activity feed", async () => {
     render(<CommandCenter />);
-    expect(screen.getByText("Recent Activity")).toBeInTheDocument();
-    expect(screen.getAllByText("created instance").length).toBeGreaterThanOrEqual(1);
+    await waitFor(() => {
+      expect(screen.getByText("Recent Activity")).toBeInTheDocument();
+    });
+    expect(screen.getByText("created instance")).toBeInTheDocument();
     expect(screen.getByText("installed plugin")).toBeInTheDocument();
   });
 
@@ -87,10 +112,31 @@ describe("CommandCenter", () => {
     expect(billingLink).toHaveAttribute("href", "/billing/usage");
   });
 
-  it("activity feed items are clickable links", () => {
+  it("activity feed items are clickable links", async () => {
     render(<CommandCenter />);
+    await waitFor(() => {
+      expect(screen.getByText("created instance")).toBeInTheDocument();
+    });
+    const activityLink = screen.getAllByText("prod-assistant")[0].closest("a");
+    expect(activityLink).toHaveAttribute("href", "/instances/inst-001");
+  });
 
-    const link = screen.getByText("prod-assistant").closest("a");
-    expect(link).toHaveAttribute("href", "/instances/inst-001");
+  it("shows empty state when no activity", async () => {
+    const { getActivityFeed } = await import("@/lib/api");
+    (getActivityFeed as ReturnType<typeof vi.fn>).mockResolvedValueOnce([]);
+    render(<CommandCenter />);
+    await waitFor(() => {
+      expect(screen.getByText("No recent activity")).toBeInTheDocument();
+    });
+  });
+
+  it("still renders dashboard when activity endpoint fails", async () => {
+    const { getActivityFeed } = await import("@/lib/api");
+    (getActivityFeed as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error("Not found"));
+    render(<CommandCenter />);
+    await waitFor(() => {
+      expect(screen.getByTestId("running-count")).toHaveTextContent("2");
+    });
+    expect(screen.getByText("No recent activity")).toBeInTheDocument();
   });
 });

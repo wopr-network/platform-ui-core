@@ -7,104 +7,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { FleetInstance } from "@/lib/api";
-import { getFleetHealth } from "@/lib/api";
-
-// TODO: Replace with real API types and endpoints when backend supports activity feed
-interface ActivityEvent {
-  id: string;
-  timestamp: string;
-  actor: string;
-  action: string;
-  target: string;
-  targetHref: string;
-}
-
-// TODO: Replace with real API call
-function getMockActivity(): ActivityEvent[] {
-  return [
-    {
-      id: "evt-1",
-      timestamp: "2026-02-14T16:30:00Z",
-      actor: "admin",
-      action: "created instance",
-      target: "prod-assistant",
-      targetHref: "/instances/inst-001",
-    },
-    {
-      id: "evt-2",
-      timestamp: "2026-02-14T16:15:00Z",
-      actor: "admin",
-      action: "installed plugin",
-      target: "memory v1.2.0",
-      targetHref: "/plugins",
-    },
-    {
-      id: "evt-3",
-      timestamp: "2026-02-14T15:45:00Z",
-      actor: "admin",
-      action: "updated config",
-      target: "community-mod",
-      targetHref: "/instances/inst-003",
-    },
-    {
-      id: "evt-4",
-      timestamp: "2026-02-14T14:00:00Z",
-      actor: "system",
-      action: "restarted instance",
-      target: "dev-bot",
-      targetHref: "/instances/inst-002",
-    },
-    {
-      id: "evt-5",
-      timestamp: "2026-02-14T12:30:00Z",
-      actor: "admin",
-      action: "connected channel",
-      target: "discord #general",
-      targetHref: "/channels",
-    },
-    {
-      id: "evt-6",
-      timestamp: "2026-02-14T11:00:00Z",
-      actor: "system",
-      action: "health check failed",
-      target: "community-mod",
-      targetHref: "/instances/inst-003",
-    },
-    {
-      id: "evt-7",
-      timestamp: "2026-02-14T10:30:00Z",
-      actor: "admin",
-      action: "removed plugin",
-      target: "web-search v0.9.0",
-      targetHref: "/plugins",
-    },
-    {
-      id: "evt-8",
-      timestamp: "2026-02-14T09:00:00Z",
-      actor: "admin",
-      action: "changed provider key",
-      target: "anthropic",
-      targetHref: "/settings/providers",
-    },
-    {
-      id: "evt-9",
-      timestamp: "2026-02-13T23:00:00Z",
-      actor: "system",
-      action: "stopped instance",
-      target: "dev-bot",
-      targetHref: "/instances/inst-002",
-    },
-    {
-      id: "evt-10",
-      timestamp: "2026-02-13T20:00:00Z",
-      actor: "admin",
-      action: "created instance",
-      target: "community-mod",
-      targetHref: "/instances/inst-003",
-    },
-  ];
-}
+import type { ActivityEvent, FleetInstance, FleetResources } from "@/lib/api";
+import { getActivityFeed, getFleetHealth, getFleetResources } from "@/lib/api";
 
 function formatRelativeTime(timestamp: string): string {
   const now = Date.now();
@@ -120,17 +24,15 @@ function formatRelativeTime(timestamp: string): string {
   return `${diffDays}d ago`;
 }
 
-function computeFleetStats(instances: FleetInstance[]) {
+function computeFleetStats(instances: FleetInstance[], resources: FleetResources | null) {
   const running = instances.filter((i) => i.status === "running").length;
   const stopped = instances.filter((i) => i.status === "stopped").length;
   const degraded = instances.filter(
     (i) => i.health === "degraded" || i.health === "unhealthy",
   ).length;
-  // TODO: Replace with real resource usage from API
-  const totalCpu = instances.length > 0 ? Math.min(100, Math.round(instances.length * 12.5)) : 0;
-  const totalMemory = instances.length > 0 ? instances.length * 256 : 0;
-  // Memory capacity assumption: 2048 MB total available fleet capacity for percentage calculation
-  const memoryCapacity = 2048;
+  const totalCpu = resources?.totalCpuPercent ?? 0;
+  const totalMemory = resources?.totalMemoryMb ?? 0;
+  const memoryCapacity = resources?.memoryCapacityMb ?? 2048;
 
   return { running, stopped, degraded, totalCpu, totalMemory, memoryCapacity };
 }
@@ -238,13 +140,21 @@ export function CommandCenter() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastRefreshed, setLastRefreshed] = useState(Date.now());
+  const [activity, setActivity] = useState<ActivityEvent[]>([]);
+  const [resources, setResources] = useState<FleetResources | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await getFleetHealth();
-      setInstances(data);
+      const [fleetData, activityData, resourcesData] = await Promise.all([
+        getFleetHealth(),
+        getActivityFeed().catch(() => [] as ActivityEvent[]),
+        getFleetResources().catch(() => null),
+      ]);
+      setInstances(fleetData);
+      setActivity(activityData);
+      setResources(resourcesData);
       setLastRefreshed(Date.now());
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load fleet health");
@@ -259,8 +169,7 @@ export function CommandCenter() {
     return () => clearInterval(interval);
   }, [load]);
 
-  const stats = computeFleetStats(instances);
-  const activity = getMockActivity();
+  const stats = computeFleetStats(instances, resources);
 
   return (
     <div className="space-y-6 p-6">
@@ -418,32 +327,36 @@ export function CommandCenter() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <motion.div
-            className="space-y-0 divide-y divide-border"
-            variants={activityContainer}
-            initial="hidden"
-            animate="show"
-          >
-            {activity.map((evt) => (
-              <motion.div key={evt.id} variants={activityItem}>
-                <Link
-                  href={evt.targetHref}
-                  className="flex items-center justify-between py-2.5 text-sm transition-colors hover:text-primary"
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Badge variant="secondary" className="shrink-0 text-xs">
-                      {evt.actor}
-                    </Badge>
-                    <span className="text-muted-foreground">{evt.action}</span>
-                    <span className="truncate font-medium">{evt.target}</span>
-                  </div>
-                  <span className="shrink-0 text-xs text-muted-foreground ml-4">
-                    {formatRelativeTime(evt.timestamp)}
-                  </span>
-                </Link>
-              </motion.div>
-            ))}
-          </motion.div>
+          {activity.length === 0 ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">No recent activity</p>
+          ) : (
+            <motion.div
+              className="space-y-0 divide-y divide-border"
+              variants={activityContainer}
+              initial="hidden"
+              animate="show"
+            >
+              {activity.map((evt) => (
+                <motion.div key={evt.id} variants={activityItem}>
+                  <Link
+                    href={evt.targetHref}
+                    className="flex items-center justify-between py-2.5 text-sm transition-colors hover:text-primary"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Badge variant="secondary" className="shrink-0 text-xs">
+                        {evt.actor}
+                      </Badge>
+                      <span className="text-muted-foreground">{evt.action}</span>
+                      <span className="truncate font-medium">{evt.target}</span>
+                    </div>
+                    <span className="shrink-0 text-xs text-muted-foreground ml-4">
+                      {formatRelativeTime(evt.timestamp)}
+                    </span>
+                  </Link>
+                </motion.div>
+              ))}
+            </motion.div>
+          )}
         </CardContent>
       </Card>
 

@@ -184,6 +184,21 @@ export interface FleetInstance {
   provider: string;
 }
 
+export interface ActivityEvent {
+  id: string;
+  timestamp: string;
+  actor: string;
+  action: string;
+  target: string;
+  targetHref: string;
+}
+
+export interface FleetResources {
+  totalCpuPercent: number;
+  totalMemoryMb: number;
+  memoryCapacityMb: number;
+}
+
 // --- Observability API ---
 
 export async function getInstanceHealth(id: string): Promise<InstanceHealth> {
@@ -208,6 +223,14 @@ export async function getInstanceMetrics(id: string): Promise<InstanceMetrics> {
 
 export async function getFleetHealth(): Promise<FleetInstance[]> {
   return apiFetch<FleetInstance[]>("/fleet/bots/health");
+}
+
+export async function getActivityFeed(): Promise<ActivityEvent[]> {
+  return apiFetch<ActivityEvent[]>("/activity");
+}
+
+export async function getFleetResources(): Promise<FleetResources> {
+  return apiFetch<FleetResources>("/fleet/resources");
 }
 
 // --- Settings types ---
