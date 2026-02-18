@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import {
+  BellIcon,
   BrainIcon,
   BuildingIcon,
   KeyIcon,
@@ -24,6 +25,7 @@ const settingsNav = [
   { label: "Provider Keys", href: "/settings/providers", icon: ServerIcon },
   { label: "API Keys", href: "/settings/api-keys", icon: KeyIcon },
   { label: "Organization", href: "/settings/org", icon: BuildingIcon },
+  { label: "Notifications", href: "/settings/notifications", icon: BellIcon },
 ];
 
 function NavList({ onNavigate }: { onNavigate?: () => void }) {

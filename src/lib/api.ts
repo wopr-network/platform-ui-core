@@ -738,3 +738,52 @@ export async function validateElevenLabsKey(key: string): Promise<KeyValidationR
     return { valid: false, message: "Could not reach ElevenLabs. Check your connection." };
   }
 }
+
+// --- Notification preferences types ---
+
+export interface NotificationPreferences {
+  billing_low_balance: boolean;
+  billing_receipts: boolean;
+  billing_auto_topup: boolean;
+  agent_channel_disconnect: boolean;
+  agent_status_changes: boolean;
+  account_role_changes: boolean;
+  account_team_invites: boolean;
+}
+
+// --- Notification preferences API (tRPC via HTTP) ---
+
+async function trpcFetch<T>(procedure: string, input?: Record<string, unknown>): Promise<T> {
+  const { PLATFORM_BASE_URL } = await import("./api-config");
+  const params = new URLSearchParams({ input: JSON.stringify(input ?? {}) });
+  const res = await fetch(`${PLATFORM_BASE_URL}/trpc/${procedure}?${params}`, {
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!res.ok) throw new Error(`tRPC error: ${res.status} ${res.statusText}`);
+  const json = (await res.json()) as { result: { data: T } };
+  return json.result.data;
+}
+
+async function trpcMutate<T>(procedure: string, input: Record<string, unknown>): Promise<T> {
+  const { PLATFORM_BASE_URL } = await import("./api-config");
+  const res = await fetch(`${PLATFORM_BASE_URL}/trpc/${procedure}`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ json: input }),
+  });
+  if (!res.ok) throw new Error(`tRPC error: ${res.status} ${res.statusText}`);
+  const json = (await res.json()) as { result: { data: T } };
+  return json.result.data;
+}
+
+export async function getNotificationPreferences(): Promise<NotificationPreferences> {
+  return trpcFetch<NotificationPreferences>("settings.notificationPreferences");
+}
+
+export async function updateNotificationPreferences(
+  prefs: Partial<NotificationPreferences>,
+): Promise<NotificationPreferences> {
+  return trpcMutate<NotificationPreferences>("settings.updateNotificationPreferences", prefs);
+}

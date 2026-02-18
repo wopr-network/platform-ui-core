@@ -92,7 +92,11 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       </div>
       <nav className="flex-1 space-y-1 px-3 py-4">
         {navItems
-          .filter((item) => item.href !== "/admin/tenants" || user?.role === "platform_admin")
+          .filter(
+            (item) =>
+              item.href !== "/admin/tenants" ||
+              (user as { role?: string } | undefined)?.role === "platform_admin",
+          )
           .map((item) => (
             <Link
               key={item.href}
