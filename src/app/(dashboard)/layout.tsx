@@ -8,12 +8,15 @@ import { SuspensionBanner } from "@/components/billing/suspension-banner";
 import { Sidebar, SidebarContent } from "@/components/sidebar";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { useWebMCP } from "@/hooks/use-webmcp";
 
 export default function DashboardLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  useWebMCP();
+
   const pathname = usePathname();
   const [sheetOpen, setSheetOpen] = useState(false);
 
