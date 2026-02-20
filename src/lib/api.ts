@@ -118,6 +118,7 @@ function mapBotStatusToFleetInstance(bot: BotStatusResponse): FleetInstance {
   else if (bot.health === "unhealthy") health = "unhealthy";
   else if (bot.health === "degraded" || bot.health === "starting") health = "degraded";
   else if (status === "running") health = "healthy";
+  else if (status === "stopped" || status === "error") health = "degraded";
   else health = "healthy";
 
   let uptime: number | null = null;
@@ -151,13 +152,17 @@ export async function listInstances(): Promise<Instance[]> {
     provider: "",
     channels: [],
     plugins: [],
-    uptime: bot.uptime ? Math.floor((Date.now() - new Date(bot.uptime).getTime()) / 1000) : null,
+    uptime: (() => {
+      const ms = bot.uptime ? new Date(bot.uptime).getTime() : NaN;
+      return Number.isNaN(ms) ? null : Math.floor((Date.now() - ms) / 1000);
+    })(),
     createdAt: (bot.createdAt as string | undefined) ?? new Date().toISOString(),
   }));
 }
 
 export async function getInstance(id: string): Promise<InstanceDetail> {
   const bot = await fleetFetch<BotStatusResponse>(`/bots/${id}`);
+  const uptimeMs = bot.uptime ? new Date(bot.uptime).getTime() : NaN;
   return {
     id: bot.id,
     name: bot.name,
@@ -166,7 +171,7 @@ export async function getInstance(id: string): Promise<InstanceDetail> {
     provider: "",
     channels: [],
     plugins: [],
-    uptime: bot.uptime ? Math.floor((Date.now() - new Date(bot.uptime).getTime()) / 1000) : null,
+    uptime: Number.isNaN(uptimeMs) ? null : Math.floor((Date.now() - uptimeMs) / 1000),
     createdAt: (bot.createdAt as string | undefined) ?? new Date().toISOString(),
     config: {},
     channelDetails: [],
@@ -334,7 +339,7 @@ export async function getActivityFeed(): Promise<ActivityEvent[]> {
 }
 
 export async function getFleetResources(): Promise<FleetResources> {
-  return apiFetch<FleetResources>("/fleet/resources");
+  return fleetFetch<FleetResources>("/resources");
 }
 
 // --- Settings types ---
