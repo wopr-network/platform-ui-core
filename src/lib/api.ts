@@ -598,11 +598,10 @@ export interface BillingInfo {
 
 // --- Billing API (tRPC) ---
 
-export async function getCurrentPlan(): Promise<PlanTier> {
-  const res = await trpcFetch<{ tier: PlanTier }>("billing.currentPlan");
+export async function getCurrentPlan(): Promise<string> {
+  const res = await trpcFetch<{ tier: string }>("billing.currentPlan");
   return res.tier;
 }
-
 
 export async function getBillingUsage(): Promise<BillingUsage> {
   // TODO(WOP-687): align backend response shape with UI type
