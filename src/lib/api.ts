@@ -535,7 +535,7 @@ export async function getProviderCosts(): Promise<ProviderCost[]> {
 
 export async function getUsageHistory(days?: number): Promise<UsageDataPoint[]> {
   const qs = days ? `?days=${days}` : "";
-  return apiFetch<UsageDataPoint[]>(`/billing/usage-history${qs}`);
+  return apiFetch<UsageDataPoint[]>(`/billing/usage/history${qs}`);
 }
 
 export async function getBillingInfo(): Promise<BillingInfo> {
