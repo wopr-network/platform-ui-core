@@ -57,6 +57,18 @@ export function clearOnboardingState(): void {
   localStorage.removeItem(STORAGE_KEY);
 }
 
+const COMPLETE_KEY = "wopr-onboarding-complete";
+
+export function isOnboardingComplete(): boolean {
+  if (typeof window === "undefined") return true; // SSR: never gate
+  return localStorage.getItem(COMPLETE_KEY) === "1";
+}
+
+export function markOnboardingComplete(): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(COMPLETE_KEY, "1");
+}
+
 export const AI_PROVIDERS = [
   {
     id: "anthropic",
