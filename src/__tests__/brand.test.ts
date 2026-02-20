@@ -1,21 +1,108 @@
 import { describe, expect, it } from "vitest";
 import {
   animation,
+  audience,
   BRAND_NAME,
   colors,
   copyExamples,
+  copyFrameworks,
   DOMAIN,
+  emotionalArc,
   imagery,
   layout,
   nameRules,
   PRICE,
   PRODUCT_NAME,
+  product,
   TAGLINE,
   typography,
+  vision,
   voice,
 } from "../lib/brand";
 
 describe("Brand Bible", () => {
+  describe("Vision", () => {
+    it("defines what we sell in one sentence", () => {
+      expect(vision.oneLiner).toContain("$5");
+      expect(vision.oneLiner).toContain("supercomputer");
+    });
+
+    it("sells outcomes, not features", () => {
+      for (const outcome of vision.sells) {
+        expect(outcome).not.toMatch(/\bAI\b|\bLLM\b|\bagent\b|\bworkflow\b|\bintegration\b/i);
+      }
+    });
+
+    it("explicitly rejects feature-speak", () => {
+      expect(vision.doesNotSell).toContain("AI capabilities");
+      expect(vision.doesNotSell).toContain("Agent orchestration");
+    });
+
+    it("defines the absurdity gap mechanic", () => {
+      expect(vision.absurdityGap.what).toBeDefined();
+      expect(vision.absurdityGap.cost).toBe("$5/month");
+      expect(vision.absurdityGap.emotion).toBeDefined();
+    });
+  });
+
+  describe("Product definition", () => {
+    it("defines what a WOPR Bot IS", () => {
+      expect(product.is).toContain("A supercomputer");
+    });
+
+    it("defines what a WOPR Bot is NOT", () => {
+      expect(product.isNot).toContain("A chatbot");
+      expect(product.isNot).toContain("A platform");
+    });
+
+    it("describes outcomes, not features", () => {
+      for (const outcome of product.does) {
+        expect(outcome).not.toMatch(/orchestrat|integrat|leverag/i);
+      }
+    });
+  });
+
+  describe("Audience", () => {
+    it("knows who we are talking to", () => {
+      expect(audience.primary).toContain("23-year-old");
+    });
+
+    it("knows what they want", () => {
+      expect(audience.wants.length).toBeGreaterThan(0);
+    });
+
+    it("has neutralizers for every fear", () => {
+      expect(Object.keys(audience.neutralizers).length).toBe(audience.fears.length);
+    });
+  });
+
+  describe("Emotional arc", () => {
+    it("defines feelings for all major page types", () => {
+      const pages = [
+        "landing",
+        "onboarding",
+        "dashboard",
+        "marketplace",
+        "billing",
+        "settings",
+        "fleet",
+      ] as const;
+      for (const page of pages) {
+        expect(emotionalArc[page].feel).toBeDefined();
+        expect(emotionalArc[page].job).toBeDefined();
+        expect(emotionalArc[page].tone).toBeDefined();
+      }
+    });
+
+    it("landing page feel includes the price shock", () => {
+      expect(emotionalArc.landing.feel).toContain("$5");
+    });
+
+    it("onboarding feels like launching a supercomputer", () => {
+      expect(emotionalArc.onboarding.feel).toMatch(/supercomputer/i);
+    });
+  });
+
   describe("Product identity", () => {
     it("defines product name as WOPR Bot", () => {
       expect(PRODUCT_NAME).toBe("WOPR Bot");
@@ -163,10 +250,17 @@ describe("Brand Bible", () => {
       );
       expect(hasNameExample).toBe(true);
     });
+
+    it("includes supercomputer angle", () => {
+      const hasSupercomputer = copyExamples.some((e) =>
+        e.do.toLowerCase().includes("supercomputer"),
+      );
+      expect(hasSupercomputer).toBe(true);
+    });
   });
 
   describe("Animation", () => {
-    it("allows only typing effect and cursor blink", () => {
+    it("keeps backwards-compat allowed list", () => {
       expect(animation.allowed).toContain("typing-effect");
       expect(animation.allowed).toContain("cursor-blink");
       expect(animation.allowed).toHaveLength(2);
@@ -175,6 +269,28 @@ describe("Brand Bible", () => {
     it("bans parallax and scroll-jacking", () => {
       expect(animation.banned).toContain("parallax");
       expect(animation.banned).toContain("scroll-jacking");
+    });
+
+    it("separates marketing from product UI animation", () => {
+      expect(animation.marketing).toBeDefined();
+      expect(animation.productUI).toBeDefined();
+    });
+
+    it("marketing animation is restrained", () => {
+      expect(animation.marketing.allowed.length).toBeLessThanOrEqual(5);
+      expect(animation.marketing.banned).toContain("parallax");
+    });
+
+    it("product UI allows functional motion", () => {
+      expect(animation.productUI.allowed).toContain("stagger-enter");
+      expect(animation.productUI.allowed).toContain("status-pulse");
+      expect(animation.productUI.allowed).toContain("hover-glow");
+      expect(animation.productUI.allowed).toContain("skeleton-loading");
+    });
+
+    it("product UI still bans gratuitous animation", () => {
+      expect(animation.productUI.banned).toContain("parallax");
+      expect(animation.productUI.banned).toContain("confetti");
     });
   });
 
@@ -186,6 +302,34 @@ describe("Brand Bible", () => {
     it("allows screenshots of real things", () => {
       const hasScreenshots = imagery.allowed.some((a) => a.includes("screenshot"));
       expect(hasScreenshots).toBe(true);
+    });
+  });
+
+  describe("Copy frameworks", () => {
+    it("defines frameworks for all page types", () => {
+      const pages = [
+        "landing",
+        "onboarding",
+        "dashboard",
+        "marketplace",
+        "billing",
+        "settings",
+        "empty",
+      ] as const;
+      for (const page of pages) {
+        expect(copyFrameworks[page]).toBeDefined();
+        expect(copyFrameworks[page].headline).toBeDefined();
+      }
+    });
+
+    it("empty states always suggest action", () => {
+      expect(copyFrameworks.empty.antiPattern).toContain("nothing here yet");
+    });
+
+    it("landing page has a complete example", () => {
+      expect(copyFrameworks.landing.example).toBeDefined();
+      expect(copyFrameworks.landing.example.headline).toContain("WOPR Bot");
+      expect(copyFrameworks.landing.example.reveal).toContain("$5");
     });
   });
 });
