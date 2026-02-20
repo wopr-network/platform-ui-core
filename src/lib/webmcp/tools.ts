@@ -37,7 +37,7 @@ export function getWebMCPTools(confirm: ConfirmCallback): ModelContextTool[] {
     },
     {
       name: "wopr_create_instance",
-      description: "Create a new WOPR bot instance from a template.",
+      description: "Create a new WOPR bot instance from a preset.",
       inputSchema: {
         type: "object",
         properties: {

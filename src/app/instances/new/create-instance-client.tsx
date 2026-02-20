@@ -37,6 +37,23 @@ export function CreateInstanceClient() {
   const [submitting, setSubmitting] = useState(false);
   const [created, setCreated] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [nameError, setNameError] = useState<string | null>(null);
+
+  const NAME_PATTERN = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/;
+
+  function validateName(value: string): string | null {
+    if (!value.trim()) return null;
+    if (!NAME_PATTERN.test(value)) {
+      return "Lowercase letters, numbers, and hyphens only. Must start and end with a letter or number.";
+    }
+    return null;
+  }
+
+  function handleNameChange(e: { target: { value: string } }) {
+    const value = e.target.value;
+    setName(value);
+    setNameError(validateName(value));
+  }
 
   function handlePresetSelect(presetId: string) {
     if (selectedPreset === presetId) {
@@ -69,6 +86,11 @@ export function CreateInstanceClient() {
 
   async function handleSubmit() {
     if (!name.trim()) return;
+    const validationError = validateName(name);
+    if (validationError) {
+      setNameError(validationError);
+      return;
+    }
     setSubmitting(true);
     setSubmitError(null);
     try {
@@ -152,11 +174,19 @@ export function CreateInstanceClient() {
           id="instance-name"
           placeholder="my-instance"
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          onChange={handleNameChange}
+          aria-invalid={nameError !== null}
+          aria-describedby={nameError ? "instance-name-error" : "instance-name-hint"}
         />
-        <p className="text-xs text-muted-foreground/60">
-          Lowercase letters, numbers, and hyphens only
-        </p>
+        {nameError ? (
+          <p id="instance-name-error" className="text-xs text-red-500">
+            {nameError}
+          </p>
+        ) : (
+          <p id="instance-name-hint" className="text-xs text-muted-foreground/60">
+            Lowercase letters, numbers, and hyphens only
+          </p>
+        )}
       </div>
 
       <Separator />
@@ -326,7 +356,7 @@ export function CreateInstanceClient() {
           variant="terminal"
           className={cn(submitting && "animate-[terminal-pulse_2s_ease-in-out_infinite]")}
           onClick={handleSubmit}
-          disabled={!name.trim() || submitting}
+          disabled={!name.trim() || !!nameError || submitting}
         >
           {submitting ? "Creating..." : "Create Instance"}
         </Button>
