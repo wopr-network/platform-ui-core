@@ -616,50 +616,56 @@ export interface BillingInfo {
   invoices: Invoice[];
 }
 
-// --- Billing API ---
+// --- Billing API (tRPC) ---
 
 export async function getPlans(): Promise<Plan[]> {
-  return apiFetch<Plan[]>("/billing/plans");
+  return trpcFetch<Plan[]>("billing.plans");
 }
 
 export async function getCurrentPlan(): Promise<PlanTier> {
-  const res = await apiFetch<{ tier: PlanTier }>("/billing/current-plan");
+  const res = await trpcFetch<{ tier: PlanTier }>("billing.currentPlan");
   return res.tier;
 }
 
 export async function changePlan(tier: PlanTier): Promise<void> {
-  await apiFetch("/billing/change-plan", {
-    method: "POST",
-    body: JSON.stringify({ tier }),
-  });
+  await trpcMutate<{ tier: string }>("billing.changePlan", { tier });
 }
 
 export async function getBillingUsage(): Promise<BillingUsage> {
-  return apiFetch<BillingUsage>("/billing/usage");
+  // TODO(WOP-687): align backend response shape with UI type
+  const plan = await getCurrentPlan();
+  return {
+    plan,
+    planName: plan.charAt(0).toUpperCase() + plan.slice(1),
+    billingPeriodStart: new Date(Date.now() - 30 * 86400000).toISOString(),
+    billingPeriodEnd: new Date().toISOString(),
+    instancesRunning: 0,
+    instanceCap: 1,
+    storageUsedGb: 0,
+    storageCapGb: 1,
+    apiCalls: 0,
+  };
 }
 
 export async function getProviderCosts(): Promise<ProviderCost[]> {
-  return apiFetch<ProviderCost[]>("/billing/provider-costs");
+  return trpcFetch<ProviderCost[]>("billing.providerCosts");
 }
 
-export async function getUsageHistory(days?: number): Promise<UsageDataPoint[]> {
-  const qs = days ? `?days=${days}` : "";
-  return apiFetch<UsageDataPoint[]>(`/billing/usage/history${qs}`);
+export async function getUsageHistory(_days?: number): Promise<UsageDataPoint[]> {
+  // TODO(WOP-687): backend usageHistory returns Stripe reports, not daily data points
+  return [];
 }
 
 export async function getBillingInfo(): Promise<BillingInfo> {
-  return apiFetch<BillingInfo>("/billing/info");
+  return trpcFetch<BillingInfo>("billing.billingInfo");
 }
 
 export async function updateBillingEmail(email: string): Promise<void> {
-  await apiFetch("/billing/email", {
-    method: "PATCH",
-    body: JSON.stringify({ email }),
-  });
+  await trpcMutate<{ email: string }>("billing.updateBillingEmail", { email });
 }
 
 export async function removePaymentMethod(id: string): Promise<void> {
-  await apiFetch(`/billing/payment-methods/${id}`, { method: "DELETE" });
+  await trpcMutate<{ removed: boolean }>("billing.removePaymentMethod", { id });
 }
 
 export async function createSetupIntent(): Promise<{ clientSecret: string }> {
@@ -667,7 +673,9 @@ export async function createSetupIntent(): Promise<{ clientSecret: string }> {
 }
 
 export async function createBillingPortalSession(): Promise<{ url: string }> {
-  return apiFetch<{ url: string }>("/billing/portal-session", { method: "POST" });
+  return trpcMutate<{ url: string }>("billing.portalSession", {
+    returnUrl: typeof window !== "undefined" ? window.location.href : "",
+  });
 }
 
 // --- Capability settings types ---
@@ -742,33 +750,73 @@ export interface CheckoutResponse {
   checkoutUrl: string;
 }
 
-// --- Credits API ---
+// --- Credits API (tRPC) ---
 
 export async function getCreditBalance(): Promise<CreditBalance> {
-  return apiFetch<CreditBalance>("/billing/credits");
+  const res = await trpcFetch<{ tenant: string; balance_cents: number }>("billing.creditsBalance");
+  return {
+    balance: res.balance_cents / 100,
+    dailyBurn: 0, // TODO(WOP-687): backend doesn't provide dailyBurn yet
+    runway: null, // TODO(WOP-687): backend doesn't provide runway yet
+  };
 }
 
-export async function getCreditHistory(cursor?: string): Promise<CreditHistoryResponse> {
-  const qs = cursor ? `?cursor=${encodeURIComponent(cursor)}` : "";
-  return apiFetch<CreditHistoryResponse>(`/billing/credits/history${qs}`);
+function mapTransactionType(backendType: string): CreditTransactionType {
+  const map: Record<string, CreditTransactionType> = {
+    grant: "purchase",
+    refund: "refund",
+    correction: "adjustment",
+  };
+  return map[backendType] ?? "adjustment";
+}
+
+export async function getCreditHistory(_cursor?: string): Promise<CreditHistoryResponse> {
+  const res = await trpcFetch<{
+    entries: Array<{
+      id: string;
+      tenant: string;
+      type: string;
+      amount_cents: number;
+      reason: string;
+      admin_user: string;
+      reference_ids: string | null;
+      created_at: number;
+    }>;
+    total: number;
+  }>("billing.creditsHistory");
+  return {
+    transactions: res.entries.map((e) => ({
+      id: e.id,
+      type: mapTransactionType(e.type),
+      description: e.reason,
+      amount: e.amount_cents / 100,
+      createdAt: new Date(e.created_at).toISOString(),
+    })),
+    nextCursor: null, // TODO(WOP-687): implement cursor-based pagination
+  };
 }
 
 export async function createCreditCheckout(amount: number): Promise<CheckoutResponse> {
-  return apiFetch<CheckoutResponse>("/billing/credits/checkout", {
-    method: "POST",
-    body: JSON.stringify({ amount }),
-  });
+  const res = await trpcMutate<{ url: string | null; sessionId: string }>(
+    "billing.creditsCheckout",
+    {
+      priceId: `credit_${amount}`, // TODO(WOP-687): map amount to real Stripe price IDs
+      successUrl: `${typeof window !== "undefined" ? window.location.origin : ""}/billing/credits?checkout=success`,
+      cancelUrl: `${typeof window !== "undefined" ? window.location.origin : ""}/billing/credits?checkout=cancel`,
+    },
+  );
+  return { checkoutUrl: res.url ?? "" };
 }
 
-// --- Hosted usage API ---
+// --- Hosted usage API (tRPC) ---
 
 export async function getInferenceMode(): Promise<InferenceMode> {
-  const res = await apiFetch<{ mode: InferenceMode }>("/billing/inference-mode");
+  const res = await trpcFetch<{ mode: InferenceMode }>("billing.inferenceMode");
   return res.mode;
 }
 
 export async function getHostedUsageSummary(): Promise<HostedUsageSummary> {
-  return apiFetch<HostedUsageSummary>("/billing/hosted-usage");
+  return trpcFetch<HostedUsageSummary>("billing.hostedUsageSummary");
 }
 
 export async function getHostedUsageEvents(params?: {
@@ -776,23 +824,18 @@ export async function getHostedUsageEvents(params?: {
   from?: string;
   to?: string;
 }): Promise<HostedUsageEvent[]> {
-  const qs = new URLSearchParams();
-  if (params?.capability) qs.set("capability", params.capability);
-  if (params?.from) qs.set("from", params.from);
-  if (params?.to) qs.set("to", params.to);
-  const query = qs.toString();
-  return apiFetch<HostedUsageEvent[]>(`/billing/hosted-usage/events${query ? `?${query}` : ""}`);
+  return trpcFetch<HostedUsageEvent[]>("billing.hostedUsageEvents", params ?? {});
 }
 
 export async function getSpendingLimits(): Promise<SpendingLimits> {
-  return apiFetch<SpendingLimits>("/billing/spending-limits");
+  return trpcFetch<SpendingLimits>("billing.spendingLimits");
 }
 
 export async function updateSpendingLimits(limits: SpendingLimits): Promise<void> {
-  await apiFetch("/billing/spending-limits", {
-    method: "PUT",
-    body: JSON.stringify(limits),
-  });
+  await trpcMutate<SpendingLimits>(
+    "billing.updateSpendingLimits",
+    limits as unknown as Record<string, unknown>,
+  );
 }
 
 // --- Model selection types ---
