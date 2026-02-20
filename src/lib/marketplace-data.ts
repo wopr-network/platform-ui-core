@@ -1002,6 +1002,7 @@ export const ALL_CATEGORIES: { id: PluginCategory; label: string }[] = [
 
 // --- API functions (mock-first, same pattern as api.ts) ---
 
+import { fleetFetch } from "./api";
 import { API_BASE_URL } from "./api-config";
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
@@ -1011,6 +1012,17 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   });
   if (!res.ok) throw new Error(`API error: ${res.status} ${res.statusText}`);
   return res.json() as Promise<T>;
+}
+
+export interface BotSummary {
+  id: string;
+  name: string;
+  state: string;
+}
+
+export async function listBots(): Promise<BotSummary[]> {
+  const data = await fleetFetch<{ bots: BotSummary[] }>("/bots");
+  return data.bots;
 }
 
 export async function listMarketplacePlugins(): Promise<PluginManifest[]> {
@@ -1030,17 +1042,15 @@ export async function getMarketplacePlugin(id: string): Promise<PluginManifest |
 }
 
 export async function installPlugin(
-  _id: string,
-  _config: Record<string, unknown>,
-): Promise<{ success: boolean }> {
-  try {
-    return await apiFetch<{ success: boolean }>(`/marketplace/plugins/${_id}/install`, {
-      method: "POST",
-      body: JSON.stringify(_config),
-    });
-  } catch {
-    return { success: true };
-  }
+  pluginId: string,
+  botId: string,
+  config: Record<string, unknown>,
+  providerChoices: Record<string, string>,
+): Promise<{ success: boolean; botId: string; pluginId: string; installedPlugins: string[] }> {
+  return fleetFetch(`/bots/${botId}/plugins/${pluginId}`, {
+    method: "POST",
+    body: JSON.stringify({ config, providerChoices }),
+  });
 }
 
 export function formatInstallCount(count: number): string {

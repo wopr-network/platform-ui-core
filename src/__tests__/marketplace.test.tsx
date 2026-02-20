@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   ALL_CATEGORIES,
   formatInstallCount,
@@ -326,6 +326,25 @@ describe("PluginDetailPage", () => {
 });
 
 describe("InstallWizard", () => {
+  const mockBots = [
+    { id: "00000000-0000-4000-8000-000000000001", name: "My Bot", state: "running" },
+  ];
+
+  beforeEach(() => {
+    // Mock fetch for listBots so the wizard doesn't hang on network calls
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ bots: mockBots }),
+      }),
+    );
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it("renders wizard with cancel and continue buttons", async () => {
     const { InstallWizard } = await import("../components/marketplace/install-wizard");
     const plugin = findManifest("webhooks");
@@ -337,6 +356,16 @@ describe("InstallWizard", () => {
     expect(screen.getByText("Continue")).toBeInTheDocument();
   });
 
+  it("shows bot selector as first phase", async () => {
+    const { InstallWizard } = await import("../components/marketplace/install-wizard");
+    const plugin = findManifest("webhooks");
+
+    render(<InstallWizard plugin={plugin} onComplete={vi.fn()} onCancel={vi.fn()} />);
+
+    // First phase is bot-select
+    expect(screen.getByText("Select which bot to install this plugin on")).toBeInTheDocument();
+  });
+
   it("shows provider selector for plugins with hosted capabilities", async () => {
     const { InstallWizard } = await import("../components/marketplace/install-wizard");
     // meeting-transcriber has stt and llm capabilities
@@ -344,11 +373,23 @@ describe("InstallWizard", () => {
 
     render(<InstallWizard plugin={plugin} onComplete={vi.fn()} onCancel={vi.fn()} />);
 
-    // First phase is requirements
+    // First phase is bot-select — wait for bots to load and select one
+    const user = userEvent.setup();
+    expect(
+      await screen.findByText("Select which bot to install this plugin on"),
+    ).toBeInTheDocument();
+
+    // Wait for bots to load
+    const botButton = await screen.findByText("My Bot");
+    await user.click(botButton);
+
+    // Advance past bot-select
+    await user.click(screen.getByText("Continue"));
+
+    // Next phase is requirements
     expect(screen.getByText("Check plugin requirements")).toBeInTheDocument();
 
     // Advance past requirements
-    const user = userEvent.setup();
     await user.click(screen.getByText("Continue"));
 
     // Should now show provider selector
