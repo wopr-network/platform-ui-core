@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,21 +21,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import type {
+  BotSummary,
   ConfigSchemaField,
   HostedAdapter,
   PluginManifest,
   SetupStep,
 } from "@/lib/marketplace-data";
-import { getHostedAdaptersForCapabilities } from "@/lib/marketplace-data";
+import { getHostedAdaptersForCapabilities, listBots } from "@/lib/marketplace-data";
+import { cn } from "@/lib/utils";
 
 // --- Step types for the wizard flow ---
-type WizardPhase = "requirements" | "providers" | "setup" | "complete";
+type WizardPhase = "bot-select" | "requirements" | "providers" | "setup" | "complete";
 
 interface InstallWizardProps {
   plugin: PluginManifest;
-  onComplete: (config: Record<string, unknown>) => void;
+  onComplete: (botId: string, config: Record<string, unknown>) => void;
   onCancel: () => void;
 }
 
@@ -44,8 +47,8 @@ export function InstallWizard({ plugin, onComplete, onCancel }: InstallWizardPro
   const hasRequirements = plugin.requires.length > 0;
   const hasHosted = hostedAdapters.length > 0;
 
-  // Determine phases
-  const phases: WizardPhase[] = [];
+  // Determine phases — bot-select is always first
+  const phases: WizardPhase[] = ["bot-select"];
   if (hasRequirements) phases.push("requirements");
   if (hasHosted) phases.push("providers");
   phases.push("setup");
@@ -56,6 +59,16 @@ export function InstallWizard({ plugin, onComplete, onCancel }: InstallWizardPro
   const [values, setValues] = useState<Record<string, unknown>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [providerChoices, setProviderChoices] = useState<Record<string, "byok" | "hosted">>({});
+  const [selectedBotId, setSelectedBotId] = useState<string | null>(null);
+  const [bots, setBots] = useState<BotSummary[]>([]);
+  const [botsLoading, setBotsLoading] = useState(true);
+
+  useEffect(() => {
+    listBots().then((data) => {
+      setBots(data);
+      setBotsLoading(false);
+    });
+  }, []);
 
   const currentPhase = phases[currentPhaseIndex];
   const setupSteps = plugin.setup;
@@ -108,6 +121,16 @@ export function InstallWizard({ plugin, onComplete, onCancel }: InstallWizardPro
   }
 
   function handleNext() {
+    if (currentPhase === "bot-select") {
+      if (!selectedBotId) {
+        setErrors({ _botId: "Please select a bot to install on" });
+        return;
+      }
+      setCurrentPhaseIndex((i) => i + 1);
+      setErrors({});
+      return;
+    }
+
     if (currentPhase === "setup" && currentSetupStep) {
       if (!validateFields(currentSetupStep.fields)) return;
       if (setupStepIndex < setupSteps.length - 1) {
@@ -117,7 +140,9 @@ export function InstallWizard({ plugin, onComplete, onCancel }: InstallWizardPro
     }
 
     if (currentPhase === "complete") {
-      onComplete({ ...values, _providerChoices: providerChoices });
+      if (selectedBotId) {
+        onComplete(selectedBotId, { ...values, _providerChoices: providerChoices });
+      }
       return;
     }
 
@@ -138,6 +163,7 @@ export function InstallWizard({ plugin, onComplete, onCancel }: InstallWizardPro
   }
 
   const isFirstStep = currentPhaseIndex === 0 && (currentPhase !== "setup" || setupStepIndex === 0);
+  const isContinueDisabled = currentPhase === "bot-select" && !selectedBotId;
 
   return (
     <Card className="w-full">
@@ -152,6 +178,7 @@ export function InstallWizard({ plugin, onComplete, onCancel }: InstallWizardPro
           <div>
             <CardTitle>Install {plugin.name}</CardTitle>
             <CardDescription>
+              {currentPhase === "bot-select" && "Select which bot to install this plugin on"}
               {currentPhase === "requirements" && "Check plugin requirements"}
               {currentPhase === "providers" && "Choose provider for each capability"}
               {currentPhase === "setup" && currentSetupStep?.description}
@@ -171,6 +198,15 @@ export function InstallWizard({ plugin, onComplete, onCancel }: InstallWizardPro
       </CardHeader>
 
       <CardContent>
+        {currentPhase === "bot-select" && (
+          <BotSelector
+            bots={bots}
+            loading={botsLoading}
+            selectedBotId={selectedBotId}
+            onSelect={setSelectedBotId}
+            error={errors._botId}
+          />
+        )}
         {currentPhase === "requirements" && <RequirementsCheck plugin={plugin} />}
         {currentPhase === "providers" && (
           <ProviderSelector
@@ -212,13 +248,78 @@ export function InstallWizard({ plugin, onComplete, onCancel }: InstallWizardPro
             </Button>
           )}
         </div>
-        <Button onClick={handleNext}>{currentPhase === "complete" ? "Done" : "Continue"}</Button>
+        <Button onClick={handleNext} disabled={isContinueDisabled}>
+          {currentPhase === "complete" ? "Done" : "Continue"}
+        </Button>
       </CardFooter>
     </Card>
   );
 }
 
 // --- Sub-components ---
+
+function BotSelector({
+  bots,
+  loading,
+  selectedBotId,
+  onSelect,
+  error,
+}: {
+  bots: BotSummary[];
+  loading: boolean;
+  selectedBotId: string | null;
+  onSelect: (id: string) => void;
+  error?: string;
+}) {
+  if (loading) {
+    return (
+      <div className="space-y-3">
+        <Skeleton className="h-16 w-full" />
+        <Skeleton className="h-16 w-full" />
+      </div>
+    );
+  }
+
+  if (bots.length === 0) {
+    return (
+      <div className="py-4 text-center">
+        <p className="text-sm text-muted-foreground">
+          No bots found. Create a bot instance first before installing plugins.
+        </p>
+        <Button variant="outline" className="mt-3" asChild>
+          <a href="/instances/new">Create a Bot</a>
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-muted-foreground">Select which bot to install this plugin on:</p>
+      {bots.map((bot) => (
+        <button
+          key={bot.id}
+          type="button"
+          onClick={() => onSelect(bot.id)}
+          className={cn(
+            "w-full rounded-lg border p-3 text-left transition-colors",
+            selectedBotId === bot.id
+              ? "border-primary bg-primary/5"
+              : "border-border hover:border-primary/50",
+          )}
+        >
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium">{bot.name}</p>
+            <Badge variant="outline" className="text-[10px]">
+              {bot.state}
+            </Badge>
+          </div>
+        </button>
+      ))}
+      {error && <p className="text-xs text-destructive">{error}</p>}
+    </div>
+  );
+}
 
 function RequirementsCheck({ plugin }: { plugin: PluginManifest }) {
   return (

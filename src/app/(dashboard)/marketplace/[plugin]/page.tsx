@@ -129,21 +129,23 @@ export default function PluginDetailPage() {
 
   const [installError, setInstallError] = useState<string | null>(null);
 
-  async function handleInstallComplete(config: Record<string, unknown>) {
+  async function handleInstallComplete(botId: string, config: Record<string, unknown>) {
     if (!plugin) return;
-    setInstalling(false);
     setInstallError(null);
     try {
-      await installPlugin(plugin.id, config);
+      const providerChoices = (config._providerChoices as Record<string, string>) ?? {};
+      const { _providerChoices: _, ...pluginConfig } = config;
+      await installPlugin(plugin.id, botId, pluginConfig, providerChoices);
       setShowTerminalLog(true);
-      load();
     } catch (err) {
+      setInstalling(false);
       setInstallError(err instanceof Error ? err.message : "Installation failed");
     }
   }
 
   function handleTerminalDone() {
     setShowTerminalLog(false);
+    router.push("/instances");
   }
 
   if (loading) {
