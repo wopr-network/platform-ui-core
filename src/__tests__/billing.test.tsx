@@ -6,7 +6,6 @@ import type {
   BillingUsage,
   HostedUsageEvent,
   HostedUsageSummary,
-  Plan,
   ProviderCost,
   SpendingLimits,
   UsageDataPoint,
@@ -28,79 +27,6 @@ vi.mock("better-auth/react", () => ({
     signOut: vi.fn(),
   }),
 }));
-
-const MOCK_PLANS: Plan[] = [
-  {
-    id: "plan-free",
-    tier: "free",
-    name: "Free",
-    price: 0,
-    priceLabel: "$0 / month",
-    features: {
-      instanceCap: 1,
-      channels: "Web chat only",
-      plugins: "Community plugins",
-      support: "Community support",
-      extras: ["1 GB storage", "1,000 API calls/month"],
-    },
-  },
-  {
-    id: "plan-pro",
-    tier: "pro",
-    name: "Pro",
-    price: 29,
-    priceLabel: "$29 / month",
-    recommended: true,
-    features: {
-      instanceCap: 5,
-      channels: "All channels",
-      plugins: "Marketplace plugins",
-      support: "Priority support",
-      extras: ["10 GB storage", "50,000 API calls/month", "Custom system prompts"],
-    },
-  },
-  {
-    id: "plan-team",
-    tier: "team",
-    name: "Team",
-    price: 99,
-    priceLabel: "$99 / month",
-    features: {
-      instanceCap: 20,
-      channels: "All channels",
-      plugins: "Marketplace + private plugins",
-      support: "SLA-backed support",
-      extras: [
-        "50 GB storage",
-        "200,000 API calls/month",
-        "Org management",
-        "Fleet tools",
-        "Audit logs",
-      ],
-    },
-  },
-  {
-    id: "plan-enterprise",
-    tier: "enterprise",
-    name: "Enterprise",
-    price: null,
-    priceLabel: "Contact sales",
-    features: {
-      instanceCap: null,
-      channels: "All channels + custom",
-      plugins: "All plugins + custom development",
-      support: "Dedicated support engineer",
-      extras: [
-        "Unlimited storage",
-        "Unlimited API calls",
-        "Self-hosted option",
-        "SSO / SAML",
-        "Custom SLA",
-        "Dedicated infrastructure",
-      ],
-    },
-  },
-];
 
 const MOCK_USAGE: BillingUsage = {
   plan: "pro",
@@ -243,9 +169,6 @@ vi.mock("@/lib/api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/api")>();
   return {
     ...actual,
-    getPlans: vi.fn().mockResolvedValue(MOCK_PLANS),
-    getCurrentPlan: vi.fn().mockResolvedValue("pro" as const),
-    changePlan: vi.fn().mockResolvedValue(undefined),
     getBillingUsage: vi.fn().mockResolvedValue(MOCK_USAGE),
     getProviderCosts: vi.fn().mockResolvedValue(MOCK_PROVIDER_COSTS),
     getUsageHistory: vi.fn().mockResolvedValue(generateUsageHistory(30)),
@@ -261,42 +184,20 @@ vi.mock("@/lib/api", async (importOriginal) => {
 });
 
 describe("Plans page", () => {
-  it("renders plans heading", async () => {
+  it("renders Your Plan heading", async () => {
     const { default: PlansPage } = await import("../app/(dashboard)/billing/plans/page");
     render(<PlansPage />);
 
-    // Initially shows skeleton loading state
-    expect(document.querySelector('[data-slot="skeleton"]')).toBeInTheDocument();
-    expect(await screen.findByText("Plans")).toBeInTheDocument();
+    expect(screen.getByText("Your Plan")).toBeInTheDocument();
+    expect(screen.getByText("Simple pricing. No tiers. No gotchas.")).toBeInTheDocument();
   });
 
-  it("renders all four plan tiers", async () => {
+  it("renders flat $5/month pricing", async () => {
     const { default: PlansPage } = await import("../app/(dashboard)/billing/plans/page");
     render(<PlansPage />);
 
-    expect(await screen.findByText("Free")).toBeInTheDocument();
-    expect(screen.getByText("Pro")).toBeInTheDocument();
-    expect(screen.getByText("Team")).toBeInTheDocument();
-    expect(screen.getByText("Enterprise")).toBeInTheDocument();
-  });
-
-  it("shows plan pricing", async () => {
-    const { default: PlansPage } = await import("../app/(dashboard)/billing/plans/page");
-    render(<PlansPage />);
-
-    expect(await screen.findByText("$0 / month")).toBeInTheDocument();
-    expect(screen.getAllByText("$29 / month").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText("$99 / month")).toBeInTheDocument();
-    // Enterprise shows "Contact sales" as price label and as a link
-    expect(screen.getAllByText("Contact sales").length).toBeGreaterThanOrEqual(1);
-  });
-
-  it("highlights the current plan", async () => {
-    const { default: PlansPage } = await import("../app/(dashboard)/billing/plans/page");
-    render(<PlansPage />);
-
-    expect(await screen.findByText("Current")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Current plan" })).toBeDisabled();
+    expect(screen.getByText("per bot")).toBeInTheDocument();
+    expect(screen.getByText(/\/month/)).toBeInTheDocument();
   });
 
   it("shows BYOK callout", async () => {
@@ -304,31 +205,27 @@ describe("Plans page", () => {
     render(<PlansPage />);
 
     expect(await screen.findByText("Bring Your Own Keys")).toBeInTheDocument();
-    // BYOK message appears in both full and compact callouts
     expect(screen.getAllByText(/WOPR never touches your inference/).length).toBeGreaterThanOrEqual(
       1,
     );
   });
 
-  it("shows instance caps for each plan", async () => {
+  it("links to full pricing page", async () => {
     const { default: PlansPage } = await import("../app/(dashboard)/billing/plans/page");
     render(<PlansPage />);
 
-    await screen.findByText("Free");
-    // Instance caps shown in feature rows
-    expect(screen.getByText("1")).toBeInTheDocument();
-    expect(screen.getByText("5")).toBeInTheDocument();
-    expect(screen.getByText("20")).toBeInTheDocument();
-    expect(screen.getByText("Unlimited")).toBeInTheDocument();
+    const link = screen.getByRole("link", { name: /view full pricing/i });
+    expect(link).toHaveAttribute("href", "/pricing");
   });
 
-  it("shows contact sales for enterprise", async () => {
+  it("shows included features", async () => {
     const { default: PlansPage } = await import("../app/(dashboard)/billing/plans/page");
     render(<PlansPage />);
 
-    const contactLink = await screen.findByRole("link", { name: "Contact sales" });
-    expect(contactLink).toBeInTheDocument();
-    expect(contactLink).toHaveAttribute("href", "mailto:sales@wopr.bot");
+    expect(screen.getByText(/signup credit included/)).toBeInTheDocument();
+    expect(screen.getByText("All channels")).toBeInTheDocument();
+    expect(screen.getByText("All plugins")).toBeInTheDocument();
+    expect(screen.getByText("All providers")).toBeInTheDocument();
   });
 });
 
@@ -472,7 +369,7 @@ describe("Billing layout", () => {
       </BillingLayout>,
     );
 
-    expect(screen.getByText("Plans")).toBeInTheDocument();
+    expect(screen.getByText("Your Plan")).toBeInTheDocument();
     expect(screen.getByText("Usage")).toBeInTheDocument();
     expect(screen.getByText("Payment")).toBeInTheDocument();
     expect(screen.getByText("child content")).toBeInTheDocument();

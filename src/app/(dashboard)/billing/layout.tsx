@@ -8,7 +8,7 @@ import { getInferenceMode } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 const billingNav = [
-  { label: "Plans", href: "/billing/plans", hostedOnly: false },
+  { label: "Your Plan", href: "/billing/plans", hostedOnly: false },
   { label: "Credits", href: "/billing/credits", hostedOnly: false },
   { label: "Usage", href: "/billing/usage", hostedOnly: false },
   { label: "Hosted Usage", href: "/billing/usage/hosted", hostedOnly: true },

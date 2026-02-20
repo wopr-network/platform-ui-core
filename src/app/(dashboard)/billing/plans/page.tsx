@@ -1,215 +1,57 @@
-"use client";
-
-import { motion } from "framer-motion";
-import { useCallback, useEffect, useState } from "react";
+import { Check } from "lucide-react";
+import Link from "next/link";
 import { ByokCallout } from "@/components/billing/byok-callout";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import type { InferenceMode, Plan, PlanTier } from "@/lib/api";
-import { changePlan, getCurrentPlan, getInferenceMode, getPlans } from "@/lib/api";
-import { cn } from "@/lib/utils";
-
-const HOSTED_CREDITS: Record<string, string> = {
-  free: "$5 hosted credit/mo",
-  pro: "$50 hosted credit/mo",
-  team: "$200 hosted credit/mo",
-  enterprise: "Custom hosted credit",
-};
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { pricingData } from "@/lib/pricing-data";
 
 export default function PlansPage() {
-  const [plans, setPlans] = useState<Plan[]>([]);
-  const [currentTier, setCurrentTier] = useState<PlanTier | null>(null);
-  const [inferenceMode, setInferenceMode] = useState<InferenceMode | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [changingTo, setChangingTo] = useState<PlanTier | null>(null);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    const [plansData, tier, mode] = await Promise.all([
-      getPlans(),
-      getCurrentPlan(),
-      getInferenceMode().catch(() => "byok" as const),
-    ]);
-    setPlans(plansData);
-    setCurrentTier(tier);
-    setInferenceMode(mode);
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  async function handleChangePlan(tier: PlanTier) {
-    setChangingTo(tier);
-    try {
-      await changePlan(tier);
-      setCurrentTier(tier);
-    } catch {
-      // revert UI on failure
-    } finally {
-      setChangingTo(null);
-    }
-  }
-
-  if (loading) {
-    return (
-      <div className="max-w-5xl space-y-6">
-        <div className="space-y-2">
-          <Skeleton className="h-7 w-20" />
-          <Skeleton className="h-4 w-64" />
-        </div>
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {Array.from({ length: 4 }, (_, n) => `sk-${n}`).map((skId) => (
-            <div key={skId} className="flex flex-col rounded-sm border p-6 space-y-4">
-              <Skeleton className="h-6 w-20" />
-              <Skeleton className="h-5 w-24" />
-              <div className="flex-1 space-y-2">
-                {Array.from({ length: 4 }, (_, n) => `skf-${n}`).map((fId) => (
-                  <Skeleton key={fId} className="h-4 w-full" />
-                ))}
-              </div>
-              <Skeleton className="h-9 w-full" />
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  const isHosted = inferenceMode === "hosted";
-
   return (
-    <div className="max-w-5xl space-y-6">
+    <div className="max-w-3xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Plans</h1>
-        <p className="text-sm text-muted-foreground">
-          Choose the plan that fits your needs. Upgrade or downgrade anytime.
-        </p>
+        <h1 className="text-2xl font-bold tracking-tight">Your Plan</h1>
+        <p className="text-sm text-muted-foreground">Simple pricing. No tiers. No gotchas.</p>
       </div>
 
       <ByokCallout />
 
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        {plans.map((plan) => {
-          const isCurrent = plan.tier === currentTier;
-          const isChanging = changingTo === plan.tier;
-          const isRecommended = plan.recommended && !isCurrent;
-
-          return (
-            <motion.div
-              key={plan.id}
-              whileHover={{ y: -4 }}
-              transition={{ type: "spring", stiffness: 400, damping: 25 }}
-              className={cn(isRecommended && "z-10")}
-            >
-              <Card
-                className={cn(
-                  "flex flex-col h-full",
-                  isCurrent &&
-                    "border-primary ring-1 ring-primary shadow-[0_0_12px_rgba(0,255,65,0.15)]",
-                  isRecommended &&
-                    "border-primary/50 shadow-[0_0_20px_rgba(0,255,65,0.2)] scale-[1.03]",
-                )}
-              >
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle>{plan.name}</CardTitle>
-                    {isCurrent && <Badge>Current</Badge>}
-                    {isRecommended && (
-                      <Badge
-                        variant="outline"
-                        className="border-primary/25 bg-primary/10 text-primary"
-                      >
-                        Recommended
-                      </Badge>
-                    )}
-                  </div>
-                  <CardDescription className="text-lg font-semibold text-foreground">
-                    {plan.priceLabel}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="flex-1 space-y-3">
-                  <div className="space-y-2 text-sm">
-                    <FeatureRow
-                      label="Instances"
-                      value={
-                        plan.features.instanceCap === null
-                          ? "Unlimited"
-                          : String(plan.features.instanceCap)
-                      }
-                    />
-                    <FeatureRow label="Channels" value={plan.features.channels} />
-                    <FeatureRow label="Plugins" value={plan.features.plugins} />
-                    <FeatureRow label="Support" value={plan.features.support} />
-                    {isHosted && HOSTED_CREDITS[plan.tier] && (
-                      <FeatureRow label="Hosted AI" value={HOSTED_CREDITS[plan.tier]} />
-                    )}
-                  </div>
-                  {plan.features.extras.length > 0 && (
-                    <ul className="space-y-1 text-xs text-muted-foreground">
-                      {plan.features.extras.map((extra) => (
-                        <li key={extra}>- {extra}</li>
-                      ))}
-                    </ul>
-                  )}
-                  {isHosted && plan.tier !== "enterprise" && plan.tier !== "free" && (
-                    <p className="text-xs text-muted-foreground">
-                      Usage beyond included credit is metered at per-capability rates.
-                    </p>
-                  )}
-                </CardContent>
-                <CardFooter>
-                  {isCurrent ? (
-                    <Button variant="outline" className="w-full" disabled>
-                      Current plan
-                    </Button>
-                  ) : plan.price === null ? (
-                    <Button variant="outline" className="w-full" asChild>
-                      <a href="mailto:sales@wopr.bot">Contact sales</a>
-                    </Button>
-                  ) : (
-                    <Button
-                      className="w-full"
-                      variant={plan.recommended ? "default" : "outline"}
-                      disabled={isChanging}
-                      onClick={() => handleChangePlan(plan.tier)}
-                    >
-                      {isChanging
-                        ? "Changing..."
-                        : currentTier &&
-                            plans.findIndex((p) => p.tier === plan.tier) <
-                              plans.findIndex((p) => p.tier === currentTier)
-                          ? "Downgrade"
-                          : "Upgrade"}
-                    </Button>
-                  )}
-                </CardFooter>
-              </Card>
-            </motion.div>
-          );
-        })}
-      </div>
+      <Card className="border-terminal shadow-[0_0_12px_rgba(0,255,65,0.15)]">
+        <CardHeader className="text-center">
+          <CardTitle className="text-sm uppercase tracking-widest text-muted-foreground">
+            WOPR Bot
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col items-center gap-4 text-center">
+          <p className="text-5xl font-bold text-terminal">
+            ${pricingData.bot_price.amount}
+            <span className="text-xl font-normal text-muted-foreground">
+              /{pricingData.bot_price.period}
+            </span>
+          </p>
+          <p className="text-muted-foreground">per bot</p>
+          <ul className="space-y-2 text-sm">
+            {[
+              `$${pricingData.signup_credit} signup credit included`,
+              "All channels",
+              "All plugins",
+              "All providers",
+            ].map((feature) => (
+              <li key={feature} className="flex items-center gap-2 text-muted-foreground">
+                <Check className="size-4 shrink-0 text-terminal" />
+                {feature}
+              </li>
+            ))}
+          </ul>
+          <p className="text-xs text-muted-foreground">
+            Usage is billed from credits at transparent per-use rates.
+          </p>
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/pricing">View full pricing</Link>
+          </Button>
+        </CardContent>
+      </Card>
 
       <ByokCallout compact />
-    </div>
-  );
-}
-
-function FeatureRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex justify-between">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="font-medium">{value}</span>
     </div>
   );
 }
