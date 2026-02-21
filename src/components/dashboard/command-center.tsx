@@ -149,7 +149,7 @@ export function CommandCenter() {
     try {
       const [fleetData, activityData, resourcesData] = await Promise.all([
         getFleetHealth(),
-        getActivityFeed(),
+        getActivityFeed().catch(() => [] as ActivityEvent[]),
         getFleetResources().catch(() => null),
       ]);
       setInstances(fleetData);
@@ -157,7 +157,7 @@ export function CommandCenter() {
       setResources(resourcesData);
       setLastRefreshed(Date.now());
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load fleet health");
+      setError(err instanceof Error ? err.message : "Failed to load dashboard data");
     } finally {
       setLoading(false);
     }
