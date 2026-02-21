@@ -149,7 +149,7 @@ export function CommandCenter() {
     try {
       const [fleetData, activityData, resourcesData] = await Promise.all([
         getFleetHealth(),
-        getActivityFeed().catch(() => [] as ActivityEvent[]),
+        getActivityFeed(),
         getFleetResources().catch(() => null),
       ]);
       setInstances(fleetData);
