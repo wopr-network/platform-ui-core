@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { type OnboardingConfigField, usePluginRegistry } from "@/hooks/use-plugin-registry";
-import { getCreditBalance, listInstances, testChannelConnection } from "@/lib/api";
+import { deployInstance, getCreditBalance, listInstances, testChannelConnection } from "@/lib/api";
 import { type ByokAiProvider, getAiKeyField } from "@/lib/onboarding-data";
 import { markOnboardingComplete } from "@/lib/onboarding-store";
 
@@ -104,6 +104,56 @@ export interface OnboardingActions {
   // Step 6
   deploy: () => void;
   reset: () => void;
+}
+
+/** Build the env record for the fleet create API from onboarding state. */
+function buildDeployEnv(opts: {
+  personalityId: string;
+  customPersonality: string;
+  selectedChannels: string[];
+  channelKeyValues: Record<string, string>;
+  selectedSuperpowers: string[];
+  providerMode: "hosted" | "byok";
+  byokAiProvider: string;
+  byokKeyValues: Record<string, string>;
+}): Record<string, string> {
+  const env: Record<string, string> = {};
+
+  // Personality
+  env.WOPR_PERSONALITY = opts.personalityId;
+  if (opts.personalityId === "custom" && opts.customPersonality) {
+    env.WOPR_CUSTOM_PERSONALITY = opts.customPersonality;
+  }
+
+  // Channels
+  if (opts.selectedChannels.length > 0) {
+    env.WOPR_PLUGINS_CHANNELS = opts.selectedChannels.join(",");
+  }
+
+  // Channel credentials (e.g., DISCORD_BOT_TOKEN, SLACK_BOT_TOKEN)
+  for (const [key, value] of Object.entries(opts.channelKeyValues)) {
+    if (value) {
+      env[key.toUpperCase()] = value;
+    }
+  }
+
+  // Superpowers
+  if (opts.selectedSuperpowers.length > 0) {
+    env.WOPR_PLUGINS_OTHER = opts.selectedSuperpowers.join(",");
+  }
+
+  // Inference mode
+  env.WOPR_INFERENCE_MODE = opts.providerMode;
+  if (opts.providerMode === "byok") {
+    env.WOPR_AI_PROVIDER = opts.byokAiProvider;
+    for (const [key, value] of Object.entries(opts.byokKeyValues)) {
+      if (value) {
+        env[key.toUpperCase()] = value;
+      }
+    }
+  }
+
+  return env;
 }
 
 export function useOnboarding(
@@ -509,30 +559,62 @@ export function useOnboarding(
     }
   }, [step, effectiveStepOrder]);
 
-  const deploy = useCallback(() => {
+  const deploy = useCallback(async () => {
     if (deployIntervalRef.current) clearInterval(deployIntervalRef.current);
     setDeployStatus("provisioning");
-    const stages: DeployStatus[] = ["configuring", "starting", "health-check", "done"];
-    let i = 0;
-    deployIntervalRef.current = setInterval(() => {
-      if (i < stages.length) {
-        const status = stages[i];
-        setDeployStatus(status);
-        if (status === "done") {
-          markOnboardingComplete();
-          try {
-            window.dispatchEvent(new CustomEvent("wopr:onboarding:complete", { detail: { mode } }));
-          } catch {
-            // ignore — analytics must never break the flow
-          }
-        }
-        i++;
-      } else {
-        if (deployIntervalRef.current) clearInterval(deployIntervalRef.current);
-        deployIntervalRef.current = null;
+
+    const env = buildDeployEnv({
+      personalityId,
+      customPersonality,
+      selectedChannels,
+      channelKeyValues,
+      selectedSuperpowers,
+      providerMode,
+      byokAiProvider,
+      byokKeyValues,
+    });
+
+    try {
+      setDeployStatus("configuring");
+      const instance = await deployInstance({
+        name: woprName,
+        description: "",
+        env,
+      });
+
+      setDeployStatus("starting");
+      // Brief pause so the user sees the "starting" stage in the terminal UI
+      await new Promise((resolve) => setTimeout(resolve, 800));
+
+      setDeployStatus("health-check");
+      await new Promise((resolve) => setTimeout(resolve, 800));
+
+      setDeployStatus("done");
+      markOnboardingComplete();
+      try {
+        window.dispatchEvent(
+          new CustomEvent("wopr:onboarding:complete", {
+            detail: { mode, instanceId: instance.id },
+          }),
+        );
+      } catch {
+        // ignore — analytics must never break the flow
       }
-    }, 1200);
-  }, [mode]);
+    } catch {
+      setDeployStatus("error");
+    }
+  }, [
+    mode,
+    woprName,
+    personalityId,
+    customPersonality,
+    selectedChannels,
+    channelKeyValues,
+    selectedSuperpowers,
+    providerMode,
+    byokAiProvider,
+    byokKeyValues,
+  ]);
 
   const reset = useCallback(() => {
     if (deployIntervalRef.current) {
