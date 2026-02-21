@@ -51,6 +51,7 @@ export interface InstanceDetail extends Instance {
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
       ...init?.headers,
@@ -376,7 +377,7 @@ export async function getActivityFeed(): Promise<ActivityEvent[]> {
 }
 
 export async function getFleetResources(): Promise<FleetResources> {
-  return fleetFetch<FleetResources>("/resources");
+  return apiFetch<FleetResources>("/fleet/resources");
 }
 
 // --- Settings types ---
