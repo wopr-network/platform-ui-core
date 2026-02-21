@@ -8,6 +8,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
+import { deployInstance } from "@/lib/api";
 import { channelManifests } from "@/lib/mock-manifests";
 import {
   AI_PROVIDERS,
@@ -18,7 +19,7 @@ import {
   saveOnboardingState,
 } from "@/lib/onboarding-store";
 
-type DeployPhase = "idle" | "creating" | "plugins" | "channels" | "health" | "done";
+type DeployPhase = "idle" | "creating" | "plugins" | "channels" | "health" | "done" | "error";
 
 const DEPLOY_LABELS: Record<DeployPhase, string> = {
   idle: "",
@@ -27,6 +28,7 @@ const DEPLOY_LABELS: Record<DeployPhase, string> = {
   channels: "Connecting channels...",
   health: "Running health check...",
   done: "Done!",
+  error: "Deploy failed",
 };
 
 const DEPLOY_PROGRESS: Record<DeployPhase, number> = {
@@ -36,12 +38,14 @@ const DEPLOY_PROGRESS: Record<DeployPhase, number> = {
   channels: 70,
   health: 90,
   done: 100,
+  error: 0,
 };
 
 export default function OnboardReviewPage() {
   const [state, setState] = useState<OnboardingState | null>(null);
   const [instanceName, setInstanceName] = useState("");
   const [phase, setPhase] = useState<DeployPhase>("idle");
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loaded = loadOnboardingState();
@@ -49,29 +53,65 @@ export default function OnboardReviewPage() {
     setInstanceName(loaded.instanceName || `wopr-${Date.now().toString(36)}`);
   }, []);
 
-  function handleDeploy() {
+  async function handleDeploy() {
+    setError(null);
+
     // Persist instanceName to localStorage before deploying
     const current = loadOnboardingState();
     current.instanceName = instanceName;
     saveOnboardingState(current);
 
-    const phases: DeployPhase[] = ["creating", "plugins", "channels", "health", "done"];
-    let i = 0;
-    function advance() {
-      if (i < phases.length) {
-        setPhase(phases[i]);
-        i++;
-        if (i < phases.length) {
-          setTimeout(advance, 1200);
-        } else {
-          setTimeout(() => {
-            setPhase("done");
-            clearOnboardingState();
-          }, 1200);
+    setPhase("creating");
+
+    // Build env from the old onboarding state
+    const env: Record<string, string> = {};
+
+    // Providers: store validated API keys
+    for (const provider of current.providers) {
+      if (provider.key) {
+        env[`${provider.id.toUpperCase()}_API_KEY`] = provider.key;
+      }
+    }
+
+    // Channels
+    if (current.channels.length > 0) {
+      env.WOPR_PLUGINS_CHANNELS = current.channels.join(",");
+    }
+
+    // Channel configs (credential env vars)
+    for (const [, config] of Object.entries(current.channelConfigs)) {
+      for (const [key, value] of Object.entries(config)) {
+        if (value) {
+          env[key.toUpperCase()] = value;
         }
       }
     }
-    advance();
+
+    // Plugins
+    if (current.plugins.length > 0) {
+      env.WOPR_PLUGINS_OTHER = current.plugins.join(",");
+    }
+
+    try {
+      setPhase("plugins");
+      await deployInstance({
+        name: instanceName,
+        description: "",
+        env,
+      });
+
+      setPhase("channels");
+      await new Promise((resolve) => setTimeout(resolve, 600));
+
+      setPhase("health");
+      await new Promise((resolve) => setTimeout(resolve, 600));
+
+      setPhase("done");
+      clearOnboardingState();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create instance");
+      setPhase("error");
+    }
   }
 
   if (!state) return null;
@@ -102,7 +142,7 @@ export default function OnboardReviewPage() {
     );
   }
 
-  const deploying = phase !== "idle";
+  const deploying = phase !== "idle" && phase !== "error";
 
   return (
     <Card>
@@ -188,13 +228,19 @@ export default function OnboardReviewPage() {
             <Progress value={DEPLOY_PROGRESS[phase]} />
           </div>
         )}
+
+        {phase === "error" && error && (
+          <div className="rounded-sm border border-red-500/30 bg-red-500/5 p-4 text-sm text-red-400">
+            {error}
+          </div>
+        )}
       </CardContent>
       <CardFooter className="flex justify-between">
         <Button variant="ghost" disabled={deploying} asChild>
           <Link href="/onboard/plugins">Back</Link>
         </Button>
-        <Button onClick={handleDeploy} disabled={deploying}>
-          {deploying ? "Deploying..." : "Deploy"}
+        <Button onClick={handleDeploy} disabled={phase !== "idle" && phase !== "error"}>
+          {phase === "error" ? "Retry" : deploying ? "Deploying..." : "Deploy"}
         </Button>
       </CardFooter>
     </Card>

@@ -257,6 +257,39 @@ export async function createInstance(data: {
   };
 }
 
+/** Payload for deploying a bot from onboarding. */
+export interface DeployBotPayload {
+  name: string;
+  description?: string;
+  env?: Record<string, string>;
+}
+
+/**
+ * Deploy a new bot instance via tRPC fleet.createInstance.
+ * Uses the default stable WOPR image. tenantId is injected server-side.
+ */
+export async function deployInstance(payload: DeployBotPayload): Promise<Instance> {
+  const input = {
+    name: payload.name,
+    image: "ghcr.io/wopr-network/wopr:stable",
+    description: payload.description ?? "",
+    env: payload.env ?? {},
+  };
+  const result = await (trpcVanilla as unknown as FleetClient).fleet.createInstance.mutate(input);
+  const profile = result as Record<string, unknown>;
+  return {
+    id: (profile.id as string) ?? "",
+    name: (profile.name as string) ?? payload.name,
+    template: "",
+    status: "stopped",
+    provider: "",
+    channels: [],
+    plugins: [],
+    uptime: null,
+    createdAt: new Date().toISOString(),
+  };
+}
+
 // --- Channel API ---
 
 /** Connect a channel (plugin) to a bot instance. */
