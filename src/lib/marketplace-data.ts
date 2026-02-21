@@ -1058,6 +1058,29 @@ export async function installPlugin(
   });
 }
 
+/** Fetch installed plugins for a bot, with enabled state. */
+export async function listInstalledPlugins(
+  botId: string,
+): Promise<{ pluginId: string; enabled: boolean }[]> {
+  const data = await fleetFetch<{
+    botId: string;
+    plugins: { pluginId: string; enabled: boolean }[];
+  }>(`/bots/${botId}/plugins`);
+  return data.plugins;
+}
+
+/** Toggle a plugin's enabled state on a bot. */
+export async function togglePluginEnabled(
+  botId: string,
+  pluginId: string,
+  enabled: boolean,
+): Promise<void> {
+  await fleetFetch(`/bots/${botId}/plugins/${pluginId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ enabled }),
+  });
+}
+
 export function formatInstallCount(count: number): string {
   if (count >= 10000) return `${(count / 1000).toFixed(1)}k`;
   if (count >= 1000) return `${(count / 1000).toFixed(1)}k`;
