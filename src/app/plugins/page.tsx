@@ -2,58 +2,37 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  type BotSummary,
   formatInstallCount,
   hasHostedOption,
+  listBots,
+  listInstalledPlugins,
   listMarketplacePlugins,
   type PluginManifest,
+  togglePluginEnabled,
 } from "@/lib/marketplace-data";
 
 interface InstalledPlugin {
-  id: string;
   pluginId: string;
   enabled: boolean;
-  installedAt: string;
-  instanceName: string;
 }
-
-const mockInstalled: InstalledPlugin[] = [
-  {
-    id: "inst-1",
-    pluginId: "discord-channel",
-    enabled: true,
-    installedAt: "2026-02-10",
-    instanceName: "Production Bot",
-  },
-  {
-    id: "inst-2",
-    pluginId: "semantic-memory",
-    enabled: true,
-    installedAt: "2026-02-10",
-    instanceName: "Production Bot",
-  },
-  {
-    id: "inst-3",
-    pluginId: "content-moderation",
-    enabled: false,
-    installedAt: "2026-02-11",
-    instanceName: "Production Bot",
-  },
-  {
-    id: "inst-4",
-    pluginId: "webhooks",
-    enabled: true,
-    installedAt: "2026-02-12",
-    instanceName: "Staging Bot",
-  },
-];
 
 const staggerContainer = {
   hidden: {},
@@ -86,12 +65,32 @@ const capabilityColors: Record<string, string> = {
 };
 
 export default function PluginsPage() {
+  const router = useRouter();
   const [catalog, setCatalog] = useState<PluginManifest[]>([]);
   const [loading, setLoading] = useState(true);
-  const [installed, setInstalled] = useState<InstalledPlugin[]>(mockInstalled);
+  const [installed, setInstalled] = useState<InstalledPlugin[]>([]);
   const [search, setSearch] = useState("");
+  const [bots, setBots] = useState<BotSummary[]>([]);
+  const [selectedBotId, setSelectedBotId] = useState<string | null>(null);
+  const [botsLoading, setBotsLoading] = useState(true);
+  const [toggling, setToggling] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
+  // Load bots on mount
+  useEffect(() => {
+    listBots()
+      .then((data) => {
+        setBots(data);
+        if (data.length > 0) {
+          setSelectedBotId(data[0].id);
+        }
+        setBotsLoading(false);
+      })
+      .catch(() => {
+        setBotsLoading(false);
+      });
+  }, []);
+
+  const loadCatalog = useCallback(async () => {
     setLoading(true);
     const data = await listMarketplacePlugins();
     setCatalog(data);
@@ -99,11 +98,43 @@ export default function PluginsPage() {
   }, []);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    loadCatalog();
+  }, [loadCatalog]);
 
-  function togglePlugin(id: string) {
-    setInstalled((prev) => prev.map((p) => (p.id === id ? { ...p, enabled: !p.enabled } : p)));
+  // Load installed plugins when bot changes
+  useEffect(() => {
+    if (!selectedBotId) {
+      setInstalled([]);
+      return;
+    }
+    listInstalledPlugins(selectedBotId)
+      .then(setInstalled)
+      .catch(() => setInstalled([]));
+  }, [selectedBotId]);
+
+  async function togglePlugin(pluginId: string) {
+    if (!selectedBotId || toggling) return;
+    const plugin = installed.find((p) => p.pluginId === pluginId);
+    if (!plugin) return;
+
+    const newEnabled = !plugin.enabled;
+    setToggling(pluginId);
+
+    // Optimistic update
+    setInstalled((prev) =>
+      prev.map((p) => (p.pluginId === pluginId ? { ...p, enabled: newEnabled } : p)),
+    );
+
+    try {
+      await togglePluginEnabled(selectedBotId, pluginId, newEnabled);
+    } catch {
+      // Revert on failure
+      setInstalled((prev) =>
+        prev.map((p) => (p.pluginId === pluginId ? { ...p, enabled: !newEnabled } : p)),
+      );
+    } finally {
+      setToggling(null);
+    }
   }
 
   const installedManifests = useMemo(() => {
@@ -139,7 +170,7 @@ export default function PluginsPage() {
         </div>
         <Skeleton className="mb-6 h-9 w-48" />
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 6 }, (_, n) => `sk-${n}`).map((skId, _i) => (
+          {Array.from({ length: 6 }, (_, n) => `sk-${n}`).map((skId) => (
             <Card key={skId}>
               <CardHeader>
                 <div className="flex items-start gap-3">
@@ -172,6 +203,32 @@ export default function PluginsPage() {
         </p>
       </div>
 
+      {botsLoading ? (
+        <Skeleton className="mb-6 h-9 w-64" />
+      ) : bots.length === 0 ? (
+        <p className="mb-6 text-sm text-muted-foreground">
+          No bots found. Create a bot first to manage plugins.
+        </p>
+      ) : (
+        <div className="mb-6 flex items-center gap-3">
+          <label htmlFor="bot-select" className="text-sm font-medium text-muted-foreground">
+            Bot:
+          </label>
+          <Select value={selectedBotId ?? undefined} onValueChange={setSelectedBotId}>
+            <SelectTrigger id="bot-select" className="w-64 bg-black/50 border-terminal/30">
+              <SelectValue placeholder="Select a bot" />
+            </SelectTrigger>
+            <SelectContent>
+              {bots.map((bot) => (
+                <SelectItem key={bot.id} value={bot.id}>
+                  {bot.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
       <Tabs defaultValue="installed">
         <TabsList variant="line">
           <TabsTrigger
@@ -190,10 +247,18 @@ export default function PluginsPage() {
 
         <TabsContent value="installed" className="mt-6">
           {installedManifests.length === 0 ? (
-            <div className="flex h-40 items-center justify-center rounded-sm border border-dashed border-terminal/20">
+            <div className="flex h-40 flex-col items-center justify-center gap-3 rounded-sm border border-dashed border-terminal/20">
               <p className="font-mono text-sm text-terminal/60">
                 &gt; NO PLUGINS INSTALLED. YOUR ARSENAL IS EMPTY.
               </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-terminal/30 text-terminal hover:bg-terminal/10"
+                onClick={() => router.push("/marketplace")}
+              >
+                Browse the catalog
+              </Button>
             </div>
           ) : (
             <motion.div
@@ -206,7 +271,7 @@ export default function PluginsPage() {
                 const manifest = item.manifest;
                 if (!manifest) return null;
                 return (
-                  <motion.div key={item.id} variants={staggerItem}>
+                  <motion.div key={item.pluginId} variants={staggerItem}>
                     <Card>
                       <CardHeader>
                         <div className="flex items-start gap-3">
@@ -239,17 +304,11 @@ export default function PluginsPage() {
                       </CardHeader>
                       <CardContent>
                         <div className="flex items-center justify-between">
-                          <div className="space-y-1">
-                            <p className="text-xs text-muted-foreground">
-                              Instance: {item.instanceName}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              Installed: {item.installedAt}
-                            </p>
-                          </div>
+                          <p className="text-xs text-muted-foreground">v{manifest.version}</p>
                           <Switch
                             checked={item.enabled}
-                            onCheckedChange={() => togglePlugin(item.id)}
+                            onCheckedChange={() => togglePlugin(item.pluginId)}
+                            disabled={toggling === item.pluginId}
                             aria-label={`Toggle ${manifest.name}`}
                             className="data-[state=checked]:bg-terminal"
                           />
