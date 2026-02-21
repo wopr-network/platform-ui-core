@@ -182,7 +182,7 @@ vi.mock("@/lib/api", async (importOriginal) => {
     listProviderKeys: vi.fn().mockResolvedValue(MOCK_PROVIDERS),
     testProviderKey: vi.fn().mockResolvedValue({ valid: true }),
     removeProviderKey: vi.fn().mockResolvedValue(undefined),
-    saveProviderKey: vi.fn().mockResolvedValue(MOCK_PROVIDERS[0]),
+    saveProviderKey: vi.fn().mockResolvedValue({ ok: true, id: "test-id", provider: "openai" }),
     updateProviderModel: vi.fn().mockResolvedValue(undefined),
     listCapabilities: vi.fn().mockResolvedValue(MOCK_CAPABILITIES),
     updateCapability: vi.fn().mockResolvedValue(MOCK_CAPABILITIES[0]),

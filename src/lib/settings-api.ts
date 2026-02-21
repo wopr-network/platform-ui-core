@@ -25,10 +25,10 @@ interface CapabilitiesProcedures {
   };
 }
 
-// Cast via unknown to avoid @typescript/no-explicit-any while bridging the
+// TODO(WOP-812): Cast via unknown to avoid @typescript/no-explicit-any while bridging the
 // placeholder AppRouter gap. Remove once @wopr-network/sdk ships real types.
-const settingsClient = (trpcVanilla as unknown as { settings: SettingsProcedures }).settings;
-const capabilitiesClient = (trpcVanilla as unknown as { capabilities: CapabilitiesProcedures })
+const settingsClient = (trpcVanilla as unknown as { settings: SettingsProcedures }).settings; // TODO(WOP-812): remove cast
+const capabilitiesClient = (trpcVanilla as unknown as { capabilities: CapabilitiesProcedures }) // TODO(WOP-812): remove cast
   .capabilities;
 
 // ---- Settings API calls ----
