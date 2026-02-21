@@ -64,7 +64,8 @@ function LoginForm() {
         return;
       }
 
-      const callbackUrl = searchParams.get("callbackUrl") ?? "/";
+      const raw = searchParams.get("callbackUrl") ?? "/";
+      const callbackUrl = raw.startsWith("/") ? raw : "/";
       router.push(callbackUrl);
     } catch {
       setError("A network error occurred. Please try again.");
@@ -159,7 +160,12 @@ function LoginForm() {
             </span>
             <Separator className="flex-1" />
           </div>
-          <OAuthButtons callbackUrl={searchParams.get("callbackUrl") ?? "/"} />
+          <OAuthButtons
+            callbackUrl={(() => {
+              const r = searchParams.get("callbackUrl") ?? "/";
+              return r.startsWith("/") ? r : "/";
+            })()}
+          />
         </CardContent>
         <CardFooter className="justify-center">
           <p className="text-sm text-muted-foreground">

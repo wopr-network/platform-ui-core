@@ -44,7 +44,7 @@ export function ResendVerificationButton({
         return;
       }
       setSent(true);
-      setCooldown(60);
+      setCooldown(59);
       intervalRef.current = setInterval(() => {
         setCooldown((prev) => {
           if (prev <= 1) {
