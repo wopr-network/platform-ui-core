@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { signIn } from "@/lib/auth-client";
+import { sanitizeRedirectUrl } from "@/lib/utils";
 
 function LoginForm() {
   const router = useRouter();
@@ -64,8 +65,7 @@ function LoginForm() {
         return;
       }
 
-      const raw = searchParams.get("callbackUrl") ?? "/";
-      const callbackUrl = raw.startsWith("/") ? raw : "/";
+      const callbackUrl = sanitizeRedirectUrl(searchParams.get("callbackUrl"));
       router.push(callbackUrl);
     } catch {
       setError("A network error occurred. Please try again.");
@@ -160,12 +160,7 @@ function LoginForm() {
             </span>
             <Separator className="flex-1" />
           </div>
-          <OAuthButtons
-            callbackUrl={(() => {
-              const r = searchParams.get("callbackUrl") ?? "/";
-              return r.startsWith("/") ? r : "/";
-            })()}
-          />
+          <OAuthButtons callbackUrl={sanitizeRedirectUrl(searchParams.get("callbackUrl"))} />
         </CardContent>
         <CardFooter className="justify-center">
           <p className="text-sm text-muted-foreground">

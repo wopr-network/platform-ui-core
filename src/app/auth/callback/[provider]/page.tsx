@@ -13,6 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { sanitizeRedirectUrl } from "@/lib/utils";
 
 function OAuthCallbackContent() {
   const router = useRouter();
@@ -36,7 +37,7 @@ function OAuthCallbackContent() {
 
     // Better Auth handles the token exchange server-side.
     // If we reach this page without an error, redirect to home.
-    const callbackUrl = searchParams.get("callbackUrl") ?? "/";
+    const callbackUrl = sanitizeRedirectUrl(searchParams.get("callbackUrl"));
     const timer = setTimeout(() => {
       router.push(callbackUrl);
     }, 1000);
