@@ -4,13 +4,11 @@ import { ByokElevenLabsWizard } from "@/components/onboarding/byok-elevenlabs-wi
 
 vi.mock("@/lib/api", () => ({
   validateElevenLabsKey: vi.fn(),
-  storeTenantKey: vi.fn(),
 }));
 
-import { storeTenantKey, validateElevenLabsKey } from "@/lib/api";
+import { validateElevenLabsKey } from "@/lib/api";
 
 const mockValidate = vi.mocked(validateElevenLabsKey);
-const mockStore = vi.mocked(storeTenantKey);
 
 describe("ByokElevenLabsWizard", () => {
   it("renders the heading and key input", () => {
@@ -97,13 +95,6 @@ describe("ByokElevenLabsWizard", () => {
 
   it("calls onComplete and shows confirmation step", async () => {
     mockValidate.mockResolvedValue({ valid: true });
-    mockStore.mockResolvedValue({
-      provider: "elevenlabs",
-      hasKey: true,
-      maskedKey: "xi-...yz",
-      createdAt: null,
-      updatedAt: null,
-    });
     const onComplete = vi.fn();
     render(<ByokElevenLabsWizard onComplete={onComplete} />);
 
@@ -176,13 +167,6 @@ describe("ByokElevenLabsWizard", () => {
 
   it("shows Voice (TTS) capability on confirmation", async () => {
     mockValidate.mockResolvedValue({ valid: true });
-    mockStore.mockResolvedValue({
-      provider: "elevenlabs",
-      hasKey: true,
-      maskedKey: "xi-...yz",
-      createdAt: null,
-      updatedAt: null,
-    });
     render(<ByokElevenLabsWizard onComplete={vi.fn()} />);
 
     fireEvent.change(screen.getByLabelText(/ElevenLabs API Key/), {
@@ -202,15 +186,8 @@ describe("ByokElevenLabsWizard", () => {
     expect(screen.getByText(/text-to-speech is connected/)).toBeInTheDocument();
   });
 
-  it("stores key to tenant-key store after validation and continue", async () => {
+  it("stores key via validateElevenLabsKey on validation (not again on continue)", async () => {
     mockValidate.mockResolvedValue({ valid: true });
-    mockStore.mockResolvedValue({
-      provider: "elevenlabs",
-      hasKey: true,
-      maskedKey: "xi-...yz",
-      createdAt: null,
-      updatedAt: null,
-    });
     const onComplete = vi.fn();
     render(<ByokElevenLabsWizard onComplete={onComplete} />);
 
@@ -220,13 +197,19 @@ describe("ByokElevenLabsWizard", () => {
     fireEvent.click(screen.getByText("Validate Key"));
 
     await waitFor(() => {
+      expect(mockValidate).toHaveBeenCalledWith("xi-real-key");
+    });
+
+    await waitFor(() => {
       expect(screen.getByText("Continue")).not.toBeDisabled();
     });
 
     fireEvent.click(screen.getByText("Continue"));
 
     await waitFor(() => {
-      expect(mockStore).toHaveBeenCalledWith("elevenlabs", "xi-real-key");
+      expect(onComplete).toHaveBeenCalledWith("xi-real-key");
     });
+    // storeTenantKey is called inside validateElevenLabsKey, not again from handleContinue
+    expect(mockValidate).toHaveBeenCalledWith("xi-real-key");
   });
 });

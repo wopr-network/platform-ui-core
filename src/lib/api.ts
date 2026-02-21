@@ -608,9 +608,9 @@ export async function testProviderKey(id: string): Promise<{ valid: boolean }> {
   return apiFetch<{ valid: boolean }>(`/settings/providers/${id}/test`, { method: "POST" });
 }
 
-export async function removeProviderKey(id: string): Promise<void> {
+export async function removeProviderKey(id: string, provider: string): Promise<void> {
   try {
-    await deleteTenantKey(id);
+    await deleteTenantKey(provider);
   } catch {
     // tenant-key may not exist if it was never stored there -- continue
   }

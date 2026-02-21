@@ -82,7 +82,7 @@ describe("removeProviderKey tenant-key integration", () => {
     mockFetch.mockReset();
   });
 
-  it("calls DELETE /api/tenant-keys/:id before deleting from providers", async () => {
+  it("calls DELETE /api/tenant-keys/:provider before deleting from providers", async () => {
     mockFetch
       .mockResolvedValueOnce({
         ok: true,
@@ -95,11 +95,11 @@ describe("removeProviderKey tenant-key integration", () => {
         json: () => Promise.resolve({}),
       });
 
-    await removeProviderKey("pk-1");
+    await removeProviderKey("pk-1", "anthropic");
 
     expect(mockFetch).toHaveBeenNthCalledWith(
       1,
-      "http://localhost:3001/api/tenant-keys/pk-1",
+      "http://localhost:3001/api/tenant-keys/anthropic",
       expect.objectContaining({ method: "DELETE" }),
     );
     expect(mockFetch).toHaveBeenNthCalledWith(
@@ -123,7 +123,7 @@ describe("removeProviderKey tenant-key integration", () => {
         json: () => Promise.resolve({}),
       });
 
-    await removeProviderKey("pk-missing");
+    await removeProviderKey("pk-missing", "anthropic");
 
     expect(mockFetch).toHaveBeenCalledTimes(2);
     expect(mockFetch).toHaveBeenLastCalledWith(

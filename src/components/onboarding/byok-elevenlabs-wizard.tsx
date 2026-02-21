@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { storeTenantKey, validateElevenLabsKey } from "@/lib/api";
+import { validateElevenLabsKey } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 type WizardStep = "enter-key" | "confirmed";
@@ -70,14 +70,10 @@ export function ByokElevenLabsWizard({
     }
   }, [apiKey]);
 
-  const handleContinue = useCallback(async () => {
+  const handleContinue = useCallback(() => {
     if (validated) {
       const trimmed = apiKey.trim();
-      try {
-        await storeTenantKey("elevenlabs", trimmed);
-      } catch {
-        // Store failed but validation passed -- still proceed
-      }
+      // Key was already stored by validateElevenLabsKey; no need to store again
       setStep("confirmed");
       onComplete(trimmed);
     }
