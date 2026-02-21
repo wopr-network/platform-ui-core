@@ -1021,6 +1021,35 @@ export async function updateModelSelection(data: ModelSelection): Promise<ModelS
   });
 }
 
+// --- Tenant key store API (AES-256-GCM encrypted backend) ---
+
+export interface TenantKeyMeta {
+  provider: string;
+  hasKey: boolean;
+  maskedKey: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+}
+
+export async function listTenantKeys(): Promise<TenantKeyMeta[]> {
+  return apiFetch<TenantKeyMeta[]>("/tenant-keys");
+}
+
+export async function getTenantKey(provider: string): Promise<TenantKeyMeta> {
+  return apiFetch<TenantKeyMeta>(`/tenant-keys/${encodeURIComponent(provider)}`);
+}
+
+export async function storeTenantKey(provider: string, key: string): Promise<TenantKeyMeta> {
+  return apiFetch<TenantKeyMeta>(`/tenant-keys/${encodeURIComponent(provider)}`, {
+    method: "PUT",
+    body: JSON.stringify({ key }),
+  });
+}
+
+export async function deleteTenantKey(provider: string): Promise<void> {
+  await apiFetch(`/tenant-keys/${encodeURIComponent(provider)}`, { method: "DELETE" });
+}
+
 // --- BYOK key validation ---
 
 export interface KeyValidationResult {
