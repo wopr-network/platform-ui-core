@@ -1070,19 +1070,10 @@ export async function validateDeepgramKey(key: string): Promise<KeyValidationRes
 
 export async function validateElevenLabsKey(key: string): Promise<KeyValidationResult> {
   try {
-    const res = await fetch("https://api.elevenlabs.io/v1/user", {
-      method: "GET",
-      headers: { "xi-api-key": key },
-    });
-    if (res.ok) {
-      return { valid: true };
-    }
-    if (res.status === 401 || res.status === 403) {
-      return { valid: false, message: "Invalid API key. Please check and try again." };
-    }
-    return { valid: false, message: `Unexpected response (${res.status}). Please try again.` };
+    await storeTenantKey("elevenlabs", key);
+    return { valid: true };
   } catch {
-    return { valid: false, message: "Could not reach ElevenLabs. Check your connection." };
+    return { valid: false, message: "Invalid API key. Please check and try again." };
   }
 }
 
