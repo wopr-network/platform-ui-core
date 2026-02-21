@@ -1,3 +1,5 @@
+import { MOCK_MANIFESTS } from "./marketplace-data";
+
 // --- Personalities ---
 
 export interface Personality {
@@ -187,79 +189,63 @@ export interface Preset {
 
 // --- Channels ---
 
-export const channelPlugins: PluginOption[] = [
-  {
-    id: "discord",
-    name: "Discord",
-    description: "Connect a Discord bot to your server.",
-    icon: "MessageCircle",
-    color: "#5865F2",
-    capabilities: ["channel"],
-    configFields: [
-      {
-        key: "discord_bot_token",
-        label: "Discord Bot Token",
-        secret: true,
-        placeholder: "Paste your Discord bot token",
-        helpUrl: "https://discord.com/developers/applications",
-        helpText: "Create an app in the Discord Developer Portal, then copy the bot token.",
-        validation: { pattern: "^[A-Za-z0-9_.-]+$", message: "Invalid token format" },
-      },
-      {
-        key: "discord_guild_id",
-        label: "Discord Server ID",
-        secret: false,
-        placeholder: "e.g. 123456789012345678",
-        helpText: "Right-click your server name and select Copy Server ID.",
-        validation: { pattern: "^\\d{17,20}$", message: "Must be a numeric server ID" },
-      },
-    ],
-  },
-  {
-    id: "slack",
-    name: "Slack",
-    description: "Connect a Slack app to your workspace.",
-    icon: "Hash",
-    color: "#4A154B",
-    capabilities: ["channel"],
-    configFields: [
-      {
-        key: "slack_bot_token",
-        label: "Slack Bot Token",
-        secret: true,
-        placeholder: "xoxb-...",
-        helpUrl: "https://api.slack.com/apps",
-        helpText: "Create a Slack app, add Bot Token Scopes, then install to workspace.",
-        validation: { pattern: "^xoxb-", message: "Must start with xoxb-" },
-      },
-      {
-        key: "slack_signing_secret",
-        label: "Slack Signing Secret",
-        secret: true,
-        placeholder: "Paste your signing secret",
-        helpText: "Found under Basic Information > App Credentials.",
-      },
-    ],
-  },
-  {
-    id: "telegram",
-    name: "Telegram",
-    description: "Connect a Telegram bot via BotFather.",
-    icon: "Send",
-    color: "#0088CC",
-    capabilities: ["channel"],
-    configFields: [
-      {
-        key: "telegram_bot_token",
-        label: "Telegram Bot Token",
-        secret: true,
-        placeholder: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11",
-        helpUrl: "https://t.me/BotFather",
-        helpText: "Message @BotFather on Telegram with /newbot to get a token.",
-        validation: { pattern: "^[0-9]+:[A-Za-z0-9_-]+$", message: "Invalid Telegram token" },
-      },
-    ],
-  },
+// Onboarding-specific config fields per channel plugin.
+// These use OnboardingConfigField (with helpUrl, helpText) which differs from
+// marketplace configSchema fields. Kept separate intentionally — they serve
+// the onboarding BYOK flow, not the marketplace install wizard.
+const CHANNEL_CONFIG_OVERLAY: Record<string, OnboardingConfigField[]> = {
+  discord: [
+    {
+      key: "discord_bot_token",
+      label: "Discord Bot Token",
+      secret: true,
+      placeholder: "Paste your Discord bot token",
+      helpUrl: "https://discord.com/developers/applications",
+      helpText: "Create an app in the Discord Developer Portal, then copy the bot token.",
+      validation: { pattern: "^[A-Za-z0-9_.-]+$", message: "Invalid token format" },
+    },
+    {
+      key: "discord_guild_id",
+      label: "Discord Server ID",
+      secret: false,
+      placeholder: "e.g. 123456789012345678",
+      helpText: "Right-click your server name and select Copy Server ID.",
+      validation: { pattern: "^\\d{17,20}$", message: "Must be a numeric server ID" },
+    },
+  ],
+  slack: [
+    {
+      key: "slack_bot_token",
+      label: "Slack Bot Token",
+      secret: true,
+      placeholder: "xoxb-...",
+      helpUrl: "https://api.slack.com/apps",
+      helpText: "Create a Slack app, add Bot Token Scopes, then install to workspace.",
+      validation: { pattern: "^xoxb-", message: "Must start with xoxb-" },
+    },
+    {
+      key: "slack_signing_secret",
+      label: "Slack Signing Secret",
+      secret: true,
+      placeholder: "Paste your signing secret",
+      helpText: "Found under Basic Information > App Credentials.",
+    },
+  ],
+  telegram: [
+    {
+      key: "telegram_bot_token",
+      label: "Telegram Bot Token",
+      secret: true,
+      placeholder: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11",
+      helpUrl: "https://t.me/BotFather",
+      helpText: "Message @BotFather on Telegram with /newbot to get a token.",
+      validation: { pattern: "^[0-9]+:[A-Za-z0-9_-]+$", message: "Invalid Telegram token" },
+    },
+  ],
+};
+
+// Channels present in onboarding but not yet in the marketplace
+const ONBOARDING_ONLY_CHANNELS: PluginOption[] = [
   {
     id: "signal",
     name: "Signal",
@@ -321,6 +307,21 @@ export const channelPlugins: PluginOption[] = [
     ],
   },
 ];
+
+// Derive marketplace channel plugins: identity from canonical data, config fields from overlay
+const marketplaceChannels: PluginOption[] = MOCK_MANIFESTS.filter(
+  (m) => m.category === "channel",
+).map((m) => ({
+  id: m.id,
+  name: m.name,
+  description: m.description,
+  icon: m.icon,
+  color: m.color,
+  capabilities: m.capabilities,
+  configFields: CHANNEL_CONFIG_OVERLAY[m.id] ?? [],
+}));
+
+export const channelPlugins: PluginOption[] = [...marketplaceChannels, ...ONBOARDING_ONLY_CHANNELS];
 
 // --- Providers ---
 
