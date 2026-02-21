@@ -12,17 +12,21 @@ export type PluginCategory =
   | "moderation"
   | "analytics";
 
+export type SetupFlowType = "paste" | "oauth" | "qr" | "interactive";
+
 export interface ConfigSchemaField {
   key: string;
   label: string;
   type: "string" | "number" | "boolean" | "select";
   required: boolean;
   secret?: boolean;
+  setupFlow?: SetupFlowType;
   placeholder?: string;
   description?: string;
   default?: string | number | boolean;
   options?: { label: string; value: string }[];
   validation?: { pattern: string; message: string };
+  oauthProvider?: string;
 }
 
 export interface SetupStep {
@@ -51,6 +55,10 @@ export interface PluginManifest {
   setup: SetupStep[];
   installCount: number;
   changelog: { version: string; date: string; notes: string }[];
+  connectionTest?: {
+    label: string;
+    endpoint: string;
+  };
 }
 
 // --- Hosted Adapter Registry ---
@@ -143,7 +151,7 @@ export function getCapabilityColor(cap: string) {
 
 export const MOCK_MANIFESTS: PluginManifest[] = [
   {
-    id: "discord-channel",
+    id: "discord",
     name: "Discord",
     description:
       "Connect your WOPR instance to Discord servers. Supports text channels, threads, DMs, and slash commands.",
@@ -163,6 +171,7 @@ export const MOCK_MANIFESTS: PluginManifest[] = [
         type: "string",
         required: true,
         secret: true,
+        setupFlow: "paste",
         placeholder: "Paste your Discord bot token",
         description: "Found under Bot > Token in the Developer Portal.",
         validation: { pattern: "^[A-Za-z0-9_.-]+$", message: "Invalid token format" },
@@ -183,14 +192,14 @@ export const MOCK_MANIFESTS: PluginManifest[] = [
         title: "Create a Discord Bot",
         description: "Create a bot application in the Discord Developer Portal.",
         instruction:
-          "Go to the Discord Developer Portal, create a new application, and navigate to the Bot section.",
+          "Go to the Discord Developer Portal, create a new application, and navigate to the Bot section to create a bot user.",
         externalUrl: "https://discord.com/developers/applications",
         fields: [],
       },
       {
-        id: "configure",
-        title: "Enter Bot Credentials",
-        description: "Paste your bot token and server ID.",
+        id: "paste-token",
+        title: "Enter Bot Token",
+        description: "Copy the bot token from the Developer Portal and paste it here.",
         fields: [
           {
             key: "botToken",
@@ -198,26 +207,44 @@ export const MOCK_MANIFESTS: PluginManifest[] = [
             type: "string",
             required: true,
             secret: true,
+            setupFlow: "paste",
             placeholder: "Paste your Discord bot token",
+            description: "Found under Bot > Token in the Developer Portal.",
             validation: { pattern: "^[A-Za-z0-9_.-]+$", message: "Invalid token format" },
           },
+        ],
+      },
+      {
+        id: "select-guild",
+        title: "Select Server",
+        description: "Choose which Discord server the bot should operate in.",
+        fields: [
           {
             key: "guildId",
-            label: "Server ID",
-            type: "string",
+            label: "Server",
+            type: "select",
             required: true,
-            placeholder: "e.g. 123456789012345678",
-            validation: { pattern: "^\\d{17,20}$", message: "Must be a numeric server ID" },
+            setupFlow: "interactive",
+            description: "Select the server where the bot has been invited.",
+            options: [
+              { label: "WOPR HQ", value: "1234567890" },
+              { label: "Test Server", value: "0987654321" },
+              { label: "Community", value: "1122334455" },
+            ],
           },
         ],
       },
       {
         id: "done",
-        title: "Connection Ready",
-        description: "Your Discord bot is configured and ready to connect.",
+        title: "Connection Complete",
+        description: "Your Discord bot is configured and ready to use.",
         fields: [],
       },
     ],
+    connectionTest: {
+      label: "Test Bot Connection",
+      endpoint: "/api/channels/discord/test",
+    },
     installCount: 12400,
     changelog: [
       { version: "3.2.0", date: "2026-02-10", notes: "Added thread support and slash commands." },
@@ -226,7 +253,7 @@ export const MOCK_MANIFESTS: PluginManifest[] = [
     ],
   },
   {
-    id: "slack-channel",
+    id: "slack",
     name: "Slack",
     description:
       "Connect your WOPR instance to Slack workspaces. Supports channels, threads, and app mentions.",
@@ -241,13 +268,15 @@ export const MOCK_MANIFESTS: PluginManifest[] = [
     install: [],
     configSchema: [
       {
-        key: "botToken",
-        label: "Bot Token",
+        key: "oauthToken",
+        label: "OAuth Token",
         type: "string",
         required: true,
         secret: true,
-        placeholder: "xoxb-...",
-        validation: { pattern: "^xoxb-", message: "Must start with xoxb-" },
+        setupFlow: "oauth",
+        oauthProvider: "slack",
+        placeholder: "Click Authorize to connect",
+        description: "This will open a Slack OAuth window.",
       },
       {
         key: "signingSecret",
@@ -255,31 +284,56 @@ export const MOCK_MANIFESTS: PluginManifest[] = [
         type: "string",
         required: true,
         secret: true,
+        setupFlow: "paste",
         placeholder: "Paste your signing secret",
+        description: "Found under Basic Information > App Credentials.",
       },
     ],
     setup: [
       {
-        id: "create-app",
-        title: "Create a Slack App",
+        id: "install-app",
+        title: "Install Slack App",
         description: "Create and install a Slack app in your workspace.",
-        instruction: "Go to the Slack API portal and create a new app.",
+        instruction:
+          "Go to the Slack API portal, create a new app, and install it to your workspace.",
         externalUrl: "https://api.slack.com/apps",
         fields: [],
       },
       {
-        id: "configure",
-        title: "Enter Credentials",
-        description: "Paste your bot token and signing secret.",
+        id: "oauth",
+        title: "Authorize with OAuth",
+        description: "Authorize WOPR to access your Slack workspace.",
         fields: [
           {
-            key: "botToken",
-            label: "Bot Token",
+            key: "oauthToken",
+            label: "OAuth Token",
             type: "string",
             required: true,
             secret: true,
-            placeholder: "xoxb-...",
-            validation: { pattern: "^xoxb-", message: "Must start with xoxb-" },
+            setupFlow: "oauth",
+            oauthProvider: "slack",
+            placeholder: "Click Authorize to connect",
+            description: "This will open a Slack OAuth window.",
+          },
+        ],
+      },
+      {
+        id: "select-channels",
+        title: "Select Channels",
+        description: "Choose which channels WOPR should monitor.",
+        fields: [
+          {
+            key: "channels",
+            label: "Channels",
+            type: "select",
+            required: true,
+            setupFlow: "interactive",
+            description: "Select one or more channels.",
+            options: [
+              { label: "#general", value: "C01GENERAL" },
+              { label: "#engineering", value: "C02ENGINEER" },
+              { label: "#alerts", value: "C03ALERTS" },
+            ],
           },
           {
             key: "signingSecret",
@@ -287,22 +341,102 @@ export const MOCK_MANIFESTS: PluginManifest[] = [
             type: "string",
             required: true,
             secret: true,
-            placeholder: "Paste your signing secret",
+            setupFlow: "paste",
+            placeholder: "Paste your Slack signing secret",
+            description: "Found under Basic Information > App Credentials.",
           },
         ],
       },
       {
         id: "done",
-        title: "Connection Ready",
-        description: "Your Slack workspace is connected.",
+        title: "Connection Complete",
+        description: "Your Slack workspace is connected and ready to use.",
         fields: [],
       },
     ],
+    connectionTest: {
+      label: "Test Slack Connection",
+      endpoint: "/api/channels/slack/test",
+    },
     installCount: 8200,
     changelog: [
       { version: "2.1.0", date: "2026-02-01", notes: "Thread reply support." },
       { version: "2.0.0", date: "2026-01-01", notes: "App mention and event subscription." },
     ],
+  },
+  {
+    id: "telegram",
+    name: "Telegram",
+    description: "Connect a Telegram bot created via BotFather. Supports private and group chats.",
+    version: "1.0.0",
+    author: "WOPR Team",
+    icon: "Send",
+    color: "#0088CC",
+    category: "channel",
+    tags: ["channel", "chat", "messaging"],
+    capabilities: ["channel"],
+    requires: [],
+    install: [],
+    configSchema: [
+      {
+        key: "botToken",
+        label: "Bot Token",
+        type: "string",
+        required: true,
+        secret: true,
+        setupFlow: "paste",
+        placeholder: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11",
+        description: "The HTTP API token from BotFather.",
+        validation: {
+          pattern: "^[0-9]+:[A-Za-z0-9_-]+$",
+          message: "Invalid Telegram bot token format",
+        },
+      },
+    ],
+    setup: [
+      {
+        id: "create-bot",
+        title: "Create a Telegram Bot",
+        description: "Use BotFather to create a new Telegram bot.",
+        instruction:
+          "Open Telegram, search for @BotFather, send /newbot, and follow the prompts to create your bot.",
+        externalUrl: "https://t.me/BotFather",
+        fields: [],
+      },
+      {
+        id: "paste-token",
+        title: "Enter Bot Token",
+        description: "Paste the token that BotFather gave you.",
+        fields: [
+          {
+            key: "botToken",
+            label: "Bot Token",
+            type: "string",
+            required: true,
+            secret: true,
+            setupFlow: "paste",
+            placeholder: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11",
+            description: "The HTTP API token from BotFather.",
+            validation: {
+              pattern: "^[0-9]+:[A-Za-z0-9_-]+$",
+              message: "Invalid Telegram bot token format",
+            },
+          },
+        ],
+      },
+      {
+        id: "done",
+        title: "Connection Complete",
+        description: "Your Telegram bot is configured and ready to use.",
+        fields: [],
+      },
+    ],
+    connectionTest: {
+      label: "Test Telegram Connection",
+      endpoint: "/api/channels/telegram/test",
+    },
+    installCount: 1800,
+    changelog: [{ version: "1.0.0", date: "2026-02-15", notes: "Initial release." }],
   },
   {
     id: "semantic-memory",
@@ -667,8 +801,8 @@ export const MOCK_MANIFESTS: PluginManifest[] = [
     category: "voice",
     tags: ["voice", "transcription", "meetings", "productivity"],
     capabilities: ["stt", "llm"],
-    requires: [{ id: "discord-channel", label: "Discord (for voice channels)" }],
-    install: ["discord-channel"],
+    requires: [{ id: "discord", label: "Discord (for voice channels)" }],
+    install: ["discord"],
     configSchema: [
       {
         key: "summaryStyle",

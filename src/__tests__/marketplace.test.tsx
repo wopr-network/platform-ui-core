@@ -113,6 +113,48 @@ describe("marketplace-data", () => {
         expect(typeof manifest.installCount).toBe("number");
       }
     });
+
+    it("Discord plugin uses canonical short id 'discord'", () => {
+      const discord = MOCK_MANIFESTS.find((m) => m.id === "discord");
+      expect(discord).toBeDefined();
+      expect(discord?.name).toBe("Discord");
+    });
+
+    it("Slack plugin uses canonical short id 'slack'", () => {
+      const slack = MOCK_MANIFESTS.find((m) => m.id === "slack");
+      expect(slack).toBeDefined();
+      expect(slack?.name).toBe("Slack");
+    });
+
+    it("Telegram plugin is in MOCK_MANIFESTS with id 'telegram'", () => {
+      const telegram = MOCK_MANIFESTS.find((m) => m.id === "telegram");
+      expect(telegram).toBeDefined();
+      expect(telegram?.name).toBe("Telegram");
+      expect(telegram?.category).toBe("channel");
+    });
+
+    it("channel plugins have connectionTest field", () => {
+      const channels = MOCK_MANIFESTS.filter((m) => m.category === "channel");
+      for (const ch of channels) {
+        expect(ch.connectionTest).toBeDefined();
+        expect(ch.connectionTest?.endpoint).toBeTruthy();
+      }
+    });
+
+    it("channel plugin setup fields support setupFlow", () => {
+      const discord = MOCK_MANIFESTS.find((m) => m.id === "discord");
+      const tokenStep = discord?.setup.find((s) => s.id === "paste-token");
+      const tokenField = tokenStep?.fields.find((f) => f.key === "botToken");
+      expect(tokenField?.setupFlow).toBe("paste");
+    });
+
+    it("meeting-transcriber requires discord (not discord-channel)", () => {
+      const mt = MOCK_MANIFESTS.find((m) => m.id === "meeting-transcriber");
+      expect(mt).toBeDefined();
+      const req = mt?.requires.find((r) => r.id === "discord");
+      expect(req).toBeDefined();
+      expect(mt?.install).toContain("discord");
+    });
   });
 
   describe("HOSTED_ADAPTERS", () => {
@@ -227,7 +269,7 @@ describe("PluginDetailPage", () => {
   });
 
   it("renders plugin detail page with manifest info", async () => {
-    mockParams.plugin = "discord-channel";
+    mockParams.plugin = "discord";
     const { default: PluginDetailPage } = await import(
       "../app/(dashboard)/marketplace/[plugin]/page"
     );
@@ -291,7 +333,7 @@ describe("PluginDetailPage", () => {
   });
 
   it("shows changelog entries", async () => {
-    mockParams.plugin = "discord-channel";
+    mockParams.plugin = "discord";
     const { default: PluginDetailPage } = await import(
       "../app/(dashboard)/marketplace/[plugin]/page"
     );
@@ -309,7 +351,7 @@ describe("PluginDetailPage", () => {
   });
 
   it("shows configuration schema", async () => {
-    mockParams.plugin = "discord-channel";
+    mockParams.plugin = "discord";
     const { default: PluginDetailPage } = await import(
       "../app/(dashboard)/marketplace/[plugin]/page"
     );
@@ -415,7 +457,7 @@ describe("InstallWizard", () => {
 describe("PluginCard", () => {
   it("renders plugin info with link to detail page", async () => {
     const { PluginCard } = await import("../components/marketplace/plugin-card");
-    const plugin = MOCK_MANIFESTS[0]; // discord-channel
+    const plugin = MOCK_MANIFESTS[0]; // discord
 
     render(<PluginCard plugin={plugin} />);
 
@@ -426,7 +468,7 @@ describe("PluginCard", () => {
 
     // Should have a link to the detail page
     const link = screen.getByRole("link");
-    expect(link).toHaveAttribute("href", "/marketplace/discord-channel");
+    expect(link).toHaveAttribute("href", "/marketplace/discord");
   });
 
   it("shows WOPR Hosted badge for eligible plugins", async () => {
@@ -442,8 +484,8 @@ describe("PluginCard", () => {
 
   it("does not show WOPR Hosted badge for plugins without hosted capabilities", async () => {
     const { PluginCard } = await import("../components/marketplace/plugin-card");
-    // discord-channel only has 'channel' capability, no hosted adapter for that
-    const plugin = findManifest("discord-channel");
+    // discord only has 'channel' capability, no hosted adapter for that
+    const plugin = findManifest("discord");
 
     render(<PluginCard plugin={plugin} />);
 
