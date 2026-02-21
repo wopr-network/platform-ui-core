@@ -495,45 +495,6 @@ export async function revokeApiKey(id: string): Promise<void> {
   await apiFetch(`/settings/api-keys/${id}`, { method: "DELETE" });
 }
 
-export async function connectOauthProvider(provider: string): Promise<void> {
-  await apiFetch(`/settings/profile/oauth/${provider}/connect`, { method: "POST" });
-}
-
-export async function disconnectOauthProvider(provider: string): Promise<void> {
-  await apiFetch(`/settings/profile/oauth/${provider}/disconnect`, { method: "POST" });
-}
-
-export async function getOrganization(): Promise<Organization> {
-  return apiFetch<Organization>("/settings/org");
-}
-
-export async function updateOrganization(
-  data: Partial<Pick<Organization, "name" | "billingEmail">>,
-): Promise<Organization> {
-  return apiFetch<Organization>("/settings/org", {
-    method: "PATCH",
-    body: JSON.stringify(data),
-  });
-}
-
-export async function inviteMember(email: string, role: string): Promise<OrgMember> {
-  return apiFetch<OrgMember>("/settings/org/members", {
-    method: "POST",
-    body: JSON.stringify({ email, role }),
-  });
-}
-
-export async function removeMember(id: string): Promise<void> {
-  await apiFetch(`/settings/org/members/${id}`, { method: "DELETE" });
-}
-
-export async function transferOwnership(memberId: string): Promise<void> {
-  await apiFetch("/settings/org/transfer", {
-    method: "POST",
-    body: JSON.stringify({ memberId }),
-  });
-}
-
 // --- Billing types ---
 
 export interface BillingUsage {

@@ -42,7 +42,7 @@ import {
   removeMember,
   transferOwnership,
   updateOrganization,
-} from "@/lib/api";
+} from "@/lib/org-api";
 
 function roleBadgeVariant(role: OrgMember["role"]) {
   if (role === "owner") return "terminal" as const;

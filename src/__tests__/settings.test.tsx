@@ -179,8 +179,6 @@ vi.mock("@/lib/api", async (importOriginal) => {
     updateProfile: vi.fn().mockResolvedValue(MOCK_PROFILE),
     changePassword: vi.fn().mockResolvedValue(undefined),
     deleteAccount: vi.fn().mockResolvedValue(undefined),
-    connectOauthProvider: vi.fn().mockResolvedValue(undefined),
-    disconnectOauthProvider: vi.fn().mockResolvedValue(undefined),
     listProviderKeys: vi.fn().mockResolvedValue(MOCK_PROVIDERS),
     testProviderKey: vi.fn().mockResolvedValue({ valid: true }),
     removeProviderKey: vi.fn().mockResolvedValue(undefined),
@@ -192,17 +190,23 @@ vi.mock("@/lib/api", async (importOriginal) => {
     listApiKeys: vi.fn().mockResolvedValue(MOCK_API_KEYS),
     createApiKey: vi.fn().mockResolvedValue({ key: MOCK_API_KEYS[0], secret: "wopr_test_secret" }),
     revokeApiKey: vi.fn().mockResolvedValue(undefined),
-    getOrganization: vi.fn().mockResolvedValue(MOCK_ORG),
-    updateOrganization: vi.fn().mockResolvedValue(MOCK_ORG),
-    inviteMember: vi.fn().mockResolvedValue(MOCK_ORG.members[2]),
-    removeMember: vi.fn().mockResolvedValue(undefined),
-    transferOwnership: vi.fn().mockResolvedValue(undefined),
     getBillingUsage: vi.fn().mockResolvedValue(MOCK_BILLING_USAGE),
     createBillingPortalSession: vi
       .fn()
       .mockResolvedValue({ url: "https://billing.stripe.com/session/test" }),
   };
 });
+
+// Mock @/lib/org-api with test fixtures
+vi.mock("@/lib/org-api", () => ({
+  getOrganization: vi.fn().mockResolvedValue(MOCK_ORG),
+  updateOrganization: vi.fn().mockResolvedValue(MOCK_ORG),
+  inviteMember: vi.fn().mockResolvedValue(MOCK_ORG.members[2]),
+  removeMember: vi.fn().mockResolvedValue(undefined),
+  transferOwnership: vi.fn().mockResolvedValue(undefined),
+  connectOauthProvider: vi.fn().mockResolvedValue(undefined),
+  disconnectOauthProvider: vi.fn().mockResolvedValue(undefined),
+}));
 
 describe("Profile page", () => {
   it("renders profile heading and form fields", async () => {
