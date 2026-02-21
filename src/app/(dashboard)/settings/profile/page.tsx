@@ -20,14 +20,8 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { UserProfile } from "@/lib/api";
-import {
-  changePassword,
-  connectOauthProvider,
-  deleteAccount,
-  disconnectOauthProvider,
-  getProfile,
-  updateProfile,
-} from "@/lib/api";
+import { changePassword, deleteAccount, getProfile, updateProfile } from "@/lib/api";
+import { connectOauthProvider, disconnectOauthProvider } from "@/lib/org-api";
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
