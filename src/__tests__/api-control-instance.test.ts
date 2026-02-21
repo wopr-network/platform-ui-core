@@ -8,6 +8,24 @@ const mockFetch = vi.fn().mockResolvedValue({
 });
 vi.stubGlobal("fetch", mockFetch);
 
+const mockControlInstance = vi.fn().mockResolvedValue({ ok: true });
+
+vi.mock("@/lib/trpc", () => ({
+  trpcVanilla: {
+    fleet: {
+      listInstances: { query: vi.fn() },
+      getInstance: { query: vi.fn() },
+      createInstance: { mutate: vi.fn() },
+      controlInstance: { mutate: mockControlInstance },
+      getInstanceHealth: { query: vi.fn() },
+      getInstanceLogs: { query: vi.fn() },
+      getInstanceMetrics: { query: vi.fn() },
+      listTemplates: { query: vi.fn() },
+    },
+  },
+  trpc: {},
+}));
+
 // Mock api-config
 vi.mock("@/lib/api-config", () => ({
   API_BASE_URL: "https://api.test/api",
@@ -17,9 +35,10 @@ vi.mock("@/lib/api-config", () => ({
 describe("controlInstance HTTP behavior", () => {
   afterEach(() => {
     mockFetch.mockClear();
+    mockControlInstance.mockClear();
   });
 
-  it("sends DELETE /fleet/bots/:id for destroy action", async () => {
+  it("sends DELETE /fleet/bots/:id for destroy action (still REST)", async () => {
     const { controlInstance } = await import("@/lib/api");
     await controlInstance("bot-123", "destroy");
 
@@ -27,35 +46,27 @@ describe("controlInstance HTTP behavior", () => {
       "https://api.test/fleet/bots/bot-123",
       expect.objectContaining({ method: "DELETE" }),
     );
+    expect(mockControlInstance).not.toHaveBeenCalled();
   });
 
-  it("sends POST /fleet/bots/:id/start for start action", async () => {
+  it("uses tRPC for start action", async () => {
     const { controlInstance } = await import("@/lib/api");
     await controlInstance("bot-123", "start");
 
-    expect(mockFetch).toHaveBeenCalledWith(
-      "https://api.test/fleet/bots/bot-123/start",
-      expect.objectContaining({ method: "POST" }),
-    );
+    expect(mockControlInstance).toHaveBeenCalledWith({ id: "bot-123", action: "start" });
   });
 
-  it("sends POST /fleet/bots/:id/stop for stop action", async () => {
+  it("uses tRPC for stop action", async () => {
     const { controlInstance } = await import("@/lib/api");
     await controlInstance("bot-123", "stop");
 
-    expect(mockFetch).toHaveBeenCalledWith(
-      "https://api.test/fleet/bots/bot-123/stop",
-      expect.objectContaining({ method: "POST" }),
-    );
+    expect(mockControlInstance).toHaveBeenCalledWith({ id: "bot-123", action: "stop" });
   });
 
-  it("sends POST /fleet/bots/:id/restart for restart action", async () => {
+  it("uses tRPC for restart action", async () => {
     const { controlInstance } = await import("@/lib/api");
     await controlInstance("bot-123", "restart");
 
-    expect(mockFetch).toHaveBeenCalledWith(
-      "https://api.test/fleet/bots/bot-123/restart",
-      expect.objectContaining({ method: "POST" }),
-    );
+    expect(mockControlInstance).toHaveBeenCalledWith({ id: "bot-123", action: "restart" });
   });
 });

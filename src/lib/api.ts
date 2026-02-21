@@ -137,6 +137,23 @@ function parsePluginsFromEnv(env: Record<string, string> | undefined): PluginInf
   return [...ids].map((id) => ({ id, name: id, version: "", enabled: true }));
 }
 
+// Typed stub for the fleet portion of the tRPC vanilla client.
+// AppRouter is currently an empty placeholder — real types come when @wopr-network/sdk ships.
+interface FleetClient {
+  fleet: {
+    listInstances: { query(): Promise<unknown> };
+    getInstance: { query(input: { id: string }): Promise<unknown> };
+    createInstance: { mutate(input: Record<string, unknown>): Promise<unknown> };
+    controlInstance: {
+      mutate(input: { id: string; action: "start" | "stop" | "restart" }): Promise<unknown>;
+    };
+    getInstanceHealth: { query(input: { id: string }): Promise<unknown> };
+    getInstanceLogs: { query(input: { id: string; tail?: number }): Promise<unknown> };
+    getInstanceMetrics: { query(input: { id: string }): Promise<unknown> };
+    listTemplates: { query(): Promise<unknown> };
+  };
+}
+
 function mapBotState(state: string): InstanceStatus {
   if (state === "running") return "running";
   if (state === "error" || state === "dead") return "error";
@@ -175,8 +192,8 @@ function mapBotStatusToFleetInstance(bot: BotStatusResponse): FleetInstance {
 }
 
 export async function listInstances(): Promise<Instance[]> {
-  const data = await fleetFetch<{ bots: BotStatusResponse[] }>("/bots");
-  const bots = data.bots ?? [];
+  const data = await (trpcVanilla as unknown as FleetClient).fleet.listInstances.query();
+  const bots = (data as { bots: BotStatusResponse[] }).bots ?? [];
   return bots.map((bot) => ({
     id: bot.id,
     name: bot.name,
@@ -194,7 +211,9 @@ export async function listInstances(): Promise<Instance[]> {
 }
 
 export async function getInstance(id: string): Promise<InstanceDetail> {
-  const bot = await fleetFetch<BotStatusResponse>(`/bots/${id}`);
+  const bot = (await (trpcVanilla as unknown as FleetClient).fleet.getInstance.query({
+    id,
+  })) as BotStatusResponse;
   const uptimeMs = bot.uptime ? new Date(bot.uptime).getTime() : NaN;
   return {
     id: bot.id,
@@ -223,10 +242,19 @@ export async function createInstance(data: {
   channels: string[];
   plugins: string[];
 }): Promise<Instance> {
-  return fleetFetch<Instance>("/bots", {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
+  const result = await (trpcVanilla as unknown as FleetClient).fleet.createInstance.mutate(data);
+  const profile = result as Record<string, unknown>;
+  return {
+    id: (profile.id as string) ?? "",
+    name: (profile.name as string) ?? data.name,
+    template: data.template,
+    status: "stopped",
+    provider: data.provider,
+    channels: data.channels,
+    plugins: data.plugins.map((id) => ({ id, name: id, version: "", enabled: true })),
+    uptime: null,
+    createdAt: new Date().toISOString(),
+  };
 }
 
 // --- Channel API ---
@@ -270,9 +298,11 @@ export async function controlInstance(
   action: "start" | "stop" | "restart" | "destroy",
 ): Promise<void> {
   if (action === "destroy") {
+    // TODO(WOP-816): destroyInstance tRPC procedure does not exist on the server yet
+    // Server fleet router only accepts start | stop | restart via controlInstance
     await fleetFetch(`/bots/${id}`, { method: "DELETE" });
   } else {
-    await fleetFetch(`/bots/${id}/${action}`, { method: "POST" });
+    await (trpcVanilla as unknown as FleetClient).fleet.controlInstance.mutate({ id, action });
   }
 }
 
@@ -374,28 +404,120 @@ export interface FleetResources {
 // --- Observability API ---
 
 export async function getInstanceHealth(id: string): Promise<InstanceHealth> {
-  return fleetFetch<InstanceHealth>(`/bots/${id}/health`);
+  const data = await (trpcVanilla as unknown as FleetClient).fleet.getInstanceHealth.query({ id });
+  const res = data as {
+    id: string;
+    state: string;
+    health: string | null;
+    uptime: string | null;
+    stats: { cpuPercent: number; memoryUsageMb: number } | null;
+  };
+
+  let healthStatus: HealthStatus;
+  if (res.health === "healthy") healthStatus = "healthy";
+  else if (res.health === "unhealthy") healthStatus = "unhealthy";
+  else healthStatus = "degraded";
+
+  let uptime = 0;
+  if (res.uptime) {
+    const ms = new Date(res.uptime).getTime();
+    if (!Number.isNaN(ms)) {
+      uptime = Math.floor((Date.now() - ms) / 1000);
+    }
+  }
+
+  return {
+    status: healthStatus,
+    uptime,
+    activeSessions: 0,
+    totalSessions: 0,
+    plugins: [],
+    providers: [],
+    history: [],
+  };
 }
 
 export async function getInstanceLogs(
   id: string,
   params?: { level?: LogLevel; source?: string; search?: string },
 ): Promise<LogEntry[]> {
-  const qs = new URLSearchParams();
-  if (params?.level) qs.set("level", params.level);
-  if (params?.source) qs.set("source", params.source);
-  if (params?.search) qs.set("search", params.search);
-  const query = qs.toString();
-  return fleetFetch<LogEntry[]>(`/bots/${id}/logs${query ? `?${query}` : ""}`);
+  const data = await (trpcVanilla as unknown as FleetClient).fleet.getInstanceLogs.query({
+    id,
+    tail: 100,
+  });
+  const rawLogs = (data as { logs: string[] }).logs ?? [];
+
+  // Parse raw container log strings into structured LogEntry objects
+  // Format: "2026-02-20T10:00:00Z [LEVEL] message" or plain text
+  let entries: LogEntry[] = rawLogs.map((line, i) => {
+    const match = line.match(/^(\S+)\s+\[(\w+)]\s+(.*)$/);
+    if (match) {
+      const level = match[2].toLowerCase();
+      return {
+        id: `log-${i}`,
+        timestamp: match[1],
+        level: (["debug", "info", "warn", "error"].includes(level) ? level : "info") as LogLevel,
+        source: "container",
+        message: match[3],
+      };
+    }
+    return {
+      id: `log-${i}`,
+      timestamp: new Date().toISOString(),
+      level: "info" as LogLevel,
+      source: "container",
+      message: line,
+    };
+  });
+
+  // Apply client-side filters (server doesn't support them via tRPC)
+  if (params?.level) {
+    entries = entries.filter((e) => e.level === params.level);
+  }
+  if (params?.source) {
+    entries = entries.filter((e) => e.source === params.source);
+  }
+  if (params?.search) {
+    const q = params.search.toLowerCase();
+    entries = entries.filter((e) => e.message.toLowerCase().includes(q));
+  }
+
+  return entries;
 }
 
 export async function getInstanceMetrics(id: string): Promise<InstanceMetrics> {
-  return fleetFetch<InstanceMetrics>(`/bots/${id}/metrics`);
+  const data = await (trpcVanilla as unknown as FleetClient).fleet.getInstanceMetrics.query({ id });
+  const res = data as {
+    id: string;
+    stats: {
+      cpuPercent: number;
+      memoryUsageMb: number;
+      memoryLimitMb: number;
+      memoryPercent: number;
+    } | null;
+  };
+
+  // Build a single-point timeseries from current stats
+  const snapshot: MetricsSnapshot = {
+    timestamp: new Date().toISOString(),
+    requestCount: 0,
+    latencyP50: 0,
+    latencyP95: 0,
+    latencyP99: 0,
+    activeSessions: 0,
+    memoryMb: res.stats?.memoryUsageMb ?? 0,
+  };
+
+  return {
+    timeseries: [snapshot],
+    tokenUsage: [],
+    pluginEvents: [],
+  };
 }
 
 export async function getFleetHealth(): Promise<FleetInstance[]> {
-  const data = await fleetFetch<{ bots: BotStatusResponse[] }>("/bots");
-  const bots = data.bots ?? [];
+  const data = await (trpcVanilla as unknown as FleetClient).fleet.listInstances.query();
+  const bots = (data as { bots: BotStatusResponse[] }).bots ?? [];
   return bots.map(mapBotStatusToFleetInstance);
 }
 
