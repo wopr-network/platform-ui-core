@@ -1099,7 +1099,7 @@ export async function createCreditCheckout(priceId: string): Promise<CheckoutRes
 
 // --- Dividend types ---
 
-export interface DividendStats {
+export interface DividendWalletStats {
   poolCents: number;
   activeUsers: number;
   perUserCents: number;
@@ -1126,7 +1126,7 @@ export interface DividendLifetime {
 
 // --- Dividend API ---
 
-export async function getDividendStats(): Promise<DividendStats> {
+export async function getDividendStats(): Promise<DividendWalletStats> {
   const res = await apiFetch<{
     pool_cents: number;
     active_users: number;

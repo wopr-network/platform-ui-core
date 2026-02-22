@@ -11,12 +11,12 @@ import { LowBalanceBanner } from "@/components/billing/low-balance-banner";
 import { TransactionHistory } from "@/components/billing/transaction-history";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { CreditBalance as CreditBalanceData, DividendStats } from "@/lib/api";
+import type { CreditBalance as CreditBalanceData, DividendWalletStats } from "@/lib/api";
 import { getCreditBalance, getDividendStats } from "@/lib/api";
 
 export default function CreditsPage() {
   const [balance, setBalance] = useState<CreditBalanceData | null>(null);
-  const [dividendStats, setDividendStats] = useState<DividendStats | null>(null);
+  const [dividendStats, setDividendStats] = useState<DividendWalletStats | null>(null);
   const [todayDividendCents, setTodayDividendCents] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

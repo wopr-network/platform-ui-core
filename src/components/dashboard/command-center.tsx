@@ -7,7 +7,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { ActivityEvent, DividendStats, FleetInstance, FleetResources } from "@/lib/api";
+import type { ActivityEvent, DividendWalletStats, FleetInstance, FleetResources } from "@/lib/api";
 import { getActivityFeed, getDividendStats, getFleetHealth, getFleetResources } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -144,7 +144,7 @@ export function CommandCenter() {
   const [lastRefreshed, setLastRefreshed] = useState(Date.now());
   const [activity, setActivity] = useState<ActivityEvent[]>([]);
   const [resources, setResources] = useState<FleetResources | null>(null);
-  const [dividendStats, setDividendStats] = useState<DividendStats | null>(null);
+  const [dividendStats, setDividendStats] = useState<DividendWalletStats | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);

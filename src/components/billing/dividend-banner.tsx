@@ -4,16 +4,16 @@ import { AnimatePresence, motion } from "framer-motion";
 import { TrendingUpIcon } from "lucide-react";
 import Link from "next/link";
 import { useCountUp } from "@/hooks/use-count-up";
-import type { DividendStats } from "@/lib/api";
+import type { DividendWalletStats } from "@/lib/api";
 
 interface DividendBannerProps {
   todayAmountCents: number;
-  stats: DividendStats;
+  stats: DividendWalletStats;
 }
 
 type BannerState = "received" | "projected" | "ineligible";
 
-function getBannerState(todayAmountCents: number, stats: DividendStats): BannerState {
+function getBannerState(todayAmountCents: number, stats: DividendWalletStats): BannerState {
   if (!stats.userEligible) return "ineligible";
   if (todayAmountCents > 0) return "received";
   return "projected";
