@@ -128,6 +128,17 @@ export default function OrgPage() {
     }
   }
 
+  if (loadError) {
+    return (
+      <div className="flex h-40 flex-col items-center justify-center gap-3 text-muted-foreground">
+        <p className="text-sm text-destructive">Failed to load organization.</p>
+        <Button variant="outline" size="sm" onClick={load}>
+          Retry
+        </Button>
+      </div>
+    );
+  }
+
   if (loading || !org) {
     return (
       <div className="max-w-3xl space-y-6">
@@ -159,17 +170,6 @@ export default function OrgPage() {
             </div>
           ))}
         </div>
-      </div>
-    );
-  }
-
-  if (loadError) {
-    return (
-      <div className="flex h-40 flex-col items-center justify-center gap-3 text-muted-foreground">
-        <p className="text-sm text-destructive">Failed to load organization.</p>
-        <Button variant="outline" size="sm" onClick={load}>
-          Retry
-        </Button>
       </div>
     );
   }
