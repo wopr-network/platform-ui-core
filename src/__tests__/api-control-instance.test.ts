@@ -38,15 +38,12 @@ describe("controlInstance HTTP behavior", () => {
     mockControlInstance.mockClear();
   });
 
-  it("sends DELETE /fleet/bots/:id for destroy action (still REST)", async () => {
+  it("uses tRPC for destroy action", async () => {
     const { controlInstance } = await import("@/lib/api");
     await controlInstance("bot-123", "destroy");
 
-    expect(mockFetch).toHaveBeenCalledWith(
-      "https://api.test/fleet/bots/bot-123",
-      expect.objectContaining({ method: "DELETE" }),
-    );
-    expect(mockControlInstance).not.toHaveBeenCalled();
+    expect(mockControlInstance).toHaveBeenCalledWith({ id: "bot-123", action: "destroy" });
+    expect(mockFetch).not.toHaveBeenCalled();
   });
 
   it("uses tRPC for start action", async () => {
