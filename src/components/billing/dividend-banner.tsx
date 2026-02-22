@@ -3,34 +3,12 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { TrendingUpIcon } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCountUp } from "@/hooks/use-count-up";
 import type { DividendStats } from "@/lib/api";
 
 interface DividendBannerProps {
   todayAmountCents: number;
   stats: DividendStats;
-}
-
-function useCountUp(target: number, duration = 1200) {
-  const [value, setValue] = useState(0);
-  useEffect(() => {
-    if (target <= 0) {
-      setValue(0);
-      return;
-    }
-    const start = performance.now();
-    let raf: number;
-    function tick(now: number) {
-      const elapsed = now - start;
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = 1 - (1 - progress) ** 3;
-      setValue(eased * target);
-      if (progress < 1) raf = requestAnimationFrame(tick);
-    }
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [target, duration]);
-  return value;
 }
 
 type BannerState = "received" | "projected" | "ineligible";
@@ -84,7 +62,7 @@ export function DividendBanner({ todayAmountCents, stats }: DividendBannerProps)
           className="rounded-md border border-terminal/20 bg-terminal/5 px-6 py-4"
         >
           <div className="flex items-center gap-3">
-            <TrendingUpIcon className="size-5 text-terminal/60 shrink-0" />
+            <TrendingUpIcon className="size-5 text-terminal-dim shrink-0" />
             <div>
               <p className="text-sm font-medium text-foreground">
                 Your projected share: ~${(stats.perUserCents / 100).toFixed(2)}/day

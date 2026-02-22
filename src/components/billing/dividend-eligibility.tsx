@@ -56,12 +56,15 @@ export function DividendEligibility({ windowExpiresAt, eligible }: DividendEligi
         <CardContent className="p-4 space-y-3">
           <div className="flex items-center gap-2">
             <ClockIcon
-              className={cn("size-4 shrink-0", isExpiringSoon ? "text-amber-500" : "text-terminal")}
+              className={cn(
+                "size-4 shrink-0",
+                isExpiringSoon ? "text-terminal-dim" : "text-terminal",
+              )}
             />
             <p className="text-sm font-medium">
               You&apos;re in the pool for{" "}
               <span
-                className={cn("font-bold", isExpiringSoon ? "text-amber-500" : "text-terminal")}
+                className={cn("font-bold", isExpiringSoon ? "text-terminal-dim" : "text-terminal")}
               >
                 {daysRemaining}
               </span>{" "}
@@ -74,7 +77,7 @@ export function DividendEligibility({ windowExpiresAt, eligible }: DividendEligi
             aria-label={`${daysRemaining} days remaining in dividend pool`}
           />
           {isExpiringSoon && (
-            <p className="text-xs text-amber-500">Buy credits to reset your 7-day window</p>
+            <p className="text-xs text-terminal-dim">Buy credits to reset your 7-day window</p>
           )}
         </CardContent>
       </Card>
