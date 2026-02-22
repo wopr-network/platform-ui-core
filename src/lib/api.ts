@@ -165,7 +165,10 @@ interface FleetClient {
     getInstance: { query(input: { id: string }): Promise<unknown> };
     createInstance: { mutate(input: Record<string, unknown>): Promise<unknown> };
     controlInstance: {
-      mutate(input: { id: string; action: "start" | "stop" | "restart" }): Promise<unknown>;
+      mutate(input: {
+        id: string;
+        action: "start" | "stop" | "restart" | "destroy";
+      }): Promise<unknown>;
     };
     getInstanceHealth: { query(input: { id: string }): Promise<unknown> };
     getInstanceLogs: { query(input: { id: string; tail?: number }): Promise<unknown> };
@@ -370,13 +373,7 @@ export async function controlInstance(
   id: string,
   action: "start" | "stop" | "restart" | "destroy",
 ): Promise<void> {
-  if (action === "destroy") {
-    // TODO(WOP-816): destroyInstance tRPC procedure does not exist on the server yet
-    // Server fleet router only accepts start | stop | restart via controlInstance
-    await fleetFetch(`/bots/${id}`, { method: "DELETE" });
-  } else {
-    await (trpcVanilla as unknown as FleetClient).fleet.controlInstance.mutate({ id, action });
-  }
+  await (trpcVanilla as unknown as FleetClient).fleet.controlInstance.mutate({ id, action });
 }
 
 // --- Observability types ---

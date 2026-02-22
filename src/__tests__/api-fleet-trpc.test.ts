@@ -145,17 +145,14 @@ describe("controlInstance uses tRPC for start/stop/restart", () => {
     expect(mockControlInstance).toHaveBeenCalledWith({ id: "bot-1", action: "start" });
   });
 
-  it("still uses fleetFetch for destroy", async () => {
-    fetchSpy.mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({}) });
+  it("uses tRPC for destroy action", async () => {
+    mockControlInstance.mockResolvedValueOnce({ ok: true });
 
     const { controlInstance } = await import("@/lib/api");
     await controlInstance("bot-1", "destroy");
 
-    expect(mockControlInstance).not.toHaveBeenCalled();
-    expect(fetchSpy).toHaveBeenCalledWith(
-      expect.stringContaining("/fleet/bots/bot-1"),
-      expect.objectContaining({ method: "DELETE" }),
-    );
+    expect(mockControlInstance).toHaveBeenCalledWith({ id: "bot-1", action: "destroy" });
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 });
 
