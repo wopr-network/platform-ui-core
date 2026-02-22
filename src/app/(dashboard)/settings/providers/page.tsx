@@ -3,6 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { CheckIcon, ChevronDownIcon, XIcon } from "lucide-react";
 import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import { AddPaymentMethodDialog } from "@/components/billing/add-payment-method-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,6 +30,8 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import type { CapabilityMode, CapabilityName, CapabilitySetting, ProviderKey } from "@/lib/api";
 import {
+  getBillingInfo,
+  getCreditBalance,
   listCapabilities,
   listProviderKeys,
   removeProviderKey,
@@ -650,25 +653,88 @@ function BillingGateDialog({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const [loading, setLoading] = useState(true);
+  const [canActivate, setCanActivate] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showAddPayment, setShowAddPayment] = useState(false);
+
+  const checkBilling = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [billing, credits] = await Promise.all([getBillingInfo(), getCreditBalance()]);
+      setCanActivate(billing.paymentMethods.length > 0 || credits.balance > 0);
+    } catch {
+      setError("Unable to verify payment status. Please try again.");
+      setCanActivate(false);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    checkBilling();
+  }, [checkBilling]);
+
   return (
-    <Dialog open onOpenChange={(open) => !open && onCancel()}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Enable WOPR Hosted for {meta.label}?</DialogTitle>
-          <DialogDescription>
-            WOPR Hosted for {meta.label.toLowerCase()} costs {meta.pricing}. This will be billed to
-            your payment method on file. If you don&apos;t have a payment method, you&apos;ll need
-            to add one in billing settings first.
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter>
-          <Button variant="outline" onClick={onCancel}>
-            Cancel
-          </Button>
-          <Button onClick={onConfirm}>Enable Hosted</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <>
+      <Dialog open onOpenChange={(open) => !open && onCancel()}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Enable WOPR Hosted for {meta.label}?</DialogTitle>
+            <DialogDescription>
+              WOPR Hosted for {meta.label.toLowerCase()} costs {meta.pricing}. This will be billed
+              to your payment method on file.
+            </DialogDescription>
+          </DialogHeader>
+
+          {loading && (
+            <div className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
+              <span className="size-3.5 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
+              Checking payment status...
+            </div>
+          )}
+
+          {error && !loading && (
+            <div className="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              {error}
+            </div>
+          )}
+
+          {!loading && !error && !canActivate && (
+            <div className="rounded-md border border-yellow-500/50 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-200">
+              <p className="font-medium">Payment method required</p>
+              <p className="mt-1 text-muted-foreground">
+                You need a payment method or credit balance before enabling hosted capabilities.
+              </p>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={onCancel}>
+              Cancel
+            </Button>
+            {!loading && !canActivate && !error && (
+              <Button onClick={() => setShowAddPayment(true)}>Add payment method</Button>
+            )}
+            {!loading && error && (
+              <Button variant="outline" onClick={checkBilling}>
+                Retry
+              </Button>
+            )}
+            {!loading && canActivate && <Button onClick={onConfirm}>Enable Hosted</Button>}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <AddPaymentMethodDialog
+        open={showAddPayment}
+        onOpenChange={setShowAddPayment}
+        onSuccess={() => {
+          setShowAddPayment(false);
+          checkBilling();
+        }}
+      />
+    </>
   );
 }
 
