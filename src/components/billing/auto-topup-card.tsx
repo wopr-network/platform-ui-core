@@ -72,13 +72,17 @@ export function AutoTopupCard() {
     load();
   }, [load]);
 
-  async function save(update: Parameters<typeof updateAutoTopupSettings>[0]) {
+  async function save(
+    update: Parameters<typeof updateAutoTopupSettings>[0],
+    prevSettings: AutoTopupSettings,
+  ) {
     setSaving(true);
     setError(null);
     try {
       const updated = await updateAutoTopupSettings(update);
       setSettings(updated);
     } catch {
+      setSettings(prevSettings);
       setError("Failed to save settings. Please try again.");
     } finally {
       setSaving(false);
@@ -87,102 +91,126 @@ export function AutoTopupCard() {
 
   function handleUsageToggle(enabled: boolean) {
     if (!settings) return;
+    const prevSettings = settings;
     const optimistic = {
       ...settings,
       usageBased: { ...settings.usageBased, enabled },
     };
     setSettings(optimistic);
-    save({
-      usageBased: {
-        enabled,
-        thresholdCents: settings.usageBased.thresholdCents,
-        topupAmountCents: settings.usageBased.topupAmountCents,
+    save(
+      {
+        usageBased: {
+          enabled,
+          thresholdCents: settings.usageBased.thresholdCents,
+          topupAmountCents: settings.usageBased.topupAmountCents,
+        },
       },
-    });
+      prevSettings,
+    );
   }
 
   function handleUsageThreshold(value: string) {
     if (!settings) return;
+    const prevSettings = settings;
     const thresholdCents = Number(value);
     const optimistic = {
       ...settings,
       usageBased: { ...settings.usageBased, thresholdCents },
     };
     setSettings(optimistic);
-    save({
-      usageBased: {
-        enabled: settings.usageBased.enabled,
-        thresholdCents,
-        topupAmountCents: settings.usageBased.topupAmountCents,
+    save(
+      {
+        usageBased: {
+          enabled: settings.usageBased.enabled,
+          thresholdCents,
+          topupAmountCents: settings.usageBased.topupAmountCents,
+        },
       },
-    });
+      prevSettings,
+    );
   }
 
   function handleUsageAmount(value: string) {
     if (!settings) return;
+    const prevSettings = settings;
     const topupAmountCents = Number(value);
     const optimistic = {
       ...settings,
       usageBased: { ...settings.usageBased, topupAmountCents },
     };
     setSettings(optimistic);
-    save({
-      usageBased: {
-        enabled: settings.usageBased.enabled,
-        thresholdCents: settings.usageBased.thresholdCents,
-        topupAmountCents,
+    save(
+      {
+        usageBased: {
+          enabled: settings.usageBased.enabled,
+          thresholdCents: settings.usageBased.thresholdCents,
+          topupAmountCents,
+        },
       },
-    });
+      prevSettings,
+    );
   }
 
   function handleScheduleToggle(enabled: boolean) {
     if (!settings) return;
+    const prevSettings = settings;
     const optimistic = {
       ...settings,
       scheduled: { ...settings.scheduled, enabled },
     };
     setSettings(optimistic);
-    save({
-      scheduled: {
-        enabled,
-        amountCents: settings.scheduled.amountCents,
-        interval: settings.scheduled.interval,
+    save(
+      {
+        scheduled: {
+          enabled,
+          amountCents: settings.scheduled.amountCents,
+          interval: settings.scheduled.interval,
+        },
       },
-    });
+      prevSettings,
+    );
   }
 
   function handleScheduleAmount(value: string) {
     if (!settings) return;
+    const prevSettings = settings;
     const amountCents = Number(value);
     const optimistic = {
       ...settings,
       scheduled: { ...settings.scheduled, amountCents },
     };
     setSettings(optimistic);
-    save({
-      scheduled: {
-        enabled: settings.scheduled.enabled,
-        amountCents,
-        interval: settings.scheduled.interval,
+    save(
+      {
+        scheduled: {
+          enabled: settings.scheduled.enabled,
+          amountCents,
+          interval: settings.scheduled.interval,
+        },
       },
-    });
+      prevSettings,
+    );
   }
 
   function handleScheduleInterval(value: string) {
     if (!settings) return;
+    const prevSettings = settings;
     const interval = value as AutoTopupInterval;
     const optimistic = {
       ...settings,
       scheduled: { ...settings.scheduled, interval },
     };
     setSettings(optimistic);
-    save({
-      scheduled: {
-        enabled: settings.scheduled.enabled,
-        amountCents: settings.scheduled.amountCents,
-        interval,
+    save(
+      {
+        scheduled: {
+          enabled: settings.scheduled.enabled,
+          amountCents: settings.scheduled.amountCents,
+          interval,
+        },
       },
-    });
+      prevSettings,
+    );
   }
 
   // --- Loading skeleton ---
@@ -277,6 +305,7 @@ export function AutoTopupCard() {
                 id="usage-toggle"
                 checked={settings.usageBased.enabled}
                 onCheckedChange={handleUsageToggle}
+                disabled={saving}
               />
             </div>
             <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
@@ -284,7 +313,7 @@ export function AutoTopupCard() {
               <Select
                 value={String(settings.usageBased.thresholdCents)}
                 onValueChange={handleUsageThreshold}
-                disabled={!settings.usageBased.enabled}
+                disabled={saving || !settings.usageBased.enabled}
               >
                 <SelectTrigger size="sm" className="w-[72px]" aria-label="Threshold amount">
                   <SelectValue />
@@ -301,7 +330,7 @@ export function AutoTopupCard() {
               <Select
                 value={String(settings.usageBased.topupAmountCents)}
                 onValueChange={handleUsageAmount}
-                disabled={!settings.usageBased.enabled}
+                disabled={saving || !settings.usageBased.enabled}
               >
                 <SelectTrigger size="sm" className="w-[72px]" aria-label="Top-up amount">
                   <SelectValue />
@@ -327,6 +356,7 @@ export function AutoTopupCard() {
                 id="schedule-toggle"
                 checked={settings.scheduled.enabled}
                 onCheckedChange={handleScheduleToggle}
+                disabled={saving}
               />
             </div>
             <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
@@ -334,7 +364,7 @@ export function AutoTopupCard() {
               <Select
                 value={String(settings.scheduled.amountCents)}
                 onValueChange={handleScheduleAmount}
-                disabled={!settings.scheduled.enabled}
+                disabled={saving || !settings.scheduled.enabled}
               >
                 <SelectTrigger size="sm" className="w-[72px]" aria-label="Scheduled amount">
                   <SelectValue />
@@ -351,7 +381,7 @@ export function AutoTopupCard() {
               <Select
                 value={settings.scheduled.interval}
                 onValueChange={handleScheduleInterval}
-                disabled={!settings.scheduled.enabled}
+                disabled={saving || !settings.scheduled.enabled}
               >
                 <SelectTrigger size="sm" className="w-[100px]" aria-label="Schedule interval">
                   <SelectValue />
