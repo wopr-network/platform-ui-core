@@ -310,24 +310,24 @@ export async function deployInstance(payload: DeployBotPayload): Promise<Instanc
   };
 }
 
-// --- WhatsApp QR polling API ---
+// --- Channel QR polling API ---
 
-export type WhatsAppQrStatus = "pending" | "connected" | "expired" | "no-session";
+export type ChannelQrStatus = "pending" | "connected" | "expired" | "no-session";
 
-export interface WhatsAppQrResponse {
+export interface ChannelQrResponse {
   qrPng: string | null;
-  status: WhatsAppQrStatus;
+  status: ChannelQrStatus;
 }
 
-/** Poll the platform for the current WhatsApp QR code state for a given bot. */
-export async function pollWhatsAppQr(botId: string): Promise<WhatsAppQrResponse> {
+/** Poll the platform for the current QR code state for a given bot instance. */
+export async function pollChannelQr(botId: string): Promise<ChannelQrResponse> {
   const res = await fetch(`${PLATFORM_BASE_URL}/api/channels/${encodeURIComponent(botId)}/qr`, {
     credentials: "include",
   });
   if (!res.ok) {
     throw new Error(`API error: ${res.status} ${res.statusText}`);
   }
-  return res.json() as Promise<WhatsAppQrResponse>;
+  return res.json() as Promise<ChannelQrResponse>;
 }
 
 // --- Channel API ---

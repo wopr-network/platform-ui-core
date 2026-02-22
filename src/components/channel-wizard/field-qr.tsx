@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { pollWhatsAppQr } from "@/lib/api";
+import { pollChannelQr } from "@/lib/api";
 import type { ConfigField } from "@/lib/mock-manifests";
 
 interface FieldQRProps {
@@ -66,7 +66,7 @@ export function FieldQR({ field, value: _value, onChange, error, botId }: FieldQ
       return;
     }
     try {
-      const res = await pollWhatsAppQr(botId);
+      const res = await pollChannelQr(botId);
       const currentState = stateRef.current;
 
       switch (res.status) {
@@ -104,10 +104,11 @@ export function FieldQR({ field, value: _value, onChange, error, botId }: FieldQ
           break;
       }
     } catch {
+      cleanup();
       setState("error");
       setErrorMsg("Could not reach the server. Check that your bot is running and try again.");
     }
-  }, [botId, field.key, onChange, startCountdown]);
+  }, [botId, field.key, onChange, startCountdown, cleanup]);
 
   const startPolling = useCallback(() => {
     cleanup();
@@ -164,7 +165,7 @@ export function FieldQR({ field, value: _value, onChange, error, botId }: FieldQ
                 {/* biome-ignore lint/performance/noImgElement: QR code is a base64 data URL, not optimizable by next/image */}
                 <img
                   src={qrPng}
-                  alt="Scan this QR code with WhatsApp on your phone"
+                  alt="Scan this QR code with your phone"
                   className="h-full w-full"
                 />
               </div>
@@ -180,7 +181,7 @@ export function FieldQR({ field, value: _value, onChange, error, botId }: FieldQ
 
             {/* Instructions */}
             <p className="max-w-[280px] text-center text-sm text-muted-foreground">
-              Open WhatsApp on your phone, go to Settings &gt; Linked Devices, and scan this code
+              {field.description ?? "Scan this QR code with your mobile app to link your account"}
             </p>
 
             {/* Countdown */}
@@ -245,7 +246,7 @@ export function FieldQR({ field, value: _value, onChange, error, botId }: FieldQ
             </span>
 
             <p className="text-center text-sm text-muted-foreground">
-              WhatsApp is connected. You can continue setup.
+              {field.label ? `${field.label} connected` : "Connected"}. You can continue setup.
             </p>
           </div>
         )}
@@ -287,8 +288,7 @@ export function FieldQR({ field, value: _value, onChange, error, botId }: FieldQ
             </span>
 
             <p className="max-w-[280px] text-center text-sm text-muted-foreground">
-              Your bot needs to be running before you can link WhatsApp. Start it from the fleet
-              dashboard, then return here.
+              Your bot is currently offline. Start it from the fleet dashboard to link your account.
             </p>
           </div>
         )}
