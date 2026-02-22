@@ -52,7 +52,7 @@ const MOCK_REFERRALS: AffiliateReferralsResponse = {
       matchAmountCents: null,
     },
   ],
-  nextCursor: null,
+  total: 3,
 };
 
 vi.mock("@/lib/api", async (importOriginal) => {

@@ -927,7 +927,7 @@ interface BillingProcedures {
       referrals: Array<{
         id: string;
         masked_email: string;
-        joined_at: number;
+        joined_at: string;
         status: "pending" | "matched";
         match_amount_cents: number | null;
       }>;
@@ -1075,17 +1075,19 @@ export interface AffiliateStats {
   totalEarnedCents: number;
 }
 
-export interface Referral {
-  id: string;
-  maskedEmail: string;
-  joinedAt: string;
-  status: ReferralStatus;
-  matchAmountCents: number | null;
-}
+export type Referral =
+  | { id: string; maskedEmail: string; joinedAt: string; status: "pending"; matchAmountCents: null }
+  | {
+      id: string;
+      maskedEmail: string;
+      joinedAt: string;
+      status: "matched";
+      matchAmountCents: number;
+    };
 
 export interface AffiliateReferralsResponse {
   referrals: Referral[];
-  nextCursor: string | null;
+  total: number;
 }
 
 export interface CheckoutResponse {
@@ -1181,18 +1183,23 @@ export async function getAffiliateStats(): Promise<AffiliateStats> {
   };
 }
 
-export async function getAffiliateReferrals(cursor?: string): Promise<AffiliateReferralsResponse> {
-  const offset = cursor ? Number.parseInt(cursor, 10) : 0;
-  const res = await billingClient.affiliateReferrals.query({ limit: 20, offset });
+export async function getAffiliateReferrals(params?: {
+  limit?: number;
+  offset?: number;
+}): Promise<AffiliateReferralsResponse> {
+  const res = await billingClient.affiliateReferrals.query({
+    limit: params?.limit ?? 20,
+    offset: params?.offset ?? 0,
+  });
   return {
     referrals: res.referrals.map((r) => ({
       id: r.id,
       maskedEmail: r.masked_email,
-      joinedAt: new Date(r.joined_at * 1000).toISOString(),
+      joinedAt: new Date(r.joined_at).toISOString(),
       status: r.status,
       matchAmountCents: r.match_amount_cents,
-    })),
-    nextCursor: offset + 20 < res.total ? String(offset + 20) : null,
+    })) as Referral[],
+    total: res.total,
   };
 }
 

@@ -17,7 +17,8 @@ function formatCents(cents: number): string {
 export function AffiliateDashboard() {
   const [stats, setStats] = useState<AffiliateStats | null>(null);
   const [referrals, setReferrals] = useState<Referral[]>([]);
-  const [cursor, setCursor] = useState<string | null>(null);
+  const [offset, setOffset] = useState<number>(0);
+  const [total, setTotal] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,7 +34,8 @@ export function AffiliateDashboard() {
       ]);
       setStats(statsData);
       setReferrals(referralsData.referrals);
-      setCursor(referralsData.nextCursor);
+      setTotal(referralsData.total);
+      setOffset(referralsData.referrals.length);
     } catch {
       setError("Failed to load referral data.");
     } finally {
@@ -75,12 +77,13 @@ export function AffiliateDashboard() {
   }
 
   async function handleLoadMore() {
-    if (!cursor) return;
+    if (offset >= total) return;
     setLoadingMore(true);
     try {
-      const res = await getAffiliateReferrals(cursor);
+      const res = await getAffiliateReferrals({ offset });
       setReferrals((prev) => [...prev, ...res.referrals]);
-      setCursor(res.nextCursor);
+      setOffset((prev) => prev + res.referrals.length);
+      setTotal(res.total);
     } catch {
       setError("Failed to load more referrals.");
     } finally {
@@ -259,7 +262,7 @@ export function AffiliateDashboard() {
                         </div>
                       </div>
                       <div>
-                        {ref.status === "matched" && ref.matchAmountCents !== null ? (
+                        {ref.status === "matched" ? (
                           <span className="font-mono font-medium text-emerald-500">
                             {formatCents(ref.matchAmountCents)}
                           </span>
@@ -273,7 +276,7 @@ export function AffiliateDashboard() {
                   ))}
                 </div>
                 {error && <p className="text-sm text-destructive">{error}</p>}
-                {cursor && (
+                {offset < total && (
                   <div className="pt-2">
                     <Button
                       variant="outline"
