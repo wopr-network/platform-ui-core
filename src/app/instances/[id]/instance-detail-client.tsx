@@ -131,6 +131,7 @@ export function InstanceDetailClient({ instanceId }: { instanceId: string }) {
       await restoreSnapshot(instanceId, snapshot.id);
       setConfirmRestore(null);
       await load();
+      await loadSnapshots();
     } catch (err) {
       setSnapshotsError(err instanceof Error ? err.message : "Failed to restore snapshot");
       setConfirmRestore(null);
