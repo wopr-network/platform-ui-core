@@ -35,6 +35,7 @@ vi.mock("@/lib/api", () => ({
     resourceUsage: { memoryMb: 256, cpuPercent: 12.5 },
   }),
   controlInstance: vi.fn().mockResolvedValue(undefined),
+  updateInstanceConfig: vi.fn().mockResolvedValue(undefined),
   getInstanceLogs: vi
     .fn()
     .mockResolvedValue([
@@ -128,6 +129,27 @@ describe("InstanceDetailClient", () => {
     await user.click(logsTab);
     expect(logsTab).toHaveAttribute("aria-selected", "true");
     expect(screen.getByText("Bot started")).toBeInTheDocument();
+  });
+
+  it("clicking Save Config calls updateInstanceConfig with parsed JSON", async () => {
+    const user = userEvent.setup();
+    render(<InstanceDetailClient instanceId="inst-001" />);
+
+    await waitFor(() => {
+      expect(screen.getByText("test-instance")).toBeInTheDocument();
+    });
+
+    const configTab = screen.getByRole("tab", { name: "Config" });
+    await user.click(configTab);
+
+    const saveBtn = screen.getByText("Save Config");
+    await user.click(saveBtn);
+
+    const { updateInstanceConfig } = await import("@/lib/api");
+    expect(updateInstanceConfig).toHaveBeenCalledWith("inst-001", {
+      model: "claude-sonnet-4-5-20250514",
+      maxTokens: 4096,
+    });
   });
 
   it("clicking Stop button calls controlInstance with correct args", async () => {
