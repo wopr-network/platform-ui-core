@@ -213,3 +213,45 @@ export async function controlBot(
     await apiFetch(`/fleet/bots/${botId}/${action}`, { method: "POST" });
   }
 }
+
+/** Update bot's LLM model and provider mode */
+export async function updateBotBrain(
+  botId: string,
+  brain: { model?: string; provider?: string; mode?: "hosted" | "byok" },
+): Promise<void> {
+  const env: Record<string, string> = {};
+  if (brain.model) env.WOPR_LLM_MODEL = brain.model;
+  if (brain.provider) env.WOPR_LLM_PROVIDER = brain.provider;
+  if (brain.mode) env.WOPR_LLM_MODE = brain.mode;
+  await apiFetch(`/fleet/bots/${botId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ env }),
+  });
+}
+
+/** Disconnect a channel from a bot */
+export async function disconnectChannel(botId: string, channelId: string): Promise<void> {
+  await apiFetch(`/fleet/bots/${botId}/channels/${channelId}`, {
+    method: "DELETE",
+  });
+}
+
+/** Toggle a plugin's enabled/disabled state */
+export async function togglePlugin(
+  botId: string,
+  pluginId: string,
+  enabled: boolean,
+): Promise<void> {
+  await apiFetch(`/fleet/bots/${botId}/plugins/${pluginId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ enabled }),
+  });
+}
+
+/** Install a plugin on a bot */
+export async function installPlugin(botId: string, pluginId: string): Promise<void> {
+  await apiFetch(`/fleet/bots/${botId}/plugins/${pluginId}`, {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+}

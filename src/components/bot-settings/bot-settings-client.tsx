@@ -28,8 +28,12 @@ import type {
 import {
   activateSuperpower,
   controlBot,
+  disconnectChannel,
   getBotSettings,
+  installPlugin,
   PERSONALITY_TEMPLATES,
+  togglePlugin,
+  updateBotBrain,
   updateBotIdentity,
 } from "@/lib/bot-settings-data";
 import { DEFAULT_STATUS_STYLE, PLUGIN_STATUS_STYLES } from "@/lib/status-colors";
@@ -110,11 +114,11 @@ export function BotSettingsClient({ botId }: { botId: string }) {
         </TabsContent>
 
         <TabsContent value="brain" className="mt-4">
-          <BrainTab settings={settings} />
+          <BrainTab settings={settings} botId={botId} onUpdate={setSettings} />
         </TabsContent>
 
         <TabsContent value="channels" className="mt-4">
-          <ChannelsTab settings={settings} />
+          <ChannelsTab settings={settings} botId={botId} onUpdate={load} />
         </TabsContent>
 
         <TabsContent value="superpowers" className="mt-4">
@@ -122,7 +126,7 @@ export function BotSettingsClient({ botId }: { botId: string }) {
         </TabsContent>
 
         <TabsContent value="plugins" className="mt-4">
-          <PluginsTab settings={settings} />
+          <PluginsTab settings={settings} botId={botId} onUpdate={load} />
         </TabsContent>
 
         <TabsContent value="storage" className="mt-4">
@@ -254,8 +258,54 @@ function IdentityTab({
 
 // --- Tab 2: Brain ---
 
-function BrainTab({ settings }: { settings: BotSettings }) {
+function BrainTab({
+  settings,
+  botId,
+  onUpdate,
+}: {
+  settings: BotSettings;
+  botId: string;
+  onUpdate: (s: BotSettings) => void;
+}) {
   const { brain } = settings;
+  const [modelInput, setModelInput] = useState(brain.model);
+  const [savingModel, setSavingModel] = useState(false);
+  const [changingMode, setChangingMode] = useState(false);
+  const [brainError, setBrainError] = useState<string | null>(null);
+
+  async function handleSaveModel() {
+    if (modelInput === brain.model) return;
+    setSavingModel(true);
+    setBrainError(null);
+    try {
+      await updateBotBrain(botId, { model: modelInput });
+      onUpdate({
+        ...settings,
+        brain: { ...settings.brain, model: modelInput },
+      });
+    } catch {
+      setBrainError("Failed to update model -- please try again.");
+    } finally {
+      setSavingModel(false);
+    }
+  }
+
+  async function handleModeChange(mode: "hosted" | "byok") {
+    if (mode === brain.mode) return;
+    setChangingMode(true);
+    setBrainError(null);
+    try {
+      await updateBotBrain(botId, { mode });
+      onUpdate({
+        ...settings,
+        brain: { ...settings.brain, mode },
+      });
+    } catch {
+      setBrainError("Failed to switch provider mode -- please try again.");
+    } finally {
+      setChangingMode(false);
+    }
+  }
 
   return (
     <div className="max-w-2xl space-y-6">
@@ -266,20 +316,29 @@ function BrainTab({ settings }: { settings: BotSettings }) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Current Model</CardTitle>
+          <CardTitle>Model</CardTitle>
           <CardDescription>
-            {brain.model} (via {brain.mode === "hosted" ? "WOPR Hosted" : "BYOK"})
+            LLM model ID (e.g. claude-sonnet-4, gpt-4o). Used via{" "}
+            {brain.mode === "hosted" ? "WOPR Hosted" : "BYOK"}.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span>{brain.costPerMessage}</span>
-            <span>&middot;</span>
-            <span>{brain.description}</span>
+          <div className="flex items-center gap-2">
+            <Input
+              value={modelInput}
+              onChange={(e) => setModelInput(e.target.value)}
+              placeholder="e.g. claude-sonnet-4"
+              className="max-w-sm"
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSaveModel}
+              disabled={savingModel || modelInput === brain.model}
+            >
+              {savingModel ? "Saving..." : "Save"}
+            </Button>
           </div>
-          <Button variant="outline" size="sm">
-            Change model
-          </Button>
         </CardContent>
       </Card>
 
@@ -294,7 +353,8 @@ function BrainTab({ settings }: { settings: BotSettings }) {
               name="provider-mode"
               value="hosted"
               checked={brain.mode === "hosted"}
-              readOnly
+              onChange={() => handleModeChange("hosted")}
+              disabled={changingMode}
               className="mt-1"
             />
             <div className="flex-1">
@@ -314,7 +374,8 @@ function BrainTab({ settings }: { settings: BotSettings }) {
               name="provider-mode"
               value="byok"
               checked={brain.mode === "byok"}
-              readOnly
+              onChange={() => handleModeChange("byok")}
+              disabled={changingMode}
               className="mt-1"
             />
             <div className="flex-1">
@@ -323,21 +384,56 @@ function BrainTab({ settings }: { settings: BotSettings }) {
                 Use your own Anthropic/OpenAI key. You pay the provider directly.
               </p>
               {brain.mode !== "byok" && (
-                <Button variant="outline" size="sm" className="mt-2">
-                  Switch to BYOK
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-2"
+                  onClick={() => handleModeChange("byok")}
+                  disabled={changingMode}
+                >
+                  {changingMode ? "Switching..." : "Switch to BYOK"}
                 </Button>
               )}
             </div>
           </label>
         </CardContent>
       </Card>
+
+      {brainError && <p className="text-sm text-destructive">{brainError}</p>}
     </div>
   );
 }
 
 // --- Tab 3: Channels ---
 
-function ChannelsTab({ settings }: { settings: BotSettings }) {
+function ChannelsTab({
+  settings,
+  botId,
+  onUpdate,
+}: {
+  settings: BotSettings;
+  botId: string;
+  onUpdate: () => void;
+}) {
+  const router = useRouter();
+  const [disconnecting, setDisconnecting] = useState<string | null>(null);
+  const [channelError, setChannelError] = useState<string | null>(null);
+  const [confirmDisconnect, setConfirmDisconnect] = useState<string | null>(null);
+
+  async function handleDisconnect(channelId: string) {
+    setDisconnecting(channelId);
+    setChannelError(null);
+    try {
+      await disconnectChannel(botId, channelId);
+      setConfirmDisconnect(null);
+      onUpdate();
+    } catch {
+      setChannelError("Failed to disconnect channel -- please try again.");
+    } finally {
+      setDisconnecting(null);
+    }
+  }
+
   return (
     <div className="max-w-2xl space-y-6">
       <div>
@@ -361,11 +457,15 @@ function ChannelsTab({ settings }: { settings: BotSettings }) {
                 </p>
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => alert("Channel configuration coming soon")}
+                >
                   Configure
                 </Button>
                 {ch.status === "connected" && (
-                  <Button variant="ghost" size="sm">
+                  <Button variant="ghost" size="sm" onClick={() => setConfirmDisconnect(ch.id)}>
                     Disconnect
                   </Button>
                 )}
@@ -385,13 +485,44 @@ function ChannelsTab({ settings }: { settings: BotSettings }) {
         <CardContent>
           <div className="flex flex-wrap gap-3">
             {settings.availableChannels.map((ch) => (
-              <Button key={ch.type} variant="outline">
+              <Button
+                key={ch.type}
+                variant="outline"
+                onClick={() =>
+                  router.push(`/onboarding/channels?bot=${botId}&channel=${ch.type.toLowerCase()}`)
+                }
+              >
                 + Add {ch.label}
               </Button>
             ))}
           </div>
         </CardContent>
       </Card>
+
+      {channelError && <p className="text-sm text-destructive">{channelError}</p>}
+
+      <Dialog open={confirmDisconnect !== null} onOpenChange={() => setConfirmDisconnect(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Disconnect channel?</DialogTitle>
+            <DialogDescription>
+              This will remove the channel from your bot. You can reconnect it later.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmDisconnect(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => confirmDisconnect && handleDisconnect(confirmDisconnect)}
+              disabled={disconnecting !== null}
+            >
+              {disconnecting ? "Disconnecting..." : "Disconnect"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -463,7 +594,11 @@ function SuperpowersTab({
           Active
         </h3>
         {settings.activeSuperpowers.map((sp) => (
-          <ActiveSuperpowerCard key={sp.id} superpower={sp} />
+          <ActiveSuperpowerCard
+            key={sp.id}
+            superpower={sp}
+            onConfigure={() => alert("Superpower configuration coming soon")}
+          />
         ))}
       </div>
 
@@ -491,7 +626,13 @@ function SuperpowersTab({
   );
 }
 
-function ActiveSuperpowerCard({ superpower }: { superpower: ActiveSuperpower }) {
+function ActiveSuperpowerCard({
+  superpower,
+  onConfigure,
+}: {
+  superpower: ActiveSuperpower;
+  onConfigure: () => void;
+}) {
   return (
     <Card>
       <CardContent className="flex items-center justify-between p-4">
@@ -509,7 +650,7 @@ function ActiveSuperpowerCard({ superpower }: { superpower: ActiveSuperpower }) 
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={onConfigure}>
             Configure
           </Button>
         </div>
@@ -547,7 +688,45 @@ function AvailableSuperpowerCard({
 
 // --- Tab 5: Plugins ---
 
-function PluginsTab({ settings }: { settings: BotSettings }) {
+function PluginsTab({
+  settings,
+  botId,
+  onUpdate,
+}: {
+  settings: BotSettings;
+  botId: string;
+  onUpdate: () => void;
+}) {
+  const [togglingPlugin, setTogglingPlugin] = useState<string | null>(null);
+  const [installingPlugin, setInstallingPlugin] = useState<string | null>(null);
+  const [pluginError, setPluginError] = useState<string | null>(null);
+
+  async function handleToggle(pluginId: string, enabled: boolean) {
+    setTogglingPlugin(pluginId);
+    setPluginError(null);
+    try {
+      await togglePlugin(botId, pluginId, enabled);
+      onUpdate();
+    } catch {
+      setPluginError(`Failed to ${enabled ? "enable" : "disable"} plugin -- please try again.`);
+    } finally {
+      setTogglingPlugin(null);
+    }
+  }
+
+  async function handleInstall(pluginId: string) {
+    setInstallingPlugin(pluginId);
+    setPluginError(null);
+    try {
+      await installPlugin(botId, pluginId);
+      onUpdate();
+    } catch {
+      setPluginError("Failed to install plugin -- please try again.");
+    } finally {
+      setInstallingPlugin(null);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -561,7 +740,12 @@ function PluginsTab({ settings }: { settings: BotSettings }) {
           Installed
         </h3>
         {settings.installedPlugins.map((plugin) => (
-          <InstalledPluginCard key={plugin.id} plugin={plugin} />
+          <InstalledPluginCard
+            key={plugin.id}
+            plugin={plugin}
+            onToggle={handleToggle}
+            toggling={togglingPlugin === plugin.id}
+          />
         ))}
       </div>
 
@@ -574,18 +758,33 @@ function PluginsTab({ settings }: { settings: BotSettings }) {
         </h3>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {settings.discoverPlugins.map((plugin) => (
-            <DiscoverPluginCard key={plugin.id} plugin={plugin} />
+            <DiscoverPluginCard
+              key={plugin.id}
+              plugin={plugin}
+              onInstall={handleInstall}
+              installing={installingPlugin === plugin.id}
+            />
           ))}
         </div>
         <Button variant="outline" asChild>
           <a href="/marketplace">Browse all plugins</a>
         </Button>
       </div>
+
+      {pluginError && <p className="text-sm text-destructive">{pluginError}</p>}
     </div>
   );
 }
 
-function InstalledPluginCard({ plugin }: { plugin: InstalledPlugin }) {
+function InstalledPluginCard({
+  plugin,
+  onToggle,
+  toggling,
+}: {
+  plugin: InstalledPlugin;
+  onToggle: (pluginId: string, enabled: boolean) => void;
+  toggling: boolean;
+}) {
   return (
     <Card>
       <CardContent className="flex items-center justify-between p-4">
@@ -603,11 +802,20 @@ function InstalledPluginCard({ plugin }: { plugin: InstalledPlugin }) {
           <p className="text-xs text-muted-foreground">Uses: {plugin.capabilities.join(", ")}</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => alert("Plugin configuration coming soon")}
+          >
             Configure
           </Button>
-          <Button variant="ghost" size="sm">
-            {plugin.status === "active" ? "Disable" : "Enable"}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onToggle(plugin.id, plugin.status !== "active")}
+            disabled={toggling}
+          >
+            {toggling ? "Updating..." : plugin.status === "active" ? "Disable" : "Enable"}
           </Button>
         </div>
       </CardContent>
@@ -615,7 +823,15 @@ function InstalledPluginCard({ plugin }: { plugin: InstalledPlugin }) {
   );
 }
 
-function DiscoverPluginCard({ plugin }: { plugin: DiscoverPlugin }) {
+function DiscoverPluginCard({
+  plugin,
+  onInstall,
+  installing,
+}: {
+  plugin: DiscoverPlugin;
+  onInstall: (pluginId: string) => void;
+  installing: boolean;
+}) {
   return (
     <Card className="flex flex-col justify-between">
       <CardHeader className="pb-2">
@@ -632,7 +848,9 @@ function DiscoverPluginCard({ plugin }: { plugin: DiscoverPlugin }) {
             ))}
           </div>
         )}
-        <Button size="sm">Install</Button>
+        <Button size="sm" onClick={() => onInstall(plugin.id)} disabled={installing}>
+          {installing ? "Installing..." : "Install"}
+        </Button>
       </CardContent>
     </Card>
   );
