@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import { Bitcoin } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -19,7 +19,6 @@ export function BuyCryptoCreditPanel() {
   const [selected, setSelected] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [submitted, setSubmitted] = useState(false);
 
   async function handleCheckout() {
     if (selected === null) return;
@@ -27,11 +26,9 @@ export function BuyCryptoCreditPanel() {
     setError(null);
     try {
       const { url } = await createCryptoCheckout(selected);
-      window.open(url, "_blank");
-      setSubmitted(true);
+      window.location.href = url;
     } catch {
       setError("Checkout failed. Please try again.");
-    } finally {
       setLoading(false);
     }
   }
@@ -53,65 +50,39 @@ export function BuyCryptoCreditPanel() {
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
-          <AnimatePresence mode="wait">
-            {submitted ? (
-              <motion.div
-                key="processing"
-                initial={{ opacity: 0, y: 4 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -4 }}
-                transition={{ duration: 0.3, ease: "easeOut" }}
-                className="rounded-md border border-primary/25 bg-primary/5 p-4 text-sm"
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {CRYPTO_AMOUNTS.map((amt) => (
+              <motion.button
+                key={amt.value}
+                type="button"
+                onClick={() => setSelected(amt.value)}
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.98 }}
+                transition={{
+                  type: "spring",
+                  stiffness: 400,
+                  damping: 25,
+                }}
+                className={cn(
+                  "flex flex-col items-center gap-1 rounded-md border p-3 text-sm font-medium transition-colors hover:bg-accent",
+                  selected === amt.value
+                    ? "border-primary bg-primary/5 ring-1 ring-primary shadow-[0_0_15px_rgba(0,255,65,0.3)]"
+                    : "border-border",
+                )}
               >
-                <p className="font-medium">Your crypto payment is being processed.</p>
-                <p className="mt-1 text-muted-foreground">
-                  Credits will appear in your balance once the payment is confirmed on-chain. This
-                  usually takes a few minutes.
-                </p>
-              </motion.div>
-            ) : (
-              <motion.div
-                key="form"
-                exit={{ opacity: 0, y: -4 }}
-                transition={{ duration: 0.3, ease: "easeOut" }}
-                className="space-y-4"
-              >
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  {CRYPTO_AMOUNTS.map((amt) => (
-                    <motion.button
-                      key={amt.value}
-                      type="button"
-                      onClick={() => setSelected(amt.value)}
-                      whileHover={{ scale: 1.03 }}
-                      whileTap={{ scale: 0.98 }}
-                      transition={{
-                        type: "spring",
-                        stiffness: 400,
-                        damping: 25,
-                      }}
-                      className={cn(
-                        "flex flex-col items-center gap-1 rounded-md border p-3 text-sm font-medium transition-colors hover:bg-accent",
-                        selected === amt.value
-                          ? "border-primary bg-primary/5 ring-1 ring-primary shadow-[0_0_15px_rgba(0,255,65,0.3)]"
-                          : "border-border",
-                      )}
-                    >
-                      <span className="text-lg font-bold">{amt.label}</span>
-                    </motion.button>
-                  ))}
-                </div>
-                {error && <p className="text-sm text-destructive">{error}</p>}
-                <Button
-                  onClick={handleCheckout}
-                  disabled={selected === null || loading}
-                  variant="outline"
-                  className="w-full sm:w-auto"
-                >
-                  {loading ? "Opening PayRam..." : "Pay with crypto"}
-                </Button>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                <span className="text-lg font-bold">{amt.label}</span>
+              </motion.button>
+            ))}
+          </div>
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          <Button
+            onClick={handleCheckout}
+            disabled={selected === null || loading}
+            variant="outline"
+            className="w-full sm:w-auto"
+          >
+            {loading ? "Opening PayRam..." : "Pay with crypto"}
+          </Button>
         </CardContent>
       </Card>
     </motion.div>

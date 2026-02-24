@@ -2,7 +2,7 @@
 
 import { Clock } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { AutoTopupCard } from "@/components/billing/auto-topup-card";
 import { BuyCreditsPanel } from "@/components/billing/buy-credits-panel";
 import { BuyCryptoCreditPanel } from "@/components/billing/buy-crypto-credits-panel";
@@ -18,12 +18,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { CreditBalance as CreditBalanceData, DividendWalletStats } from "@/lib/api";
 import { getCreditBalance, getDividendStats } from "@/lib/api";
 
-export default function CreditsPage() {
+function CreditsContent() {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
   const cryptoPending = searchParams.get("crypto") === "pending";
 
+  const [showCryptoPending, setShowCryptoPending] = useState(cryptoPending);
   const [balance, setBalance] = useState<CreditBalanceData | null>(null);
   const [dividendStats, setDividendStats] = useState<DividendWalletStats | null>(null);
   const [todayDividendCents, setTodayDividendCents] = useState(0);
@@ -32,6 +33,7 @@ export default function CreditsPage() {
 
   useEffect(() => {
     if (cryptoPending) {
+      setShowCryptoPending(true);
       router.replace(pathname);
     }
   }, [cryptoPending, pathname, router]);
@@ -112,7 +114,7 @@ export default function CreditsPage() {
         <DividendBanner todayAmountCents={todayDividendCents} stats={dividendStats} />
       )}
 
-      {cryptoPending && (
+      {showCryptoPending && (
         <div className="rounded-md border border-amber-500/25 bg-amber-500/5 p-4">
           <p className="flex items-center gap-2 text-sm font-medium">
             <Clock className="h-4 w-4 text-amber-500" />
@@ -145,5 +147,13 @@ export default function CreditsPage() {
 
       {dividendStats && <FirstDividendDialog todayAmountCents={todayDividendCents} />}
     </div>
+  );
+}
+
+export default function CreditsPage() {
+  return (
+    <Suspense fallback={null}>
+      <CreditsContent />
+    </Suspense>
   );
 }
