@@ -392,6 +392,16 @@ export async function controlInstance(
   await (trpcVanilla as unknown as FleetClient).fleet.controlInstance.mutate({ id, action });
 }
 
+export async function updateInstanceConfig(
+  id: string,
+  config: Record<string, unknown>,
+): Promise<void> {
+  await fleetFetch(`/bots/${id}/config`, {
+    method: "PUT",
+    body: JSON.stringify({ config }),
+  });
+}
+
 // --- Observability types ---
 
 export type HealthStatus = "healthy" | "degraded" | "unhealthy";

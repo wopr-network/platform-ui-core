@@ -24,7 +24,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import type { InstanceDetail, InstanceStatus } from "@/lib/api";
-import { controlInstance, getInstance } from "@/lib/api";
+import { controlInstance, getInstance, updateInstanceConfig } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 export function InstanceDetailClient({ instanceId }: { instanceId: string }) {
@@ -36,6 +36,7 @@ export function InstanceDetailClient({ instanceId }: { instanceId: string }) {
   const [configText, setConfigText] = useState("");
   const [actionError, setActionError] = useState<string | null>(null);
   const [configStatus, setConfigStatus] = useState<"idle" | "saved" | "invalid">("idle");
+  const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -355,22 +356,31 @@ export function InstanceDetailClient({ instanceId }: { instanceId: string }) {
           </div>
           <div className="flex items-center justify-end gap-3">
             {configStatus === "saved" && (
-              <span className="text-sm text-emerald-500">
-                Config is valid JSON (save API pending)
-              </span>
+              <span className="text-sm text-emerald-500">Config saved successfully</span>
             )}
             {configStatus === "invalid" && (
               <span className="text-sm text-red-500">Invalid JSON</span>
             )}
             <Button
-              onClick={() => {
+              onClick={async () => {
                 try {
-                  JSON.parse(configText);
+                  const parsed = JSON.parse(configText);
+                  setSaving(true);
+                  setConfigStatus("idle");
+                  await updateInstanceConfig(instanceId, parsed);
                   setConfigStatus("saved");
-                } catch {
-                  setConfigStatus("invalid");
+                  await load();
+                } catch (err) {
+                  if (err instanceof SyntaxError) {
+                    setConfigStatus("invalid");
+                  } else {
+                    setActionError(err instanceof Error ? err.message : "Failed to save config");
+                  }
+                } finally {
+                  setSaving(false);
                 }
               }}
+              disabled={saving}
             >
               Save Config
             </Button>
