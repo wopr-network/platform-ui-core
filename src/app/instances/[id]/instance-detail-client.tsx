@@ -2,7 +2,7 @@
 
 import { ArrowLeft } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { HealthOverview } from "@/components/observability/health-overview";
 import { LogsViewer } from "@/components/observability/logs-viewer";
 import { MetricsDashboard } from "@/components/observability/metrics-dashboard";
@@ -68,7 +68,6 @@ export function InstanceDetailClient({ instanceId }: { instanceId: string }) {
   const [destroyOpen, setDestroyOpen] = useState(false);
   const [destroyConfirmText, setDestroyConfirmText] = useState("");
   const [destroying, setDestroying] = useState(false);
-  const destroyInputRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -648,7 +647,7 @@ export function InstanceDetailClient({ instanceId }: { instanceId: string }) {
           {actionError && <p className="text-sm text-destructive">{actionError}</p>}
 
           <Input
-            ref={destroyInputRef}
+            autoFocus
             placeholder={`Type "${instance.name}" to confirm`}
             value={destroyConfirmText}
             onChange={(e) => setDestroyConfirmText(e.target.value)}

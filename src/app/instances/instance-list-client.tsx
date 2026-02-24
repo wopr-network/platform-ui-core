@@ -1,7 +1,7 @@
 "use client";
 
 import { MoreHorizontal } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -49,7 +49,6 @@ export function InstanceListClient() {
   const [destroyTarget, setDestroyTarget] = useState<Instance | null>(null);
   const [destroyConfirmText, setDestroyConfirmText] = useState("");
   const [destroying, setDestroying] = useState(false);
-  const destroyInputRef = useRef<HTMLInputElement>(null);
 
   const loadInstances = useCallback(async () => {
     setLoading(true);
@@ -308,7 +307,7 @@ export function InstanceListClient() {
           {actionError && <p className="text-sm text-destructive">{actionError}</p>}
 
           <Input
-            ref={destroyInputRef}
+            autoFocus
             placeholder={`Type "${destroyTarget?.name}" to confirm`}
             value={destroyConfirmText}
             onChange={(e) => setDestroyConfirmText(e.target.value)}
