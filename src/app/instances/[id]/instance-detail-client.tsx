@@ -2,7 +2,7 @@
 
 import { ArrowLeft } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { HealthOverview } from "@/components/observability/health-overview";
 import { LogsViewer } from "@/components/observability/logs-viewer";
 import { MetricsDashboard } from "@/components/observability/metrics-dashboard";
@@ -61,6 +61,8 @@ export function InstanceDetailClient({ instanceId }: { instanceId: string }) {
   const [confirmDelete, setConfirmDelete] = useState<Snapshot | null>(null);
   const [restoring, setRestoring] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [activeTab, setActiveTab] = useState(defaultTab);
+  const snapshotsLoaded = useRef(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -91,8 +93,14 @@ export function InstanceDetailClient({ instanceId }: { instanceId: string }) {
 
   useEffect(() => {
     load();
-    loadSnapshots();
-  }, [load, loadSnapshots]);
+  }, [load]);
+
+  useEffect(() => {
+    if (activeTab === "snapshots" && !snapshotsLoaded.current) {
+      snapshotsLoaded.current = true;
+      loadSnapshots();
+    }
+  }, [activeTab, loadSnapshots]);
 
   async function handleAction(action: "start" | "stop" | "restart" | "destroy") {
     setActionError(null);
@@ -105,6 +113,7 @@ export function InstanceDetailClient({ instanceId }: { instanceId: string }) {
   }
 
   async function handleCreateSnapshot() {
+    setSnapshotsError(null);
     setCreating(true);
     try {
       await createSnapshot(instanceId);
@@ -131,6 +140,7 @@ export function InstanceDetailClient({ instanceId }: { instanceId: string }) {
   }
 
   async function handleDelete(snapshot: Snapshot) {
+    setSnapshotsError(null);
     setDeleting(true);
     try {
       await deleteSnapshot(instanceId, snapshot.id);
@@ -244,7 +254,7 @@ export function InstanceDetailClient({ instanceId }: { instanceId: string }) {
       <Separator />
 
       {/* Tabs */}
-      <Tabs defaultValue={defaultTab}>
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="bg-transparent border-b border-border rounded-none p-0 h-auto gap-0">
           {[
             "overview",
