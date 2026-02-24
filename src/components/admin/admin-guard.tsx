@@ -4,6 +4,10 @@ import { ShieldAlert } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSession } from "@/lib/auth-client";
 
+// UX-only guard: all tRPC admin procedures enforce platform_admin server-side
+// via requirePlatformAdmin() in wopr-platform/src/trpc/routers/admin.ts.
+// This component prevents unauthorized users from seeing the admin UI, but
+// the backend will reject any mutations regardless of client-side state.
 export function AdminGuard({ children }: { children: React.ReactNode }) {
   const { data: session, isPending } = useSession();
 

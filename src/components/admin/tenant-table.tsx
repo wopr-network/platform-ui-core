@@ -14,7 +14,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { type AdminUserSummary, getUsersList } from "@/lib/admin-api";
+import {
+  type AdminUserSummary,
+  bulkGrantCredits,
+  bulkReactivateTenants,
+  bulkSuspendTenants,
+  getUsersList,
+} from "@/lib/admin-api";
 import { cn } from "@/lib/utils";
 import { BulkActionsBar } from "./bulk-actions-bar";
 import { TenantRowActions } from "./tenant-row-actions";
@@ -100,6 +106,43 @@ export function TenantTable() {
   const reload = useCallback(() => load(search, offset), [load, search, offset]);
 
   const hasSuspended = users.some((u) => selected.has(u.tenant_id) && u.status === "suspended");
+
+  async function handleBulkSuspend() {
+    const reason = window.prompt("Reason for suspension:");
+    if (!reason) return;
+    await bulkSuspendTenants(Array.from(selected), reason);
+    setSelected(new Set());
+    reload();
+  }
+
+  async function handleBulkReactivate() {
+    await bulkReactivateTenants(Array.from(selected));
+    setSelected(new Set());
+    reload();
+  }
+
+  async function handleBulkGrantCredits() {
+    const amountStr = window.prompt("Amount to grant (in cents):");
+    if (!amountStr) return;
+    const amountCents = parseInt(amountStr, 10);
+    if (Number.isNaN(amountCents) || amountCents <= 0) return;
+    const reason = window.prompt("Reason for grant:");
+    if (!reason) return;
+    await bulkGrantCredits(Array.from(selected), amountCents, reason);
+    setSelected(new Set());
+    reload();
+  }
+
+  function handleExport() {
+    const selectedUsers = users.filter((u) => selected.has(u.tenant_id));
+    const blob = new Blob([JSON.stringify(selectedUsers, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "tenants-export.json";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   return (
     <div className="space-y-3 p-6">
@@ -257,10 +300,10 @@ export function TenantTable() {
         selectedCount={selected.size}
         allMatchingSelected={selected.size === users.length && users.length === total}
         hasSuspendedInSelection={hasSuspended}
-        onGrantCredits={() => {}}
-        onExport={() => {}}
-        onSuspend={() => {}}
-        onReactivate={() => {}}
+        onGrantCredits={handleBulkGrantCredits}
+        onExport={handleExport}
+        onSuspend={handleBulkSuspend}
+        onReactivate={handleBulkReactivate}
         onClearSelection={() => setSelected(new Set())}
       />
     </div>
