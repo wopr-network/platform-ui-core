@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { CreditBalance, CreditHistoryResponse } from "@/lib/api";
@@ -129,13 +129,14 @@ describe("Credits page", () => {
     const { default: CreditsPage } = await import("../app/(dashboard)/billing/credits/page");
     render(<CreditsPage />);
 
-    expect(await screen.findByText("Buy Credits")).toBeInTheDocument();
+    const buyCreditsHeading = await screen.findByText("Buy Credits");
+    const buyCreditsPanel = buyCreditsHeading.closest('[data-slot="card"]') as HTMLElement;
     // Note: $5, $10, $50 appear in both BuyCreditsPanel and AutoTopupCard dropdowns
     expect((await screen.findAllByText("$5")).length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("$10").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText("$25")).toBeInTheDocument();
+    expect(within(buyCreditsPanel).getByText("$25")).toBeInTheDocument();
     expect(screen.getAllByText("$50").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText("$100")).toBeInTheDocument();
+    expect(screen.getAllByText("$100").length).toBeGreaterThanOrEqual(1);
   });
 
   it("renders bonus badges on higher tiers", async () => {
@@ -200,7 +201,11 @@ describe("Credits page", () => {
     const { default: CreditsPage } = await import("../app/(dashboard)/billing/credits/page");
     render(<CreditsPage />);
 
-    const tier10 = await screen.findByText("$10");
+    // Wait for tiers to load, then scope to the Buy Credits card to avoid
+    // matching the same dollar amounts in the BuyCryptoCreditPanel
+    const buyCreditsHeading = await screen.findByText("Buy Credits");
+    const buyCreditsPanel = buyCreditsHeading.closest('[data-slot="card"]') as HTMLElement;
+    const tier10 = await within(buyCreditsPanel).findByText("$10");
     await user.click(tier10);
 
     const buyBtn = screen.getByRole("button", { name: "Buy credits" });
