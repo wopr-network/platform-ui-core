@@ -55,7 +55,7 @@ export function TenantTable() {
   const [search, setSearch] = useState("");
   const [offset, setOffset] = useState(0);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const debounceRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   const load = useCallback(async (searchTerm: string, pageOffset: number) => {
     setLoading(true);
@@ -96,7 +96,7 @@ export function TenantTable() {
   }
 
   function toggleAll() {
-    if (selected.size === users.length) {
+    if (selected.size === total) {
       setSelected(new Set());
     } else {
       setSelected(new Set(users.map((u) => u.tenant_id)));
@@ -172,7 +172,7 @@ export function TenantTable() {
             <TableRow className="bg-secondary crt-scanlines">
               <TableHead className="w-10">
                 <Checkbox
-                  checked={users.length > 0 && selected.size === users.length}
+                  checked={total > 0 && selected.size === total}
                   onCheckedChange={toggleAll}
                 />
               </TableHead>
