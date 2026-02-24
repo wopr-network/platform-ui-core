@@ -18,6 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
@@ -63,6 +64,10 @@ export function InstanceDetailClient({ instanceId }: { instanceId: string }) {
   const [deleting, setDeleting] = useState(false);
   const [activeTab, setActiveTab] = useState(defaultTab);
   const snapshotsLoaded = useRef(false);
+  const [destroyOpen, setDestroyOpen] = useState(false);
+  const [destroyConfirmText, setDestroyConfirmText] = useState("");
+  const [destroying, setDestroying] = useState(false);
+  const destroyInputRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -240,7 +245,7 @@ export function InstanceDetailClient({ instanceId }: { instanceId: string }) {
               </Button>
             </>
           )}
-          <Button size="sm" variant="destructive" onClick={() => handleAction("destroy")}>
+          <Button size="sm" variant="destructive" onClick={() => setDestroyOpen(true)}>
             Destroy
           </Button>
         </div>
@@ -617,6 +622,70 @@ export function InstanceDetailClient({ instanceId }: { instanceId: string }) {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Destroy confirmation dialog */}
+      <Dialog
+        open={destroyOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDestroyOpen(false);
+            setDestroyConfirmText("");
+            setActionError(null);
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Destroy {instance.name} permanently?</DialogTitle>
+            <DialogDescription>
+              This action is permanent and cannot be undone. The instance and all its data will be
+              destroyed. Type <strong className="text-foreground">{instance.name}</strong> to
+              confirm.
+            </DialogDescription>
+          </DialogHeader>
+
+          {actionError && <p className="text-sm text-destructive">{actionError}</p>}
+
+          <Input
+            ref={destroyInputRef}
+            placeholder={`Type "${instance.name}" to confirm`}
+            value={destroyConfirmText}
+            onChange={(e) => setDestroyConfirmText(e.target.value)}
+          />
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDestroyOpen(false);
+                setDestroyConfirmText("");
+                setActionError(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={destroying || destroyConfirmText !== instance.name}
+              onClick={async () => {
+                setDestroying(true);
+                setActionError(null);
+                try {
+                  await controlInstance(instanceId, "destroy");
+                  setDestroyOpen(false);
+                  await load();
+                } catch (err) {
+                  setActionError(err instanceof Error ? err.message : "Failed to destroy instance");
+                } finally {
+                  setDestroying(false);
+                }
+              }}
+            >
+              {destroying ? "Destroying..." : "Destroy permanently"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
