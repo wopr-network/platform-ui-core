@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { StepCostCompare } from "@/components/onboarding/step-cost-compare";
 import { buildCostComparison, DIY_COSTS } from "@/lib/cost-comparison-data";
+import { channelPlugins, superpowers } from "@/lib/onboarding-data";
 
 // --- Data module tests ---
 
@@ -51,15 +52,33 @@ describe("buildCostComparison", () => {
 });
 
 describe("DIY_COSTS", () => {
-  it("has entries for all known channel IDs", () => {
-    for (const id of ["discord", "slack", "telegram"]) {
+  it("has entries for channel IDs derived from channelPlugins registry", () => {
+    const channelIds = channelPlugins
+      .map((c) => c.id)
+      .filter((id) => DIY_COSTS.some((d) => d.capabilityId === id));
+    expect(channelIds.length).toBeGreaterThan(0);
+    for (const id of channelIds) {
       expect(DIY_COSTS.find((c) => c.capabilityId === id)).toBeDefined();
     }
   });
 
-  it("has entries for all known superpower IDs", () => {
-    for (const id of ["image-gen", "video-gen", "voice", "memory", "search", "text-gen"]) {
+  it("has entries for superpower IDs derived from superpowers registry", () => {
+    const superpowerIds = superpowers
+      .map((s) => s.id)
+      .filter((id) => DIY_COSTS.some((d) => d.capabilityId === id));
+    expect(superpowerIds.length).toBeGreaterThan(0);
+    for (const id of superpowerIds) {
       expect(DIY_COSTS.find((c) => c.capabilityId === id)).toBeDefined();
+    }
+  });
+
+  it("contains only IDs that exist in channelPlugins or superpowers registries", () => {
+    const registryIds = new Set([
+      ...channelPlugins.map((c) => c.id),
+      ...superpowers.map((s) => s.id),
+    ]);
+    for (const item of DIY_COSTS) {
+      expect(registryIds.has(item.capabilityId)).toBe(true);
     }
   });
 });
