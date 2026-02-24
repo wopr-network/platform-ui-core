@@ -129,6 +129,19 @@ interface AdminProcedures {
       offset?: number;
     }): Promise<{ users: AdminUserSummary[]; total: number }>;
   };
+  bulkGrant: {
+    mutate(input: { tenantIds: string[]; amountCents: number; reason: string }): Promise<unknown>;
+  };
+  bulkSuspend: {
+    mutate(input: {
+      tenantIds: string[];
+      reason: string;
+      notifyByEmail?: boolean;
+    }): Promise<unknown>;
+  };
+  bulkReactivate: {
+    mutate(input: { tenantIds: string[] }): Promise<unknown>;
+  };
 }
 
 // Cast via unknown to avoid @typescript/no-explicit-any while bridging the
@@ -226,4 +239,20 @@ export async function getUsersList(params?: {
   offset?: number;
 }): Promise<{ users: AdminUserSummary[]; total: number }> {
   return adminClient.usersList.query(params ?? {});
+}
+
+export async function bulkGrantCredits(
+  tenantIds: string[],
+  amountCents: number,
+  reason: string,
+): Promise<void> {
+  await adminClient.bulkGrant.mutate({ tenantIds, amountCents, reason });
+}
+
+export async function bulkSuspendTenants(tenantIds: string[], reason: string): Promise<void> {
+  await adminClient.bulkSuspend.mutate({ tenantIds, reason });
+}
+
+export async function bulkReactivateTenants(tenantIds: string[]): Promise<void> {
+  await adminClient.bulkReactivate.mutate({ tenantIds });
 }
