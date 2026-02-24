@@ -85,6 +85,12 @@ vi.mock("@/lib/api", () => ({
     ],
     pluginEvents: [{ plugin: "memory", count: 340 }],
   }),
+  getImageStatus: vi.fn().mockResolvedValue({
+    currentDigest: "sha256:aaa",
+    latestDigest: "sha256:aaa",
+    updateAvailable: false,
+  }),
+  pullImageUpdate: vi.fn().mockResolvedValue(undefined),
   getFleetHealth: vi.fn().mockResolvedValue([
     {
       id: "inst-001",
