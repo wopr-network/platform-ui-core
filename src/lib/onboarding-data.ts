@@ -250,59 +250,93 @@ export interface Preset {
 
 // --- Channels ---
 
-// Onboarding-specific config fields per channel plugin.
-// These use OnboardingConfigField (with helpUrl, helpText) which differs from
+// Onboarding-specific overlay per marketplace channel plugin.
+// configFields use OnboardingConfigField (with helpUrl, helpText) which differs from
 // marketplace configSchema fields. Kept separate intentionally — they serve
 // the onboarding BYOK flow, not the marketplace install wizard.
-const CHANNEL_CONFIG_OVERLAY: Record<string, OnboardingConfigField[]> = {
-  discord: [
-    {
-      key: "discord_bot_token",
-      label: "Discord Bot Token",
-      secret: true,
-      placeholder: "Paste your Discord bot token",
-      helpUrl: "https://discord.com/developers/applications",
-      helpText: "Create an app in the Discord Developer Portal, then copy the bot token.",
-      validation: { pattern: "^[A-Za-z0-9_.-]+$", message: "Invalid token format" },
+// diyCostData is co-located here so adding a new channel only requires one entry.
+const CHANNEL_OVERLAY: Record<
+  string,
+  { configFields: OnboardingConfigField[]; diyCostData?: DiyCostData }
+> = {
+  discord: {
+    configFields: [
+      {
+        key: "discord_bot_token",
+        label: "Discord Bot Token",
+        secret: true,
+        placeholder: "Paste your Discord bot token",
+        helpUrl: "https://discord.com/developers/applications",
+        helpText: "Create an app in the Discord Developer Portal, then copy the bot token.",
+        validation: { pattern: "^[A-Za-z0-9_.-]+$", message: "Invalid token format" },
+      },
+      {
+        key: "discord_guild_id",
+        label: "Discord Server ID",
+        secret: false,
+        placeholder: "e.g. 123456789012345678",
+        helpText: "Right-click your server name and select Copy Server ID.",
+        validation: { pattern: "^\\d{17,20}$", message: "Must be a numeric server ID" },
+      },
+    ],
+    diyCostData: {
+      diyLabel: "Discord bot hosting",
+      diyCostPerMonth: "$5-20/mo",
+      diyCostNumeric: 1200,
+      accounts: ["Discord Developer Portal"],
+      apiKeys: ["Discord Bot Token"],
+      hardware: "VPS or cloud server",
     },
-    {
-      key: "discord_guild_id",
-      label: "Discord Server ID",
-      secret: false,
-      placeholder: "e.g. 123456789012345678",
-      helpText: "Right-click your server name and select Copy Server ID.",
-      validation: { pattern: "^\\d{17,20}$", message: "Must be a numeric server ID" },
+  },
+  slack: {
+    configFields: [
+      {
+        key: "slack_bot_token",
+        label: "Slack Bot Token",
+        secret: true,
+        placeholder: "xoxb-...",
+        helpUrl: "https://api.slack.com/apps",
+        helpText: "Create a Slack app, add Bot Token Scopes, then install to workspace.",
+        validation: { pattern: "^xoxb-", message: "Must start with xoxb-" },
+      },
+      {
+        key: "slack_signing_secret",
+        label: "Slack Signing Secret",
+        secret: true,
+        placeholder: "Paste your signing secret",
+        helpText: "Found under Basic Information > App Credentials.",
+      },
+    ],
+    diyCostData: {
+      diyLabel: "Slack app hosting",
+      diyCostPerMonth: "$5-20/mo",
+      diyCostNumeric: 1200,
+      accounts: ["Slack API Portal"],
+      apiKeys: ["Slack Bot Token", "Slack Signing Secret"],
+      hardware: "VPS or cloud server",
     },
-  ],
-  slack: [
-    {
-      key: "slack_bot_token",
-      label: "Slack Bot Token",
-      secret: true,
-      placeholder: "xoxb-...",
-      helpUrl: "https://api.slack.com/apps",
-      helpText: "Create a Slack app, add Bot Token Scopes, then install to workspace.",
-      validation: { pattern: "^xoxb-", message: "Must start with xoxb-" },
+  },
+  telegram: {
+    configFields: [
+      {
+        key: "telegram_bot_token",
+        label: "Telegram Bot Token",
+        secret: true,
+        placeholder: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11",
+        helpUrl: "https://t.me/BotFather",
+        helpText: "Message @BotFather on Telegram with /newbot to get a token.",
+        validation: { pattern: "^[0-9]+:[A-Za-z0-9_-]+$", message: "Invalid Telegram token" },
+      },
+    ],
+    diyCostData: {
+      diyLabel: "Telegram bot hosting",
+      diyCostPerMonth: "$5-20/mo",
+      diyCostNumeric: 1200,
+      accounts: ["Telegram BotFather"],
+      apiKeys: ["Telegram Bot Token"],
+      hardware: "VPS or cloud server",
     },
-    {
-      key: "slack_signing_secret",
-      label: "Slack Signing Secret",
-      secret: true,
-      placeholder: "Paste your signing secret",
-      helpText: "Found under Basic Information > App Credentials.",
-    },
-  ],
-  telegram: [
-    {
-      key: "telegram_bot_token",
-      label: "Telegram Bot Token",
-      secret: true,
-      placeholder: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11",
-      helpUrl: "https://t.me/BotFather",
-      helpText: "Message @BotFather on Telegram with /newbot to get a token.",
-      validation: { pattern: "^[0-9]+:[A-Za-z0-9_-]+$", message: "Invalid Telegram token" },
-    },
-  ],
+  },
 };
 
 // Channels present in onboarding but not yet in the marketplace
@@ -393,34 +427,7 @@ const ONBOARDING_ONLY_CHANNELS: PluginOption[] = [
   },
 ];
 
-const CHANNEL_DIY_COST_OVERLAY: Record<string, DiyCostData> = {
-  discord: {
-    diyLabel: "Discord bot hosting",
-    diyCostPerMonth: "$5-20/mo",
-    diyCostNumeric: 1200,
-    accounts: ["Discord Developer Portal"],
-    apiKeys: ["Discord Bot Token"],
-    hardware: "VPS or cloud server",
-  },
-  slack: {
-    diyLabel: "Slack app hosting",
-    diyCostPerMonth: "$5-20/mo",
-    diyCostNumeric: 1200,
-    accounts: ["Slack API Portal"],
-    apiKeys: ["Slack Bot Token", "Slack Signing Secret"],
-    hardware: "VPS or cloud server",
-  },
-  telegram: {
-    diyLabel: "Telegram bot hosting",
-    diyCostPerMonth: "$5-20/mo",
-    diyCostNumeric: 1200,
-    accounts: ["Telegram BotFather"],
-    apiKeys: ["Telegram Bot Token"],
-    hardware: "VPS or cloud server",
-  },
-};
-
-// Derive marketplace channel plugins: identity from canonical data, config fields from overlay
+// Derive marketplace channel plugins: identity from canonical data, overlay fields from CHANNEL_OVERLAY
 const marketplaceChannels: PluginOption[] = MOCK_MANIFESTS.filter(
   (m) => m.category === "channel",
 ).map((m) => ({
@@ -430,8 +437,8 @@ const marketplaceChannels: PluginOption[] = MOCK_MANIFESTS.filter(
   icon: m.icon,
   color: m.color,
   capabilities: m.capabilities,
-  configFields: CHANNEL_CONFIG_OVERLAY[m.id] ?? [],
-  diyCostData: CHANNEL_DIY_COST_OVERLAY[m.id],
+  configFields: CHANNEL_OVERLAY[m.id]?.configFields ?? [],
+  diyCostData: CHANNEL_OVERLAY[m.id]?.diyCostData,
 }));
 
 export const channelPlugins: PluginOption[] = [...marketplaceChannels, ...ONBOARDING_ONLY_CHANNELS];
