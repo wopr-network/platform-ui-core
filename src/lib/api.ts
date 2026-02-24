@@ -1036,23 +1036,9 @@ export interface CapabilitySetting {
 
 // --- Capability settings API ---
 
-// TODO(WOP-813): migrate to trpc.capabilities.* once server has matching procedures
-// Server capabilities router has listKeys/storeKey/deleteKey (raw key CRUD by provider),
-// but UI needs capability-level settings (mode, maskedKey, keyStatus). Different data model.
-export async function listCapabilities(): Promise<CapabilitySetting[]> {
-  return apiFetch<CapabilitySetting[]>("/settings/capabilities");
-}
-
-export async function updateCapability(
-  capability: CapabilityName,
-  data: { mode: CapabilityMode; key?: string },
-): Promise<CapabilitySetting> {
-  return apiFetch<CapabilitySetting>(`/settings/capabilities/${capability}`, {
-    method: "PUT",
-    body: JSON.stringify(data),
-  });
-}
-
+// TODO(WOP-915): testCapabilityKey still uses REST. Migrate once server has a
+// capabilities.testKey procedure (already added in WOP-915 backend).
+// Low priority — called only on explicit user action.
 export async function testCapabilityKey(
   capability: CapabilityName,
   key?: string,

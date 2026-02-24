@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { CapabilitySetting, ChannelInfo } from "@/lib/api";
-import { getCreditBalance, listCapabilities, listChannels, listInstances } from "@/lib/api";
+import { getCreditBalance, listChannels, listInstances } from "@/lib/api";
 import { channelPlugins, superpowers } from "@/lib/onboarding-data";
+import { listCapabilities } from "@/lib/settings-api";
 
 const STORAGE_KEY = "wopr:setup-checklist-dismissed";
 

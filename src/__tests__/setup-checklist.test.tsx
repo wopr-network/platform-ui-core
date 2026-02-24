@@ -6,6 +6,9 @@ vi.mock("@/lib/api", () => ({
   listInstances: vi.fn(),
   getCreditBalance: vi.fn(),
   listChannels: vi.fn(),
+}));
+
+vi.mock("@/lib/settings-api", () => ({
   listCapabilities: vi.fn(),
 }));
 
@@ -17,7 +20,8 @@ vi.mock("next/link", () => ({
 }));
 
 import type { CapabilitySetting, ChannelInfo } from "@/lib/api";
-import { getCreditBalance, listCapabilities, listChannels, listInstances } from "@/lib/api";
+import { getCreditBalance, listChannels, listInstances } from "@/lib/api";
+import { listCapabilities } from "@/lib/settings-api";
 import { SetupChecklist } from "../components/onboarding/setup-checklist";
 
 const mockListInstances = listInstances as ReturnType<typeof vi.fn>;
