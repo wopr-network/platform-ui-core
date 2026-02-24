@@ -37,6 +37,7 @@ import {
   updateBotIdentity,
 } from "@/lib/bot-settings-data";
 import { DEFAULT_STATUS_STYLE, PLUGIN_STATUS_STYLES } from "@/lib/status-colors";
+import { ResourcesTab } from "./resources-tab";
 import { StorageTab } from "./storage-tab";
 import { VpsInfoPanel } from "./vps-info-panel";
 import { VpsUpgradeCard } from "./vps-upgrade-card";
@@ -105,6 +106,7 @@ export function BotSettingsClient({ botId }: { botId: string }) {
           <TabsTrigger value="plugins">Plugins</TabsTrigger>
           <TabsTrigger value="storage">Storage</TabsTrigger>
           <TabsTrigger value="usage">Usage</TabsTrigger>
+          <TabsTrigger value="resources">Resources</TabsTrigger>
           <TabsTrigger value="vps">VPS</TabsTrigger>
           <TabsTrigger value="danger">Danger Zone</TabsTrigger>
         </TabsList>
@@ -135,6 +137,10 @@ export function BotSettingsClient({ botId }: { botId: string }) {
 
         <TabsContent value="usage" className="mt-4">
           <UsageTab settings={settings} />
+        </TabsContent>
+
+        <TabsContent value="resources" className="mt-4">
+          <ResourcesTab botId={botId} />
         </TabsContent>
 
         <TabsContent value="vps" className="mt-4">

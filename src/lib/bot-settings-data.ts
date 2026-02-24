@@ -203,6 +203,20 @@ export async function getStorageUsage(botId: string): Promise<StorageUsage | nul
   }
 }
 
+export async function getResourceTier(botId: string): Promise<{ tier: string }> {
+  return apiFetch<{ tier: string }>(`/fleet/bots/${botId}/resource-tier`);
+}
+
+export async function setResourceTier(
+  botId: string,
+  tier: string,
+): Promise<{ tier: string; dailyCostCents: number }> {
+  return apiFetch<{ tier: string; dailyCostCents: number }>(`/fleet/bots/${botId}/resource-tier`, {
+    method: "PUT",
+    body: JSON.stringify({ tier }),
+  });
+}
+
 export async function controlBot(
   botId: string,
   action: "stop" | "archive" | "delete",
