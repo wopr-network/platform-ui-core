@@ -213,3 +213,59 @@ export async function controlBot(
     await apiFetch(`/fleet/bots/${botId}/${action}`, { method: "POST" });
   }
 }
+
+/** Update bot's LLM model and provider mode */
+export async function updateBotBrain(
+  botId: string,
+  brain: { model?: string; provider?: string; mode?: "hosted" | "byok" },
+): Promise<void> {
+  const env: Record<string, string> = {};
+  if (brain.model) env.WOPR_LLM_MODEL = brain.model;
+  if (brain.provider) env.WOPR_LLM_PROVIDER = brain.provider;
+  if (brain.mode) env.WOPR_LLM_MODE = brain.mode;
+  await apiFetch(`/fleet/bots/${botId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ env }),
+  });
+}
+
+/** Disconnect a channel from a bot */
+export async function disconnectChannel(botId: string, channelId: string): Promise<void> {
+  await apiFetch(`/fleet/bots/${botId}/channels/${channelId}`, {
+    method: "DELETE",
+  });
+}
+
+/** Toggle a plugin's enabled/disabled state */
+export async function togglePlugin(
+  botId: string,
+  pluginId: string,
+  enabled: boolean,
+): Promise<void> {
+  await apiFetch(`/fleet/bots/${botId}/plugins/${pluginId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ enabled }),
+  });
+}
+
+/** Install a plugin on a bot */
+export async function installPlugin(botId: string, pluginId: string): Promise<void> {
+  await apiFetch(`/fleet/bots/${botId}/plugins/${pluginId}`, {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+}
+
+/** Available LLM models for the model picker */
+export const AVAILABLE_MODELS = [
+  { id: "claude-sonnet-4", label: "Claude Sonnet 4", provider: "Anthropic", cost: "~$0.003/msg" },
+  { id: "claude-haiku-4", label: "Claude Haiku 4", provider: "Anthropic", cost: "~$0.001/msg" },
+  { id: "gpt-4o", label: "GPT-4o", provider: "OpenAI", cost: "~$0.005/msg" },
+  { id: "gpt-4o-mini", label: "GPT-4o Mini", provider: "OpenAI", cost: "~$0.001/msg" },
+  {
+    id: "llama-3.3-70b",
+    label: "Llama 3.3 70B",
+    provider: "Meta (via OpenRouter)",
+    cost: "~$0.001/msg",
+  },
+] as const;
