@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowLeft } from "lucide-react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { HealthOverview } from "@/components/observability/health-overview";
 import { LogsViewer } from "@/components/observability/logs-viewer";
@@ -45,6 +45,7 @@ import {
 import { cn } from "@/lib/utils";
 
 export function InstanceDetailClient({ instanceId }: { instanceId: string }) {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const defaultTab = searchParams.get("tab") ?? "overview";
   const [instance, setInstance] = useState<InstanceDetail | null>(null);
@@ -673,7 +674,7 @@ export function InstanceDetailClient({ instanceId }: { instanceId: string }) {
                 try {
                   await controlInstance(instanceId, "destroy");
                   setDestroyOpen(false);
-                  await load();
+                  router.push("/instances");
                 } catch (err) {
                   setActionError(err instanceof Error ? err.message : "Failed to destroy instance");
                 } finally {

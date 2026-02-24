@@ -291,6 +291,7 @@ export function InstanceListClient() {
           if (!open) {
             setDestroyTarget(null);
             setDestroyConfirmText("");
+            setActionError(null);
           }
         }}
       >
@@ -319,6 +320,7 @@ export function InstanceListClient() {
               onClick={() => {
                 setDestroyTarget(null);
                 setDestroyConfirmText("");
+                setActionError(null);
               }}
             >
               Cancel
