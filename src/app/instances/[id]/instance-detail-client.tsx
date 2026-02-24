@@ -616,7 +616,10 @@ export function InstanceDetailClient({ instanceId }: { instanceId: string }) {
                 try {
                   const env: Record<string, string> = {};
                   for (const [k, v] of Object.entries(parsed as Record<string, unknown>)) {
-                    if (typeof v !== "string" && typeof v !== "number" && typeof v !== "boolean") {
+                    if (
+                      v === null ||
+                      (typeof v !== "string" && typeof v !== "number" && typeof v !== "boolean")
+                    ) {
                       throw new Error(`Value for key "${k}" must be a string, number, or boolean`);
                     }
                     env[k] = String(v);
