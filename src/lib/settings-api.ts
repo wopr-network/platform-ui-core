@@ -1,4 +1,9 @@
-import type { NotificationPreferences } from "./api";
+import type {
+  CapabilityMode,
+  CapabilityName,
+  CapabilitySetting,
+  NotificationPreferences,
+} from "./api";
 import { trpcVanilla } from "./trpc";
 
 // ---- Typed settings/capabilities client stubs ----
@@ -25,6 +30,16 @@ interface CapabilitiesProcedures {
   };
   testKey: {
     mutate(input: { provider: string; key: string }): Promise<{ valid: boolean; error?: string }>;
+  };
+  listCapabilitySettings: {
+    query(): Promise<CapabilitySetting[]>;
+  };
+  updateCapabilitySettings: {
+    mutate(input: {
+      capability: CapabilityName;
+      mode: CapabilityMode;
+      key?: string;
+    }): Promise<CapabilitySetting>;
   };
 }
 
@@ -60,4 +75,19 @@ export async function testProviderKey(
   key: string,
 ): Promise<{ valid: boolean; error?: string }> {
   return capabilitiesClient.testKey.mutate({ provider, key });
+}
+
+export async function listCapabilities(): Promise<CapabilitySetting[]> {
+  return capabilitiesClient.listCapabilitySettings.query();
+}
+
+export async function updateCapability(
+  capability: CapabilityName,
+  data: { mode: CapabilityMode; key?: string },
+): Promise<CapabilitySetting> {
+  return capabilitiesClient.updateCapabilitySettings.mutate({
+    capability,
+    mode: data.mode,
+    key: data.key,
+  });
 }

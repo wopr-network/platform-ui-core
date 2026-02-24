@@ -32,15 +32,14 @@ import type { CapabilityMode, CapabilityName, CapabilitySetting, ProviderKey } f
 import {
   getBillingInfo,
   getCreditBalance,
-  listCapabilities,
   listProviderKeys,
   removeProviderKey,
   saveProviderKey,
   testCapabilityKey,
   testProviderKey,
-  updateCapability,
   updateProviderModel,
 } from "@/lib/api";
+import { listCapabilities, updateCapability } from "@/lib/settings-api";
 import { cn } from "@/lib/utils";
 
 // --- Capability metadata ---
