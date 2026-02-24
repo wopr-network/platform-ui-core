@@ -6,8 +6,8 @@ export const pricingData = {
       category: "Text Generation",
       icon: "bot" as const,
       models: [
-        { name: "Claude Sonnet 4.5", unit: "1M input tokens", price: 3.0 },
-        { name: "Claude Opus 4", unit: "1M input tokens", price: 15.0 },
+        { name: "Claude Sonnet 4.6", unit: "1M input tokens", price: 3.0 },
+        { name: "Claude Opus 4.6", unit: "1M input tokens", price: 15.0 },
         { name: "Gemini 2.5 Pro", unit: "1M input tokens", price: 1.25 },
         { name: "GPT-4o", unit: "1M input tokens", price: 2.5 },
         { name: "Kimi K3", unit: "1M input tokens", price: 0.8 },
