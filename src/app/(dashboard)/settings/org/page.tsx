@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { CheckIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -51,9 +52,11 @@ function roleBadgeVariant(role: OrgMember["role"]) {
 }
 
 export default function OrgPage() {
+  const router = useRouter();
+  const routerRef = useRef(router);
+  routerRef.current = router;
   const [org, setOrg] = useState<Organization | null>(null);
   const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const [orgName, setOrgName] = useState("");
@@ -71,14 +74,14 @@ export default function OrgPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    setLoadError(false);
     try {
       const data = await getOrganization();
       setOrg(data);
       setOrgName(data.name);
       setBillingEmail(data.billingEmail);
     } catch {
-      setLoadError(true);
+      routerRef.current.push("/settings/profile");
+      return;
     } finally {
       setLoading(false);
     }
@@ -126,17 +129,6 @@ export default function OrgPage() {
     } catch {
       setSaveError("Failed to transfer ownership. Please try again.");
     }
-  }
-
-  if (loadError) {
-    return (
-      <div className="flex h-40 flex-col items-center justify-center gap-3 text-muted-foreground">
-        <p className="text-sm text-destructive">Failed to load organization.</p>
-        <Button variant="outline" size="sm" onClick={load}>
-          Retry
-        </Button>
-      </div>
-    );
   }
 
   if (loading || !org) {

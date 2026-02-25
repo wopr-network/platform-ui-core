@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type {
@@ -232,6 +232,11 @@ vi.mock("@/lib/settings-api", () => ({
   saveProviderKey: vi.fn(),
   listCapabilities: vi.fn().mockResolvedValue(MOCK_CAPABILITIES),
   updateCapability: vi.fn().mockResolvedValue(MOCK_CAPABILITIES[0]),
+}));
+
+// Mock @/hooks/use-has-org — default to hasOrg=true so existing org tests pass
+vi.mock("@/hooks/use-has-org", () => ({
+  useHasOrg: vi.fn().mockReturnValue({ hasOrg: true, loading: false }),
 }));
 
 // Mock @/lib/org-api with test fixtures
@@ -637,5 +642,86 @@ describe("Settings layout", () => {
     expect(screen.getByText("API Keys")).toBeInTheDocument();
     expect(screen.getByText("Organization")).toBeInTheDocument();
     expect(screen.getByText("child content")).toBeInTheDocument();
+  });
+});
+
+describe("Settings layout - org nav visibility", () => {
+  it("hides Organization nav when user has no org", async () => {
+    const { useHasOrg } = await import("@/hooks/use-has-org");
+    vi.mocked(useHasOrg).mockReturnValue({ hasOrg: false, loading: false });
+
+    const { default: SettingsLayout } = await import("../app/(dashboard)/settings/layout");
+    render(
+      <SettingsLayout>
+        <div>child</div>
+      </SettingsLayout>,
+    );
+
+    expect(screen.getByText("Profile")).toBeInTheDocument();
+    expect(screen.queryByText("Organization")).not.toBeInTheDocument();
+  });
+
+  it("shows Organization nav when user has an org", async () => {
+    const { useHasOrg } = await import("@/hooks/use-has-org");
+    vi.mocked(useHasOrg).mockReturnValue({ hasOrg: true, loading: false });
+
+    const { default: SettingsLayout } = await import("../app/(dashboard)/settings/layout");
+    render(
+      <SettingsLayout>
+        <div>child</div>
+      </SettingsLayout>,
+    );
+
+    expect(screen.getByText("Organization")).toBeInTheDocument();
+  });
+});
+
+describe("Organization page - no org redirect", () => {
+  it("redirects to /settings/profile when user has no org", async () => {
+    const orgApi = await import("@/lib/org-api");
+    vi.mocked(orgApi.getOrganization).mockRejectedValueOnce(new Error("Not found"));
+
+    // Capture the push mock from the existing useRouter mock
+    const nav = await import("next/navigation");
+    const mockPush = vi.fn();
+    const originalUseRouter = nav.useRouter;
+    vi.spyOn(nav, "useRouter").mockReturnValue({
+      ...originalUseRouter(),
+      push: mockPush,
+    } as ReturnType<typeof nav.useRouter>);
+
+    const { default: OrgPage } = await import("../app/(dashboard)/settings/org/page");
+    render(<OrgPage />);
+
+    await waitFor(() => {
+      expect(mockPush).toHaveBeenCalledWith("/settings/profile");
+    });
+
+    vi.spyOn(nav, "useRouter").mockRestore();
+  });
+});
+
+describe("Notifications page - no team language", () => {
+  it("does not show 'Team invitations' label in notification preferences", async () => {
+    const settingsApi = await import("@/lib/settings-api");
+    vi.mocked(settingsApi.getNotificationPreferences).mockResolvedValueOnce({
+      billing_low_balance: true,
+      billing_receipts: true,
+      billing_auto_topup: true,
+      agent_channel_disconnect: true,
+      agent_status_changes: true,
+      account_role_changes: true,
+      account_team_invites: true,
+    });
+
+    const { default: NotificationsPage } = await import(
+      "../app/(dashboard)/settings/notifications/page"
+    );
+    render(<NotificationsPage />);
+
+    await screen.findByText("Notifications");
+
+    expect(screen.queryByText("Team invitations")).not.toBeInTheDocument();
+    expect(screen.getByText("Invitations")).toBeInTheDocument();
   });
 });
