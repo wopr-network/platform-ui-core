@@ -11,11 +11,22 @@
  *
  * TODO: import from @wopr-network/sdk once published
  */
-import type { AnyTRPCRootTypes, TRPCBuiltRouter } from "@trpc/server";
+import type {
+  AnyTRPCMutationProcedure,
+  AnyTRPCRootTypes,
+  TRPCBuiltRouter,
+  TRPCRouterRecord,
+} from "@trpc/server";
 
 /**
- * Empty placeholder router — satisfies tRPC's type constraints with no procedures.
- * Replacing `Record<never, never>` with the real router record adds autocomplete
- * once @wopr-network/sdk ships.
+ * Minimal router record for the procedures this UI consumes.
+ * Replacing this with the real router record from @wopr-network/sdk adds full autocomplete.
+ * TODO: import from @wopr-network/sdk once published
  */
-export type AppRouter = TRPCBuiltRouter<AnyTRPCRootTypes, Record<never, never>>;
+type AppRouterRecord = TRPCRouterRecord & {
+  pageContext: {
+    update: AnyTRPCMutationProcedure;
+  };
+};
+
+export type AppRouter = TRPCBuiltRouter<AnyTRPCRootTypes, AppRouterRecord>;

@@ -10,6 +10,7 @@ import { OnboardingGate } from "@/components/onboarding";
 import { Sidebar, SidebarContent } from "@/components/sidebar";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { usePageContext } from "@/hooks/use-page-context";
 import { useWebMCP } from "@/hooks/use-webmcp";
 
 export default function DashboardLayout({
@@ -18,6 +19,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }>) {
   useWebMCP();
+  usePageContext();
 
   const pathname = usePathname();
   const [sheetOpen, setSheetOpen] = useState(false);
