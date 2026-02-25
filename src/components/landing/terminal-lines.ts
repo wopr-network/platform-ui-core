@@ -82,6 +82,7 @@ export const TERMINAL_LINES: TerminalLine[] = [
   { text: "...", hold: false },
   // --- final block: holds, no backspace ---
   { text: "", hold: true },
+  { text: "Shall we play a game?", hold: true },
   { text: "WOPR Bot.", hold: true },
   { text: "Ready to launch.", hold: true },
   { text: "$5/month.", hold: true },
