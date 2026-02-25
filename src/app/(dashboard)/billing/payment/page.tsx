@@ -27,6 +27,7 @@ import {
   setDefaultPaymentMethod,
   updateBillingEmail,
 } from "@/lib/api";
+import { useSession } from "@/lib/auth-client";
 import { getOrganization } from "@/lib/org-api";
 import { getOrgBillingInfo } from "@/lib/org-billing-api";
 import { cn } from "@/lib/utils";
@@ -53,6 +54,7 @@ const staggerItem = {
 };
 
 export default function PaymentPage() {
+  const { data: session } = useSession();
   const [info, setInfo] = useState<BillingInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [billingEmail, setBillingEmail] = useState("");
@@ -89,11 +91,11 @@ export default function PaymentPage() {
     getOrganization()
       .then((org) => {
         if (org.members.length > 1) {
-          const currentUser = org.members.find((m) => m.role === "owner" || m.role === "admin");
+          const currentMember = org.members.find((m) => m.email === session?.user?.email);
           const ctx = {
             orgId: org.id,
             orgName: org.name,
-            isAdmin: currentUser?.role === "owner" || currentUser?.role === "admin",
+            isAdmin: currentMember?.role === "owner" || currentMember?.role === "admin",
           };
           setOrgContext(ctx);
           setOrgLoading(true);
@@ -108,7 +110,7 @@ export default function PaymentPage() {
       })
       .catch(() => {})
       .finally(() => setOrgChecked(true));
-  }, []);
+  }, [session?.user?.email]);
 
   const load = useCallback(async () => {
     setLoading(true);

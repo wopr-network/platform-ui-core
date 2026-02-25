@@ -105,7 +105,13 @@ export function OrgBillingPage({ orgId, orgName, isAdmin }: OrgBillingPageProps)
     );
   }
 
-  let sectionIndex = 0;
+  const sectionDelays = {
+    balance: 0 * 0.1,
+    buyCredits: 1 * 0.1,
+    memberUsage: 2 * 0.1,
+    paymentMethods: isAdmin ? 3 * 0.1 : 1 * 0.1,
+    billingHistory: isAdmin ? 4 * 0.1 : 2 * 0.1,
+  };
 
   return (
     <div className="max-w-3xl space-y-6">
@@ -131,7 +137,7 @@ export function OrgBillingPage({ orgId, orgName, isAdmin }: OrgBillingPageProps)
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: sectionIndex++ * 0.1, ease: "easeOut" }}
+        transition={{ duration: 0.4, delay: sectionDelays.balance, ease: "easeOut" }}
       >
         <CreditBalance
           data={{ balance: balance.balance, dailyBurn: balance.dailyBurn, runway: balance.runway }}
@@ -143,7 +149,7 @@ export function OrgBillingPage({ orgId, orgName, isAdmin }: OrgBillingPageProps)
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: sectionIndex++ * 0.1, ease: "easeOut" }}
+          transition={{ duration: 0.4, delay: sectionDelays.buyCredits, ease: "easeOut" }}
         >
           <BuyCreditsPanel />
         </motion.div>
@@ -154,7 +160,7 @@ export function OrgBillingPage({ orgId, orgName, isAdmin }: OrgBillingPageProps)
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: sectionIndex++ * 0.1, ease: "easeOut" }}
+          transition={{ duration: 0.4, delay: sectionDelays.memberUsage, ease: "easeOut" }}
         >
           <Card>
             <CardHeader>
@@ -223,7 +229,7 @@ export function OrgBillingPage({ orgId, orgName, isAdmin }: OrgBillingPageProps)
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: sectionIndex++ * 0.1, ease: "easeOut" }}
+        transition={{ duration: 0.4, delay: sectionDelays.paymentMethods, ease: "easeOut" }}
       >
         <Card>
           <CardHeader>
@@ -278,7 +284,7 @@ export function OrgBillingPage({ orgId, orgName, isAdmin }: OrgBillingPageProps)
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: sectionIndex++ * 0.1, ease: "easeOut" }}
+          transition={{ duration: 0.4, delay: sectionDelays.billingHistory, ease: "easeOut" }}
         >
           <Card>
             <CardHeader>

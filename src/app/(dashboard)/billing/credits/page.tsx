@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { CreditBalance as CreditBalanceData, DividendWalletStats } from "@/lib/api";
 import { getCreditBalance, getDividendStats } from "@/lib/api";
+import { useSession } from "@/lib/auth-client";
 import { getOrganization } from "@/lib/org-api";
 
 function CreditsContent() {
@@ -25,6 +26,7 @@ function CreditsContent() {
   const pathname = usePathname();
   const router = useRouter();
   const cryptoPending = searchParams.get("crypto") === "pending";
+  const { data: session } = useSession();
 
   const [orgContext, setOrgContext] = useState<{
     orgId: string;
@@ -37,11 +39,11 @@ function CreditsContent() {
     getOrganization()
       .then((org) => {
         if (org.members.length > 1) {
-          const currentUser = org.members.find((m) => m.role === "owner" || m.role === "admin");
+          const currentMember = org.members.find((m) => m.email === session?.user?.email);
           setOrgContext({
             orgId: org.id,
             orgName: org.name,
-            isAdmin: currentUser?.role === "owner" || currentUser?.role === "admin",
+            isAdmin: currentMember?.role === "owner" || currentMember?.role === "admin",
           });
         }
       })
@@ -49,7 +51,7 @@ function CreditsContent() {
         // No org — show personal billing
       })
       .finally(() => setOrgChecked(true));
-  }, []);
+  }, [session?.user?.email]);
 
   const [showCryptoPending, setShowCryptoPending] = useState(cryptoPending);
   const [balance, setBalance] = useState<CreditBalanceData | null>(null);
