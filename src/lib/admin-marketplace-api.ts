@@ -39,6 +39,7 @@ export interface UpdatePluginRequest {
 
 // ---- Mock data for development ----
 
+// DEV FALLBACK: mock data used only when tRPC backend is unavailable. Remove once tRPC procedures are confirmed live.
 const MOCK_ADMIN_PLUGINS: AdminPlugin[] = [
   {
     id: "discord",
@@ -153,8 +154,7 @@ const MOCK_ADMIN_PLUGINS: AdminPlugin[] = [
   },
 ];
 
-// In-memory store for mock mode
-let mockPlugins = structuredClone(MOCK_ADMIN_PLUGINS);
+const getMockPlugins = (): AdminPlugin[] => structuredClone(MOCK_ADMIN_PLUGINS);
 
 // ---- Typed admin client stub ----
 
@@ -175,7 +175,7 @@ export async function getDiscoveryQueue(): Promise<AdminPlugin[]> {
     const all = await marketplaceClient.listPlugins.query();
     return all.filter((p) => !p.reviewed);
   } catch {
-    return mockPlugins.filter((p) => !p.reviewed);
+    return getMockPlugins().filter((p) => !p.reviewed);
   }
 }
 
@@ -184,7 +184,7 @@ export async function getEnabledPlugins(): Promise<AdminPlugin[]> {
     const all = await marketplaceClient.listPlugins.query();
     return all.filter((p) => p.enabled && p.reviewed).sort((a, b) => a.sort_order - b.sort_order);
   } catch {
-    return mockPlugins
+    return getMockPlugins()
       .filter((p) => p.enabled && p.reviewed)
       .sort((a, b) => a.sort_order - b.sort_order);
   }
@@ -194,7 +194,7 @@ export async function getAllPlugins(): Promise<AdminPlugin[]> {
   try {
     return await marketplaceClient.listPlugins.query();
   } catch {
-    return structuredClone(mockPlugins);
+    return getMockPlugins();
   }
 }
 
@@ -202,9 +202,10 @@ export async function updatePlugin(req: UpdatePluginRequest): Promise<AdminPlugi
   try {
     return await marketplaceClient.updatePlugin.mutate(req);
   } catch {
-    const idx = mockPlugins.findIndex((p) => p.id === req.id);
+    const plugins = getMockPlugins();
+    const idx = plugins.findIndex((p) => p.id === req.id);
     if (idx === -1) throw new Error(`Plugin not found: ${req.id}`);
-    const plugin = mockPlugins[idx];
+    const plugin = plugins[idx];
     if (req.enabled !== undefined) plugin.enabled = req.enabled;
     if (req.featured !== undefined) plugin.featured = req.featured;
     if (req.sort_order !== undefined) plugin.sort_order = req.sort_order;
@@ -237,7 +238,6 @@ export async function addPluginByNpm(req: AddPluginRequest): Promise<AdminPlugin
       enabled_at: null,
       reviewed: false,
     };
-    mockPlugins = [...mockPlugins, newPlugin];
     return structuredClone(newPlugin);
   }
 }
@@ -248,9 +248,7 @@ export async function reorderPlugins(orderedIds: string[]): Promise<void> {
       orderedIds.map((id, i) => marketplaceClient.updatePlugin.mutate({ id, sort_order: i })),
     );
   } catch {
-    for (let i = 0; i < orderedIds.length; i++) {
-      const plugin = mockPlugins.find((p) => p.id === orderedIds[i]);
-      if (plugin) plugin.sort_order = i;
-    }
+    // No-op in mock mode: state is not persisted between calls
+    void orderedIds;
   }
 }
