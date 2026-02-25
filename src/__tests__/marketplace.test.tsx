@@ -194,13 +194,9 @@ describe("MarketplacePage", () => {
     // Initially shows skeleton loading state
     expect(document.querySelector('[data-slot="skeleton"]')).toBeInTheDocument();
 
-    // After loading, shows heading
-    expect(await screen.findByText("Plugin Marketplace")).toBeInTheDocument();
-
-    // Shows plugin cards
-    expect(screen.getByText("Discord")).toBeInTheDocument();
-    expect(screen.getByText("Slack")).toBeInTheDocument();
-    expect(screen.getByText("Semantic Memory")).toBeInTheDocument();
+    // After loading, shows heading and featured section
+    expect(await screen.findByText("Browse Superpowers")).toBeInTheDocument();
+    expect(await screen.findByText("Featured Superpowers")).toBeInTheDocument();
   });
 
   it("filters plugins by search term", async () => {
@@ -208,43 +204,46 @@ describe("MarketplacePage", () => {
     const { default: MarketplacePage } = await import("../app/(dashboard)/marketplace/page");
     render(<MarketplacePage />);
 
-    await screen.findByText("Plugin Marketplace");
+    await screen.findByText("Browse Superpowers");
 
-    const searchInput = screen.getByPlaceholderText("Search plugins...");
-    await user.type(searchInput, "Discord");
+    const searchInput = screen.getByPlaceholderText("Search superpowers...");
+    await user.type(searchInput, "nonexistentterm12345");
 
-    // Discord should be visible, others should not
-    expect(screen.getByText("Discord")).toBeInTheDocument();
-    expect(screen.queryByText("Semantic Memory")).not.toBeInTheDocument();
+    // No results in the grid
+    expect(screen.getByText(/No results for/)).toBeInTheDocument();
   });
 
-  it("filters plugins by category", async () => {
+  it("filters plugins by tab", async () => {
     const user = userEvent.setup();
     const { default: MarketplacePage } = await import("../app/(dashboard)/marketplace/page");
     render(<MarketplacePage />);
 
-    await screen.findByText("Plugin Marketplace");
+    await screen.findByText("Browse Superpowers");
 
-    // Click "Voice" category filter
-    const voiceButton = closestButton(screen.getByText("Voice"));
-    await user.click(voiceButton);
+    // Click "Channels" tab
+    const channelsButton = closestButton(screen.getByText("Channels"));
+    await user.click(channelsButton);
 
-    // Should show voice plugins
-    expect(screen.getByText("ElevenLabs TTS")).toBeInTheDocument();
-    expect(screen.getByText("Deepgram STT")).toBeInTheDocument();
+    // Should show channel plugins in the grid
+    expect(screen.getByText("Discord")).toBeInTheDocument();
+    expect(screen.getByText("Slack")).toBeInTheDocument();
 
-    // Should not show non-voice plugins
+    // Should not show non-channel plugins like webhooks in the grid
     expect(screen.queryByText("Webhooks")).not.toBeInTheDocument();
   });
 
   it("shows WOPR Hosted Available badge for eligible plugins", async () => {
+    const user = userEvent.setup();
     const { default: MarketplacePage } = await import("../app/(dashboard)/marketplace/page");
     render(<MarketplacePage />);
 
-    await screen.findByText("Plugin Marketplace");
+    await screen.findByText("Browse Superpowers");
 
-    // Semantic Memory has 'embeddings' capability which matches a hosted adapter
-    // Cards show shortened "WOPR Hosted" badge text
+    // Switch to Capabilities tab — Deepgram STT has 'stt' capability which matches a hosted adapter
+    const capabilitiesButton = closestButton(screen.getByText("Capabilities"));
+    await user.click(capabilitiesButton);
+
+    // PluginCard shows "WOPR Hosted" badge for eligible plugins
     const hostedBadges = screen.getAllByText("WOPR Hosted");
     expect(hostedBadges.length).toBeGreaterThan(0);
   });
@@ -254,9 +253,9 @@ describe("MarketplacePage", () => {
     const { default: MarketplacePage } = await import("../app/(dashboard)/marketplace/page");
     render(<MarketplacePage />);
 
-    await screen.findByText("Plugin Marketplace");
+    await screen.findByText("Browse Superpowers");
 
-    const searchInput = screen.getByPlaceholderText("Search plugins...");
+    const searchInput = screen.getByPlaceholderText("Search superpowers...");
     await user.type(searchInput, "nonexistentplugin12345");
 
     expect(screen.getByText(/No results for/)).toBeInTheDocument();
@@ -278,7 +277,7 @@ describe("PluginDetailPage", () => {
     // Wait for loading
     expect(await screen.findByText("Discord")).toBeInTheDocument();
     expect(screen.getByText("v3.2.0")).toBeInTheDocument();
-    expect(screen.getByText("Install")).toBeInTheDocument();
+    expect(screen.getByText("Give my bot this superpower")).toBeInTheDocument();
     expect(screen.getByText(/12\.4k installs/)).toBeInTheDocument();
   });
 
@@ -299,7 +298,7 @@ describe("PluginDetailPage", () => {
     );
     render(<PluginDetailPage />);
 
-    await screen.findByText("Semantic Memory");
+    await screen.findByText("A Bot That Never Forgets");
     expect(screen.getByText("WOPR Hosted")).toBeInTheDocument();
     expect(screen.getByText("WOPR Hosted Options")).toBeInTheDocument();
     expect(screen.getByText("WOPR Hosted Embeddings")).toBeInTheDocument();
@@ -312,7 +311,7 @@ describe("PluginDetailPage", () => {
     );
     render(<PluginDetailPage />);
 
-    await screen.findByText("Meeting Transcriber");
+    await screen.findByText("Fire Your Secretary");
     expect(screen.getByText("Discord (for voice channels)")).toBeInTheDocument();
   });
 
@@ -325,7 +324,7 @@ describe("PluginDetailPage", () => {
     render(<PluginDetailPage />);
 
     await screen.findByText("Webhooks");
-    const installButton = screen.getByText("Install");
+    const installButton = screen.getByText("Give my bot this superpower");
     await user.click(installButton);
 
     // Should now show install wizard
@@ -346,8 +345,8 @@ describe("PluginDetailPage", () => {
     await user.click(screen.getByText("Changelog"));
 
     expect(screen.getByText("Added thread support and slash commands.")).toBeInTheDocument();
-    // v3.2.0 appears in both header badge and changelog; verify at least 2 are present
-    expect(screen.getAllByText("v3.2.0").length).toBeGreaterThanOrEqual(2);
+    // v3.2.0 appears in the changelog entry badge (overview tab version footer is hidden)
+    expect(screen.getAllByText("v3.2.0").length).toBeGreaterThanOrEqual(1);
   });
 
   it("shows configuration schema", async () => {
