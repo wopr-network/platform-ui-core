@@ -81,7 +81,7 @@ export default function PaymentPage() {
       isDefault: boolean;
     }>
   >([]);
-  const [orgInvoices, setOrgInvoices] = useState<
+  const [_orgInvoices, setOrgInvoices] = useState<
     Array<{ id: string; date: string; amount: number; status: string; downloadUrl: string }>
   >([]);
   const [orgChecked, setOrgChecked] = useState(false);
@@ -90,23 +90,21 @@ export default function PaymentPage() {
   useEffect(() => {
     getOrganization()
       .then((org) => {
-        if (org.members.length > 1) {
-          const currentMember = org.members.find((m) => m.email === session?.user?.email);
-          const ctx = {
-            orgId: org.id,
-            orgName: org.name,
-            isAdmin: currentMember?.role === "owner" || currentMember?.role === "admin",
-          };
-          setOrgContext(ctx);
-          setOrgLoading(true);
-          getOrgBillingInfo(org.id)
-            .then((data) => {
-              setOrgPaymentMethods(data.paymentMethods);
-              setOrgInvoices(data.invoices);
-            })
-            .catch(() => {})
-            .finally(() => setOrgLoading(false));
-        }
+        const currentMember = org.members.find((m) => m.email === session?.user?.email);
+        const ctx = {
+          orgId: org.id,
+          orgName: org.name,
+          isAdmin: currentMember?.role === "owner" || currentMember?.role === "admin",
+        };
+        setOrgContext(ctx);
+        setOrgLoading(true);
+        getOrgBillingInfo(org.id)
+          .then((data) => {
+            setOrgPaymentMethods(data.paymentMethods);
+            setOrgInvoices(data.invoices);
+          })
+          .catch(() => {})
+          .finally(() => setOrgLoading(false));
       })
       .catch(() => {})
       .finally(() => setOrgChecked(true));

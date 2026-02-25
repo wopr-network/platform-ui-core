@@ -38,14 +38,12 @@ function CreditsContent() {
   useEffect(() => {
     getOrganization()
       .then((org) => {
-        if (org.members.length > 1) {
-          const currentMember = org.members.find((m) => m.email === session?.user?.email);
-          setOrgContext({
-            orgId: org.id,
-            orgName: org.name,
-            isAdmin: currentMember?.role === "owner" || currentMember?.role === "admin",
-          });
-        }
+        const currentMember = org.members.find((m) => m.email === session?.user?.email);
+        setOrgContext({
+          orgId: org.id,
+          orgName: org.name,
+          isAdmin: currentMember?.role === "owner" || currentMember?.role === "admin",
+        });
       })
       .catch(() => {
         // No org — show personal billing

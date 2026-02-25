@@ -56,6 +56,7 @@ export function OrgBillingPage({ orgId, orgName, isAdmin }: OrgBillingPageProps)
   const [invoices, setInvoices] = useState<OrgInvoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [paymentActionMsg, setPaymentActionMsg] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -80,6 +81,16 @@ export function OrgBillingPage({ orgId, orgName, isAdmin }: OrgBillingPageProps)
   useEffect(() => {
     load();
   }, [load]);
+
+  function handleDeletePaymentMethod(id: string) {
+    // No backend procedure yet — show informational message
+    setPaymentActionMsg(`Delete for card ${id} is not yet available.`);
+  }
+
+  function handleAddPaymentMethod() {
+    // No backend procedure yet — show informational message
+    setPaymentActionMsg("Adding org payment methods is not yet available.");
+  }
 
   if (loading) {
     return (
@@ -262,6 +273,7 @@ export function OrgBillingPage({ orgId, orgName, isAdmin }: OrgBillingPageProps)
                         variant="ghost"
                         size="sm"
                         className="text-muted-foreground hover:text-destructive"
+                        onClick={() => handleDeletePaymentMethod(pm.id)}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
@@ -270,8 +282,11 @@ export function OrgBillingPage({ orgId, orgName, isAdmin }: OrgBillingPageProps)
                 ))}
               </div>
             )}
+            {paymentActionMsg && (
+              <p className="text-sm text-muted-foreground">{paymentActionMsg}</p>
+            )}
             {isAdmin && (
-              <Button variant="outline" className="mt-4">
+              <Button variant="outline" className="mt-4" onClick={handleAddPaymentMethod}>
                 Add payment method
               </Button>
             )}
