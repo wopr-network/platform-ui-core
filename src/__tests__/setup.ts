@@ -25,3 +25,13 @@ if (typeof globalThis.IntersectionObserver === "undefined") {
   globalThis.IntersectionObserver =
     MockIntersectionObserver as unknown as typeof IntersectionObserver;
 }
+
+// Polyfill window.matchMedia for components that call it in useEffect (e.g. TerminalSequence).
+// Returns matches: true so animation components skip async sequences in tests.
+if (typeof window !== "undefined" && typeof window.matchMedia === "undefined") {
+  window.matchMedia = vi.fn().mockReturnValue({
+    matches: true,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  });
+}
