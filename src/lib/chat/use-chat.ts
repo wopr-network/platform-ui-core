@@ -25,6 +25,7 @@ interface UseChatReturn {
 export function useChat(): UseChatReturn {
   const [messages, setMessages] = useState<ChatMessage[]>(() => loadChatHistory());
   const [mode, setMode] = useState<ChatMode>("collapsed");
+  const modeRef = useRef<ChatMode>("collapsed");
   const [isConnected, setIsConnected] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [hasUnread, setHasUnread] = useState(false);
@@ -33,6 +34,11 @@ export function useChat(): UseChatReturn {
   const pendingBotMsgRef = useRef<string | null>(null);
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reconnectDelayRef = useRef(1000);
+
+  // Keep modeRef in sync for use inside callbacks
+  useEffect(() => {
+    modeRef.current = mode;
+  }, [mode]);
 
   // Persist messages on change
   useEffect(() => {
@@ -90,7 +96,7 @@ export function useChat(): UseChatReturn {
         } else if (data.type === "done") {
           setIsTyping(false);
           pendingBotMsgRef.current = null;
-          setHasUnread(true);
+          if (modeRef.current === "collapsed") setHasUnread(true);
         } else if (data.type === "error") {
           setIsTyping(false);
           pendingBotMsgRef.current = null;
@@ -108,6 +114,7 @@ export function useChat(): UseChatReturn {
 
     fetch(url, {
       headers: { "X-Session-ID": sessionId.current },
+      credentials: "include",
       signal: abortController.signal,
     })
       .then(async (res) => {
@@ -170,6 +177,7 @@ export function useChat(): UseChatReturn {
       fetch(`${API_BASE_URL}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ sessionId: sessionId.current, message: trimmed }),
       }).catch(() => {
         setIsTyping(false);

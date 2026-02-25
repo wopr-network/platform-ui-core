@@ -19,22 +19,23 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const chat = useChat();
 
   // Listen for WebMCP tool call events from the SSE stream
+  const { expand, collapse, fullscreen, sendMessage, showTyping, notify } = chat;
   useEffect(() => {
     function handleToolCall(e: Event) {
       const { tool, args } = (e as CustomEvent).detail;
-      if (tool === "chat.expand") chat.expand();
-      else if (tool === "chat.collapse") chat.collapse();
-      else if (tool === "chat.fullscreen") chat.fullscreen();
-      else if (tool === "chat.sendMessage") chat.sendMessage(args.text as string);
+      if (tool === "chat.expand") expand();
+      else if (tool === "chat.collapse") collapse();
+      else if (tool === "chat.fullscreen") fullscreen();
+      else if (tool === "chat.sendMessage") sendMessage(args.text as string);
       else if (tool === "chat.showTyping") {
-        chat.showTyping();
+        showTyping();
       } else if (tool === "chat.notify") {
-        chat.notify(args.text as string);
+        notify(args.text as string);
       }
     }
     window.addEventListener("wopr-chat-tool-call", handleToolCall);
     return () => window.removeEventListener("wopr-chat-tool-call", handleToolCall);
-  }, [chat]);
+  }, [expand, collapse, fullscreen, sendMessage, showTyping, notify]);
 
   return (
     <ChatContext.Provider
