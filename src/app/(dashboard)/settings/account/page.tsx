@@ -14,6 +14,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { BillingUsage } from "@/lib/api";
 import { changePassword, createBillingPortalSession, getBillingUsage } from "@/lib/api";
 
+export const pagePrompt =
+  "You are on the account settings page. The user can change their password and manage billing. Help with account management tasks.";
+
 export default function AccountPage() {
   const [usage, setUsage] = useState<BillingUsage | null>(null);
   const [loading, setLoading] = useState(true);
