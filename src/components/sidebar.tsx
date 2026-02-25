@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { AccountSwitcher } from "@/components/account-switcher";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -92,6 +93,7 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           WOPR Bot
         </span>
       </div>
+      <AccountSwitcher />
       <nav className="flex-1 space-y-1 px-3 py-4">
         {navItems
           .filter(

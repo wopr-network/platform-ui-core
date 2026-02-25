@@ -1,6 +1,7 @@
 import { API_BASE_URL, PLATFORM_BASE_URL } from "./api-config";
 import { handleUnauthorized } from "./fetch-utils";
 import type { ApiPricingResponse, DividendStats } from "./pricing-data";
+import { getActiveTenantId } from "./tenant-context";
 import { trpcVanilla } from "./trpc";
 
 export { UnauthorizedError } from "./fetch-utils";
@@ -89,11 +90,13 @@ export interface InstanceDetail extends Instance {
 // --- API client ---
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  const tenantId = getActiveTenantId();
   const res = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
     credentials: "include",
     headers: {
       "Content-Type": "application/json",
+      ...(tenantId ? { "x-tenant-id": tenantId } : {}),
       ...init?.headers,
     },
   });
@@ -107,10 +110,15 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export async function fleetFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  const tenantId = getActiveTenantId();
   const res = await fetch(`${PLATFORM_BASE_URL}/fleet${path}`, {
     ...init,
     credentials: "include",
-    headers: { "Content-Type": "application/json", ...init?.headers },
+    headers: {
+      "Content-Type": "application/json",
+      ...(tenantId ? { "x-tenant-id": tenantId } : {}),
+      ...init?.headers,
+    },
   });
   if (res.status === 401) {
     handleUnauthorized();

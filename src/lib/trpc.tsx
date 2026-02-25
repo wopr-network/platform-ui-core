@@ -6,6 +6,7 @@ import { createTRPCReact } from "@trpc/react-query";
 import { useState } from "react";
 import { PLATFORM_BASE_URL } from "./api-config";
 import { handleUnauthorized } from "./fetch-utils";
+import { getActiveTenantId, TenantProvider } from "./tenant-context";
 import type { AppRouter } from "./trpc-types";
 
 export const trpc = createTRPCReact<AppRouter>();
@@ -27,6 +28,10 @@ export const trpcVanilla = createTRPCClient<AppRouter>({
     httpBatchLink({
       url: `${PLATFORM_BASE_URL}/trpc`,
       fetch: trpcFetchWithAuth,
+      headers() {
+        const tenantId = getActiveTenantId();
+        return tenantId ? { "x-tenant-id": tenantId } : {};
+      },
     }),
   ],
 });
@@ -62,6 +67,10 @@ export function TRPCProvider({ children }: Readonly<{ children: React.ReactNode 
         httpBatchLink({
           url: `${PLATFORM_BASE_URL}/trpc`,
           fetch: trpcFetchWithAuth,
+          headers() {
+            const tenantId = getActiveTenantId();
+            return tenantId ? { "x-tenant-id": tenantId } : {};
+          },
         }),
       ],
     }),
@@ -69,7 +78,9 @@ export function TRPCProvider({ children }: Readonly<{ children: React.ReactNode 
 
   return (
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      <QueryClientProvider client={queryClient}>
+        <TenantProvider>{children}</TenantProvider>
+      </QueryClientProvider>
     </trpc.Provider>
   );
 }
