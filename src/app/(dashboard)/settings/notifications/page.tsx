@@ -70,8 +70,8 @@ const PREF_GROUPS: PrefGroup[] = [
       },
       {
         key: "account_team_invites",
-        label: "Team invitations",
-        description: "Receive emails when you are invited to join a team.",
+        label: "Invitations",
+        description: "Receive emails when you are invited to collaborate.",
       },
     ],
   },

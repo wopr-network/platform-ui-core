@@ -16,6 +16,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { useHasOrg } from "@/hooks/use-has-org";
 import { cn } from "@/lib/utils";
 
 const settingsNav = [
@@ -30,10 +31,13 @@ const settingsNav = [
 
 function NavList({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
+  const { hasOrg } = useHasOrg();
+
+  const visibleNav = settingsNav.filter((item) => item.href !== "/settings/org" || hasOrg);
 
   return (
     <ul className="space-y-1">
-      {settingsNav.map((item) => {
+      {visibleNav.map((item) => {
         const isActive = pathname === item.href;
         const Icon = item.icon;
         return (
