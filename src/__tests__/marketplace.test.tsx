@@ -346,8 +346,8 @@ describe("PluginDetailPage", () => {
     await user.click(screen.getByText("Changelog"));
 
     expect(screen.getByText("Added thread support and slash commands.")).toBeInTheDocument();
-    // v3.2.0 appears in both header badge and changelog; verify at least 2 are present
-    expect(screen.getAllByText("v3.2.0").length).toBeGreaterThanOrEqual(2);
+    // v3.2.0 appears in the changelog entry badge (overview tab version footer is hidden)
+    expect(screen.getAllByText("v3.2.0").length).toBeGreaterThanOrEqual(1);
   });
 
   it("shows configuration schema", async () => {
