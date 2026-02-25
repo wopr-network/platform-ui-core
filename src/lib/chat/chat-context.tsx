@@ -27,10 +27,9 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       else if (tool === "chat.fullscreen") chat.fullscreen();
       else if (tool === "chat.sendMessage") chat.sendMessage(args.text as string);
       else if (tool === "chat.showTyping") {
-        // Typing is handled by SSE stream, but bot can force it
+        chat.showTyping();
       } else if (tool === "chat.notify") {
-        // For v1, expand and show the message
-        chat.expand();
+        chat.notify(args.text as string);
       }
     }
     window.addEventListener("wopr-chat-tool-call", handleToolCall);
@@ -51,6 +50,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         fullscreen: chat.fullscreen,
         sendMessage: chat.sendMessage,
         addEventMarker: chat.addEventMarker,
+        showTyping: chat.showTyping,
+        notify: chat.notify,
       }}
     >
       {children}

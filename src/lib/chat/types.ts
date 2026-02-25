@@ -29,4 +29,6 @@ export interface ChatActions {
   fullscreen: () => void;
   sendMessage: (text: string) => void;
   addEventMarker: (text: string) => void;
+  showTyping: () => void;
+  notify: (text: string) => void;
 }

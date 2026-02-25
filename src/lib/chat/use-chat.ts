@@ -14,6 +14,8 @@ interface UseChatReturn {
   sessionId: string;
   sendMessage: (text: string) => void;
   addEventMarker: (text: string) => void;
+  showTyping: () => void;
+  notify: (text: string) => void;
   expand: () => void;
   collapse: () => void;
   fullscreen: () => void;
@@ -47,18 +49,19 @@ export function useChat(): UseChatReturn {
       eventSourceRef.current.close();
     }
 
-    const url = `${API_BASE_URL}/chat/stream?sessionId=${encodeURIComponent(sessionId.current)}`;
-    const es = new EventSource(url);
-    eventSourceRef.current = es;
+    const url = `${API_BASE_URL}/chat/stream`;
+    const abortController = new AbortController();
+    // Store a pseudo-EventSource object so the cleanup path can call .close()
+    eventSourceRef.current = {
+      close: () => abortController.abort(),
+    } as unknown as EventSource;
 
-    es.onopen = () => {
-      setIsConnected(true);
-      reconnectDelayRef.current = 1000;
-    };
-
-    es.onmessage = (event) => {
+    const processLine = (line: string) => {
+      if (!line.startsWith("data:")) return;
+      const raw = line.slice(5).trim();
+      if (!raw) return;
       try {
-        const data = JSON.parse(event.data) as ChatEvent;
+        const data = JSON.parse(raw) as ChatEvent;
 
         if (data.type === "text") {
           setIsTyping(true);
@@ -79,7 +82,6 @@ export function useChat(): UseChatReturn {
             ];
           });
         } else if (data.type === "tool_call") {
-          // Dispatch tool call as CustomEvent for WebMCP bridge
           window.dispatchEvent(
             new CustomEvent("wopr-chat-tool-call", {
               detail: { tool: data.tool, args: data.args },
@@ -104,16 +106,39 @@ export function useChat(): UseChatReturn {
       }
     };
 
-    es.onerror = () => {
-      setIsConnected(false);
-      es.close();
-      eventSourceRef.current = null;
+    fetch(url, {
+      headers: { "X-Session-ID": sessionId.current },
+      signal: abortController.signal,
+    })
+      .then(async (res) => {
+        if (!res.ok || !res.body) throw new Error("SSE connection failed");
+        setIsConnected(true);
+        reconnectDelayRef.current = 1000;
 
-      // Reconnect with exponential backoff
-      const delay = reconnectDelayRef.current;
-      reconnectDelayRef.current = Math.min(delay * 2, 10000);
-      reconnectTimeoutRef.current = setTimeout(connectSSE, delay);
-    };
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() ?? "";
+          for (const line of lines) {
+            processLine(line);
+          }
+        }
+      })
+      .catch((err) => {
+        if ((err as Error).name === "AbortError") return;
+        setIsConnected(false);
+        eventSourceRef.current = null;
+
+        const delay = reconnectDelayRef.current;
+        reconnectDelayRef.current = Math.min(delay * 2, 10000);
+        reconnectTimeoutRef.current = setTimeout(connectSSE, delay);
+      });
   }, [addMessage]);
 
   // Connect on mount
@@ -184,6 +209,22 @@ export function useChat(): UseChatReturn {
     clearChatHistory();
   }, []);
 
+  const showTyping = useCallback(() => {
+    setIsTyping(true);
+  }, []);
+
+  const notify = useCallback(
+    (text: string) => {
+      addMessage({
+        id: crypto.randomUUID(),
+        role: "bot",
+        content: text,
+        timestamp: Date.now(),
+      });
+    },
+    [addMessage],
+  );
+
   return {
     messages,
     mode,
@@ -193,6 +234,8 @@ export function useChat(): UseChatReturn {
     sessionId: sessionId.current,
     sendMessage,
     addEventMarker,
+    showTyping,
+    notify,
     expand,
     collapse,
     fullscreen,
