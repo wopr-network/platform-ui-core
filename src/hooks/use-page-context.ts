@@ -12,8 +12,7 @@ import { trpc } from "@/lib/trpc";
 export function usePageContext(): void {
   const pathname = usePathname();
   const lastPath = useRef<string | null>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { mutate } = (trpc as any).pageContext.update.useMutation();
+  const { mutate } = trpc.pageContext.update.useMutation();
 
   useEffect(() => {
     if (!pathname || pathname === lastPath.current) return;

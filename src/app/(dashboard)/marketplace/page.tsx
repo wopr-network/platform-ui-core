@@ -16,9 +16,6 @@ import {
   type PluginManifest,
 } from "@/lib/marketplace-data";
 
-export const pagePrompt =
-  "You are on the plugin marketplace. The user is browsing plugins they can install on their WOPR bots. Help them find plugins, explain what plugins do, and guide installation.";
-
 const FIRST_VISIT_KEY = "wopr-marketplace-visited";
 
 export default function MarketplacePage() {

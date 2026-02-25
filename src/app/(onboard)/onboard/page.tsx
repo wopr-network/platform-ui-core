@@ -4,9 +4,6 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-export const pagePrompt =
-  "You are guiding the user through initial onboarding. Walk them through each step: choosing a provider, adding API keys, selecting plugins, and configuring channels.";
-
 export default function OnboardWelcomePage() {
   return (
     <Card className="text-center">
