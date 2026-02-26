@@ -828,6 +828,15 @@ export interface HostedUsageSummary {
   amountDue: number;
 }
 
+export interface BillingUsageSummary {
+  periodStart: string;
+  periodEnd: string;
+  totalSpend: number;
+  includedCredit: number;
+  amountDue: number;
+  planName: string;
+}
+
 export interface HostedUsageEvent {
   id: string;
   date: string;
@@ -979,6 +988,16 @@ interface BillingProcedures {
   };
   spendingLimits: { query(input?: Record<never, never>): Promise<SpendingLimits> };
   hostedUsageSummary: { query(input?: Record<never, never>): Promise<HostedUsageSummary> };
+  usageSummary: {
+    query(input?: Record<never, never>): Promise<{
+      period_start: string;
+      period_end: string;
+      total_spend_cents: number;
+      included_credit_cents: number;
+      amount_due_cents: number;
+      plan_name: string;
+    }>;
+  };
   hostedUsageEvents: {
     query(input?: { capability?: string; from?: string; to?: string }): Promise<HostedUsageEvent[]>;
   };
@@ -1305,6 +1324,18 @@ export async function getInferenceMode(): Promise<InferenceMode> {
 
 export async function getHostedUsageSummary(): Promise<HostedUsageSummary> {
   return billingClient.hostedUsageSummary.query();
+}
+
+export async function getBillingUsageSummary(): Promise<BillingUsageSummary> {
+  const res = await billingClient.usageSummary.query();
+  return {
+    periodStart: res.period_start,
+    periodEnd: res.period_end,
+    totalSpend: res.total_spend_cents / 100,
+    includedCredit: res.included_credit_cents / 100,
+    amountDue: res.amount_due_cents / 100,
+    planName: res.plan_name,
+  };
 }
 
 export async function getHostedUsageEvents(params?: {

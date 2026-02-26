@@ -24,6 +24,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import type {
   BillingUsage,
+  BillingUsageSummary,
   HostedCapability,
   HostedUsageSummary,
   InferenceMode,
@@ -33,6 +34,7 @@ import type {
 } from "@/lib/api";
 import {
   getBillingUsage,
+  getBillingUsageSummary,
   getHostedUsageSummary,
   getInferenceMode,
   getProviderCosts,
@@ -56,6 +58,7 @@ export default function UsagePage() {
   const [hostedUsage, setHostedUsage] = useState<HostedUsageSummary | null>(null);
   const [inferenceMode, setInferenceMode] = useState<InferenceMode | null>(null);
   const [spendingLimits, setSpendingLimits] = useState<SpendingLimits | null>(null);
+  const [summary, setSummary] = useState<BillingUsageSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [showCostTracker, setShowCostTracker] = useState(false);
   const [showSpendingControls, setShowSpendingControls] = useState(false);
@@ -70,14 +73,16 @@ export default function UsagePage() {
       const mode = await getInferenceMode().catch(() => "byok" as const);
       setInferenceMode(mode);
 
-      const [usageData, costsData, historyData] = await Promise.all([
+      const [usageData, costsData, historyData, summaryData] = await Promise.all([
         getBillingUsage(),
         getProviderCosts(),
         getUsageHistory(30),
+        getBillingUsageSummary().catch(() => null),
       ]);
       setUsage(usageData);
       setProviderCosts(costsData);
       setHistory(historyData);
+      setSummary(summaryData);
 
       if (mode === "hosted") {
         const [hosted, limits] = await Promise.all([
@@ -118,6 +123,18 @@ export default function UsagePage() {
         <div className="space-y-2">
           <Skeleton className="h-7 w-20" />
           <Skeleton className="h-4 w-56" />
+        </div>
+        <div className="rounded-sm border p-6 space-y-4">
+          <Skeleton className="h-4 w-28" />
+          <Skeleton className="h-3 w-44" />
+          <Skeleton className="h-8 w-24" />
+          <Separator className="my-4" />
+          {Array.from({ length: 3 }, (_, n) => `sk-sum-${n}`).map((skId) => (
+            <div key={skId} className="flex justify-between">
+              <Skeleton className="h-3.5 w-32" />
+              <Skeleton className="h-3.5 w-16" />
+            </div>
+          ))}
         </div>
         <div className="rounded-sm border p-6 space-y-4">
           <Skeleton className="h-5 w-32" />
@@ -173,6 +190,60 @@ export default function UsagePage() {
       </div>
 
       <ByokCallout compact />
+
+      {/* Billing Summary */}
+      {summary && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+              Billing Summary
+            </CardTitle>
+            <CardDescription>
+              {summary.planName} plan &mdash;{" "}
+              {new Date(summary.periodStart).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+              })}{" "}
+              -{" "}
+              {new Date(summary.periodEnd).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              })}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-baseline gap-3">
+              <span
+                className={cn(
+                  "text-3xl font-bold tabular-nums transition-colors duration-200",
+                  summary.amountDue === 0 ? "text-terminal" : "text-foreground",
+                )}
+              >
+                ${summary.amountDue.toFixed(2)}
+              </span>
+              <span className="text-sm text-muted-foreground">amount due</span>
+            </div>
+            <Separator className="my-4" />
+            <div className="space-y-1 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Total spend this period</span>
+                <span className="font-medium tabular-nums">${summary.totalSpend.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Included credit</span>
+                <span className="font-medium tabular-nums text-terminal-dim">
+                  -${summary.includedCredit.toFixed(2)}
+                </span>
+              </div>
+              <div className="flex justify-between font-semibold">
+                <span>Amount due</span>
+                <span className="tabular-nums">${summary.amountDue.toFixed(2)}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Platform Usage Summary */}
       <Card>
