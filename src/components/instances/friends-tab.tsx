@@ -113,6 +113,8 @@ export function FriendsTab({ instanceId }: { instanceId: string }) {
     }
   }
 
+  // Used for both inbound rejection and outbound cancellation — the backend uses
+  // the same POST /requests/:id/reject endpoint for both operations.
   async function handleReject(requestId: string) {
     setActionError(null);
     try {
@@ -477,11 +479,10 @@ export function FriendsTab({ instanceId }: { instanceId: string }) {
               </div>
             ) : (
               <div className="rounded-sm border">
-                {discovered.length >= 5 && (
-                  <div className="px-3 py-1.5 border-b text-xs text-muted-foreground">
-                    Showing {discovered.length} bots on your local network
-                  </div>
-                )}
+                <div className="px-3 py-1.5 border-b text-xs text-muted-foreground">
+                  Showing {discovered.length} bot{discovered.length !== 1 ? "s" : ""} on your local
+                  network
+                </div>
                 <Table>
                   <TableHeader>
                     <TableRow>
