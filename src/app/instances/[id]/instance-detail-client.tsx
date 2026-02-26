@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDownToLine, ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowDownToLine, ArrowLeft, Loader2, Lock, Plus, Trash2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FriendsTab } from "@/components/instances/friends-tab";
@@ -40,11 +40,13 @@ import {
   createSnapshot,
   deleteSnapshot,
   getInstance,
+  getInstanceSecretKeys,
   listSnapshots,
   pullImageUpdate,
   restoreSnapshot,
   toggleInstancePlugin,
   updateInstanceConfig,
+  updateInstanceSecrets,
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -76,6 +78,17 @@ export function InstanceDetailClient({ instanceId }: { instanceId: string }) {
   const { updateAvailable } = useImageStatus(instanceId);
   const [pulling, setPulling] = useState(false);
   const [togglingPlugin, setTogglingPlugin] = useState<string | null>(null);
+  const [secretKeys, setSecretKeys] = useState<string[]>([]);
+  const [secretValues, setSecretValues] = useState<Record<string, string>>({});
+  const [secretsLoading, setSecretsLoading] = useState(false);
+  const [secretsSaving, setSecretsSaving] = useState(false);
+  const [secretsStatus, setSecretsStatus] = useState<"idle" | "saved" | "error">("idle");
+  const [secretsError, setSecretsError] = useState<string | null>(null);
+  const nextSecretId = useRef(0);
+  const [newSecretRows, setNewSecretRows] = useState<{ id: number; key: string; value: string }[]>(
+    [],
+  );
+  const secretsLoaded = useRef(false);
 
   async function handleTogglePlugin(pluginId: string, enabled: boolean) {
     if (!instance) return;
@@ -142,13 +155,83 @@ export function InstanceDetailClient({ instanceId }: { instanceId: string }) {
     load();
   }, [load]);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: snapshotsLoaded is a ref (stable object), not a reactive value
   useEffect(() => {
     if (activeTab === "snapshots" && !snapshotsLoaded.current) {
       snapshotsLoaded.current = true;
       loadSnapshots();
     }
   }, [activeTab, loadSnapshots]);
+
+  const loadSecrets = useCallback(async () => {
+    setSecretsLoading(true);
+    setSecretsError(null);
+    try {
+      const keys = await getInstanceSecretKeys(instanceId);
+      setSecretKeys(keys);
+      setSecretValues({});
+      setNewSecretRows([]);
+      setSecretsStatus("idle");
+    } catch (err) {
+      setSecretKeys([]);
+      setSecretsStatus("error");
+      setSecretsError(err instanceof Error ? err.message : "Failed to load secrets");
+    } finally {
+      setSecretsLoading(false);
+    }
+  }, [instanceId]);
+
+  useEffect(() => {
+    if (activeTab === "config" && !secretsLoaded.current) {
+      secretsLoaded.current = true;
+      loadSecrets();
+    }
+  }, [activeTab, loadSecrets]);
+
+  async function handleSaveSecrets() {
+    setSecretsError(null);
+    setSecretsStatus("idle");
+    const payload: Record<string, string> = {};
+    for (const key of secretKeys) {
+      const val = secretValues[key];
+      if (val?.trim()) {
+        payload[key] = val.trim();
+      }
+    }
+    // Check for new rows whose key duplicates an existing secret key.
+    const duplicates = newSecretRows
+      .map((row) => row.key.trim())
+      .filter((k) => k && secretKeys.includes(k));
+    if (duplicates.length > 0) {
+      setSecretsStatus("error");
+      setSecretsError(
+        `Duplicate secret key${duplicates.length > 1 ? "s" : ""}: ${duplicates.join(", ")}. Use the existing field above to update it.`,
+      );
+      return;
+    }
+    for (const row of newSecretRows) {
+      if (row.key.trim() && row.value.trim()) {
+        payload[row.key.trim()] = row.value.trim();
+      }
+    }
+    if (Object.keys(payload).length === 0) {
+      setSecretsStatus("error");
+      setSecretsError("No secret values to save");
+      return;
+    }
+    setSecretsSaving(true);
+    try {
+      await updateInstanceSecrets(instanceId, payload);
+      setSecretsStatus("saved");
+      setSecretValues({});
+      setNewSecretRows([]);
+      await loadSecrets();
+    } catch (err) {
+      setSecretsStatus("error");
+      setSecretsError(err instanceof Error ? err.message : "Failed to save secrets");
+    } finally {
+      setSecretsSaving(false);
+    }
+  }
 
   async function handleAction(action: "start" | "stop" | "restart" | "destroy") {
     setActionError(null);
@@ -731,6 +814,139 @@ export function InstanceDetailClient({ instanceId }: { instanceId: string }) {
             >
               {saving ? "Saving..." : "Save Config"}
             </Button>
+          </div>
+
+          <Separator className="my-6" />
+
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-medium">Secrets</h3>
+                <p className="text-xs text-muted-foreground">
+                  Write-only. Stored values are never displayed.
+                </p>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  const id = nextSecretId.current++;
+                  setNewSecretRows((prev) => [...prev, { id, key: "", value: "" }]);
+                }}
+              >
+                <Plus className="mr-1.5 size-3.5" />
+                Add Secret
+              </Button>
+            </div>
+
+            {secretsLoading ? (
+              <div className="space-y-2">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+            ) : secretKeys.length === 0 && newSecretRows.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No secrets configured.</p>
+            ) : (
+              <div className="rounded-md border border-border bg-black/80 overflow-hidden">
+                <div className="flex items-center gap-2 border-b border-border/50 px-3 py-1.5 text-xs text-muted-foreground">
+                  <Lock className="size-3 text-terminal" />
+                  <span>SECRETS VAULT</span>
+                </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Key</TableHead>
+                      <TableHead>Value</TableHead>
+                      <TableHead className="w-[60px]" />
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {secretKeys.map((key) => (
+                      <TableRow key={key} className="hover:bg-white/[0.02]">
+                        <TableCell className="font-mono text-sm">
+                          {key}
+                          <Badge
+                            variant="outline"
+                            className="ml-2 text-[10px] border-terminal/30 text-terminal/70 bg-terminal/5"
+                          >
+                            SET
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            type="password"
+                            placeholder="Enter new value..."
+                            value={secretValues[key] ?? ""}
+                            onChange={(e) =>
+                              setSecretValues((prev) => ({ ...prev, [key]: e.target.value }))
+                            }
+                            className="font-mono text-sm bg-transparent border-border focus:ring-terminal/50 focus:border-terminal/50"
+                          />
+                        </TableCell>
+                        <TableCell />
+                      </TableRow>
+                    ))}
+                    {newSecretRows.map((row) => (
+                      <TableRow key={`new-${row.id}`} className="hover:bg-white/[0.02]">
+                        <TableCell>
+                          <Input
+                            placeholder="SECRET_KEY_NAME"
+                            value={row.key}
+                            onChange={(e) =>
+                              setNewSecretRows((prev) =>
+                                prev.map((r) =>
+                                  r.id === row.id ? { ...r, key: e.target.value } : r,
+                                ),
+                              )
+                            }
+                            className="font-mono text-sm bg-transparent"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            type="password"
+                            placeholder="Enter value..."
+                            value={row.value}
+                            onChange={(e) =>
+                              setNewSecretRows((prev) =>
+                                prev.map((r) =>
+                                  r.id === row.id ? { ...r, value: e.target.value } : r,
+                                ),
+                              )
+                            }
+                            className="font-mono text-sm bg-transparent"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() =>
+                              setNewSecretRows((prev) => prev.filter((r) => r.id !== row.id))
+                            }
+                          >
+                            <Trash2 className="size-3.5 text-muted-foreground hover:text-destructive" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+
+            <div className="flex items-center justify-end gap-3">
+              {secretsSaving && <span className="text-sm text-muted-foreground">Saving...</span>}
+              {secretsStatus === "saved" && !secretsSaving && (
+                <span className="text-sm text-emerald-500">Secrets saved</span>
+              )}
+              {secretsStatus === "error" && secretsError && (
+                <span className="text-sm text-red-500">{secretsError}</span>
+              )}
+              <Button disabled={secretsSaving} onClick={handleSaveSecrets}>
+                {secretsSaving ? "Saving..." : "Save Secrets"}
+              </Button>
+            </div>
           </div>
         </TabsContent>
       </Tabs>

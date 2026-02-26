@@ -408,6 +408,32 @@ export async function updateInstanceConfig(id: string, env: Record<string, strin
   });
 }
 
+/** GET /fleet/bots/:id/secrets — List secret key names (no values). */
+export async function getInstanceSecretKeys(id: string): Promise<string[]> {
+  try {
+    const data = await fleetFetch<{ keys: string[] }>(`/bots/${id}/secrets`);
+    return data.keys;
+  } catch (err) {
+    // 404 means the endpoint doesn't exist yet on this bot — treat as empty.
+    // All other errors (network failure, 500, etc.) propagate so callers can show an error.
+    if (err instanceof Error && err.message.includes("404")) {
+      return [];
+    }
+    throw err;
+  }
+}
+
+/** PUT /fleet/bots/:id/secrets — Write secret values. */
+export async function updateInstanceSecrets(
+  id: string,
+  secrets: Record<string, string>,
+): Promise<void> {
+  await fleetFetch(`/bots/${id}/secrets`, {
+    method: "PUT",
+    body: JSON.stringify({ secrets }),
+  });
+}
+
 /** Toggle a plugin's enabled/disabled state on a bot instance. */
 export async function toggleInstancePlugin(
   botId: string,
