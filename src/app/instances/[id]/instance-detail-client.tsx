@@ -78,6 +78,7 @@ export function InstanceDetailClient({ instanceId }: { instanceId: string }) {
 
   async function handleTogglePlugin(pluginId: string, enabled: boolean) {
     if (!instance) return;
+    setActionError(null);
     setTogglingPlugin(pluginId);
 
     const previousPlugins = instance.plugins;
