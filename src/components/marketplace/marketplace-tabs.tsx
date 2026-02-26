@@ -21,6 +21,7 @@ export function MarketplaceTabs({ selected, onSelect, counts }: MarketplaceTabsP
         return (
           <button
             key={tab.id}
+            data-onboarding-id={`marketplace.tab.${tab.id}`}
             type="button"
             aria-pressed={isSelected}
             onClick={() => onSelect(tab.id)}

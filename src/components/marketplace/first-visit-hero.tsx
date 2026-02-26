@@ -64,6 +64,7 @@ export function FirstVisitHero({ superpowers, onDismiss }: FirstVisitHeroProps) 
             {superpowers.map((sp, i) => (
               <motion.button
                 key={sp.id}
+                data-onboarding-id={`marketplace.hero.${sp.id}`}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 2.0 + i * 0.1, duration: 0.4 }}
@@ -94,6 +95,7 @@ export function FirstVisitHero({ superpowers, onDismiss }: FirstVisitHeroProps) 
         </AnimatePresence>
 
         <motion.button
+          data-onboarding-id="marketplace.skip-hero"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 3.0 }}

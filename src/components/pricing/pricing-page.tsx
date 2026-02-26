@@ -173,7 +173,12 @@ export async function PricingPage() {
                   <span className="text-terminal">✓</span> Flat monthly price — no metered compute
                 </li>
               </ul>
-              <Button variant="terminal" className="w-full" asChild>
+              <Button
+                data-onboarding-id="pricing.subscribe.vps"
+                variant="terminal"
+                className="w-full"
+                asChild
+              >
                 <Link href="/signup">Get started</Link>
               </Button>
             </CardContent>
@@ -198,7 +203,7 @@ export async function PricingPage() {
           Join early. The math rewards you.
         </h2>
 
-        <Button variant="terminal" size="lg" asChild>
+        <Button data-onboarding-id="pricing.subscribe.cta" variant="terminal" size="lg" asChild>
           <Link href="/signup">Get Started</Link>
         </Button>
 

@@ -212,7 +212,7 @@ export function CommandCenter() {
           className="flex items-center justify-between rounded-md border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400"
         >
           <span>{error}</span>
-          <Button variant="ghost" size="sm" onClick={load}>
+          <Button data-onboarding-id="dashboard.retry" variant="ghost" size="sm" onClick={load}>
             Retry
           </Button>
         </div>
@@ -419,6 +419,7 @@ export function CommandCenter() {
           {instances.map((inst) => (
             <Link key={inst.id} href={`/instances/${inst.id}`}>
               <motion.div
+                data-onboarding-id={`dashboard.bot.${inst.id}`}
                 whileHover={{ y: -4, scale: 1.015 }}
                 whileTap={{ scale: 0.98 }}
                 transition={{ type: "spring", stiffness: 400, damping: 25 }}
@@ -441,7 +442,7 @@ export function CommandCenter() {
           ))}
 
           {/* Add another WOPR Bot CTA card */}
-          <Link href="/onboarding?mode=fleet-add">
+          <Link data-onboarding-id="dashboard.add-bot" href="/onboarding?mode=fleet-add">
             <motion.div
               className="h-full rounded-sm border border-dashed border-terminal/20"
               animate={{
@@ -480,6 +481,7 @@ export function CommandCenter() {
       {/* Quick Actions */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Button
+          data-onboarding-id="dashboard.action.add-bot"
           asChild
           variant="terminal"
           size="lg"
@@ -497,6 +499,7 @@ export function CommandCenter() {
         </Button>
 
         <Button
+          data-onboarding-id="dashboard.action.fleet-health"
           asChild
           variant="outline"
           size="lg"
@@ -514,6 +517,7 @@ export function CommandCenter() {
         </Button>
 
         <Button
+          data-onboarding-id="dashboard.action.plugins"
           asChild
           variant="outline"
           size="lg"
@@ -531,6 +535,7 @@ export function CommandCenter() {
         </Button>
 
         <Button
+          data-onboarding-id="dashboard.action.billing"
           asChild
           variant="outline"
           size="lg"

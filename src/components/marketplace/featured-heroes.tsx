@@ -50,7 +50,10 @@ export function FeaturedHeroes({ superpowers, loading }: FeaturedHeroesProps) {
             transition={{ duration: 0.4, delay: i * 0.08 }}
           >
             <Link href={`/marketplace/${sp.id}`}>
-              <div className="group relative h-full overflow-hidden rounded-xl border border-border/50 bg-card p-6 transition-all duration-200 hover:border-primary/40 hover:shadow-lg">
+              <div
+                data-onboarding-id={`marketplace.featured.${sp.id}`}
+                className="group relative h-full overflow-hidden rounded-xl border border-border/50 bg-card p-6 transition-all duration-200 hover:border-primary/40 hover:shadow-lg"
+              >
                 {/* Gradient wash */}
                 <div
                   className="absolute inset-0 opacity-10 transition-opacity group-hover:opacity-15"

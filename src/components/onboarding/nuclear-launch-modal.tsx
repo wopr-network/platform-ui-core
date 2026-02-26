@@ -131,12 +131,14 @@ export function NuclearLaunchModal({ open, onConfirm, onCancel }: NuclearLaunchM
                     active={keyA}
                     onActivate={() => setKeyA(true)}
                     testId="key-alpha"
+                    onboardingId="onboarding.launch.key-alpha"
                   />
                   <KeySwitch
                     label="KEY BRAVO"
                     active={keyB}
                     onActivate={() => setKeyB(true)}
                     testId="key-bravo"
+                    onboardingId="onboarding.launch.key-bravo"
                   />
                 </div>
                 <p className="text-xs text-muted-foreground">
@@ -180,6 +182,7 @@ export function NuclearLaunchModal({ open, onConfirm, onCancel }: NuclearLaunchM
             {/* Abort button */}
             {phase === "keys" && (
               <Button
+                data-onboarding-id="onboarding.launch.abort"
                 variant="ghost"
                 className="text-muted-foreground hover:text-white"
                 onClick={handleCancel}
@@ -199,16 +202,19 @@ function KeySwitch({
   active,
   onActivate,
   testId,
+  onboardingId,
 }: {
   label: string;
   active: boolean;
   onActivate: () => void;
   testId: string;
+  onboardingId: string;
 }) {
   return (
     <button
       type="button"
       data-testid={testId}
+      data-onboarding-id={onboardingId}
       onClick={onActivate}
       disabled={active}
       className="group flex flex-col items-center gap-2"

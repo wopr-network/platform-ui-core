@@ -1,3 +1,14 @@
+/**
+ * data-onboarding-id convention (WOP-1036)
+ * -----------------------------------------
+ * Format: {page}.{action}.{qualifier?}
+ * - page:      marketplace | onboarding | provider | fleet | pricing | dashboard | launch
+ * - action:    verb describing what clicking does (install, continue, skip, select, search, etc.)
+ * - qualifier:  optional disambiguator — typically a dynamic ID (pluginId, botId, plan, channelId)
+ *
+ * IDs are STABLE. Do not rename without updating onboarding.md skill file.
+ * Bot uses: onboarding.click("marketplace.install.wopr-plugin-secretary")
+ */
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";

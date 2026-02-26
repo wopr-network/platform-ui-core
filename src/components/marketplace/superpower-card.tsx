@@ -37,6 +37,7 @@ export function SuperpowerCard({ plugin, index = 0 }: SuperpowerCardProps) {
 
   return (
     <motion.div
+      data-onboarding-id={`marketplace.card.${plugin.id}`}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: index * 0.05, ease: "easeOut" }}
@@ -79,6 +80,7 @@ export function SuperpowerCard({ plugin, index = 0 }: SuperpowerCardProps) {
 
             {/* CTA */}
             <Button
+              data-onboarding-id={`marketplace.install.${plugin.id}`}
               size="sm"
               variant="outline"
               className="mt-4 hover:border-primary/40"

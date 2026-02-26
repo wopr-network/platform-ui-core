@@ -37,6 +37,7 @@ export function TerminalSearch({
       <div className="relative flex-1">
         <input
           ref={inputRef}
+          data-onboarding-id="marketplace.search"
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}

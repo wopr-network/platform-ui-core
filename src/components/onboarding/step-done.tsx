@@ -120,10 +120,19 @@ export function StepDone({ onGoToDashboard, onCreateAnother }: StepDoneProps) {
 
       <AnimatedContent visible={showContent}>
         <div className="flex flex-col items-center gap-3">
-          <Button size="lg" variant="terminal" onClick={onGoToDashboard}>
+          <Button
+            data-onboarding-id="onboarding.go-to-dashboard"
+            size="lg"
+            variant="terminal"
+            onClick={onGoToDashboard}
+          >
             Go to Dashboard
           </Button>
-          <Button variant="ghost" onClick={onCreateAnother}>
+          <Button
+            data-onboarding-id="onboarding.create-another"
+            variant="ghost"
+            onClick={onCreateAnother}
+          >
             Create another WOPR
           </Button>
         </div>
