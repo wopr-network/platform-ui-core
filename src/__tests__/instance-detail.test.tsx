@@ -85,6 +85,8 @@ vi.mock("@/lib/api", () => ({
   }),
   restoreSnapshot: vi.fn().mockResolvedValue(undefined),
   deleteSnapshot: vi.fn().mockResolvedValue(undefined),
+  getInstanceSecretKeys: vi.fn().mockResolvedValue(["DISCORD_TOKEN", "OPENAI_API_KEY"]),
+  updateInstanceSecrets: vi.fn().mockResolvedValue(undefined),
 }));
 
 describe("InstanceDetailClient", () => {
@@ -350,5 +352,63 @@ describe("InstanceDetailClient", () => {
 
     await user.click(screen.getByText("Pull Update"));
     expect(pullImageUpdate).not.toHaveBeenCalled();
+  });
+
+  it("shows Secrets section in Config tab with existing secret keys", async () => {
+    const user = userEvent.setup();
+    render(<InstanceDetailClient instanceId="inst-001" />);
+
+    await waitFor(() => {
+      expect(screen.getByText("test-instance")).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("tab", { name: "Config" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Secrets")).toBeInTheDocument();
+    });
+    expect(screen.getByText("DISCORD_TOKEN")).toBeInTheDocument();
+    expect(screen.getByText("OPENAI_API_KEY")).toBeInTheDocument();
+  });
+
+  it("calls updateInstanceSecrets when saving a secret value", async () => {
+    const user = userEvent.setup();
+    const { updateInstanceSecrets } = await import("@/lib/api");
+
+    render(<InstanceDetailClient instanceId="inst-001" />);
+    await waitFor(() => {
+      expect(screen.getByText("test-instance")).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("tab", { name: "Config" }));
+    await waitFor(() => {
+      expect(screen.getByText("Secrets")).toBeInTheDocument();
+    });
+
+    const inputs = screen.getAllByPlaceholderText("Enter new value...");
+    await user.type(inputs[0], "new-secret-value");
+
+    await user.click(screen.getByRole("button", { name: "Save Secrets" }));
+
+    expect(updateInstanceSecrets).toHaveBeenCalledWith("inst-001", {
+      DISCORD_TOKEN: "new-secret-value",
+    });
+  });
+
+  it("allows adding a new secret key", async () => {
+    const user = userEvent.setup();
+    render(<InstanceDetailClient instanceId="inst-001" />);
+    await waitFor(() => {
+      expect(screen.getByText("test-instance")).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("tab", { name: "Config" }));
+    await waitFor(() => {
+      expect(screen.getByText("Secrets")).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Add Secret" }));
+
+    expect(screen.getByPlaceholderText("SECRET_KEY_NAME")).toBeInTheDocument();
   });
 });
