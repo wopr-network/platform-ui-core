@@ -114,7 +114,7 @@ export function StepPowerSource({
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {/* Hosted option */}
         <motion.button
-          data-onboarding-id="provider.hosted"
+          data-onboarding-id="onboarding.provider.hosted"
           type="button"
           className="text-left"
           onClick={() => onProviderModeChange("hosted")}
@@ -149,7 +149,7 @@ export function StepPowerSource({
 
         {/* BYOK option */}
         <motion.button
-          data-onboarding-id="provider.byok"
+          data-onboarding-id="onboarding.provider.byok"
           type="button"
           className="text-left"
           onClick={() => onProviderModeChange("byok")}
@@ -203,7 +203,7 @@ export function StepPowerSource({
                 aria-label="AI Provider"
               >
                 <button
-                  data-onboarding-id="provider.byok.openai"
+                  data-onboarding-id="onboarding.provider.byok.openai"
                   type="button"
                   className="text-left"
                   aria-pressed={byokAiProvider === "openai"}
@@ -232,7 +232,7 @@ export function StepPowerSource({
                 </button>
 
                 <button
-                  data-onboarding-id="provider.byok.openrouter"
+                  data-onboarding-id="onboarding.provider.byok.openrouter"
                   type="button"
                   className="text-left"
                   aria-pressed={byokAiProvider === "openrouter"}
@@ -327,7 +327,7 @@ export function StepPowerSource({
               Don't have a key? Switch to WOPR Hosted for zero-config AI access.
             </p>
             <Button
-              data-onboarding-id="provider.switch-to-hosted"
+              data-onboarding-id="onboarding.provider.switch-to-hosted"
               type="button"
               variant="ghost"
               size="sm"

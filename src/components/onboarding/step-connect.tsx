@@ -68,6 +68,7 @@ export function StepConnect({
             {channel.configFields.map((field) => (
               <ConnectField
                 key={field.key}
+                channelId={channel.id}
                 field={field}
                 value={channelKeyValues[field.key] || ""}
                 error={channelKeyErrors[field.key] ?? null}
@@ -123,12 +124,14 @@ export function StepConnect({
 }
 
 function ConnectField({
+  channelId,
   field,
   value,
   error,
   onChange,
   onValidate,
 }: {
+  channelId: string;
   field: OnboardingConfigField;
   value: string;
   error: string | null;
@@ -146,7 +149,7 @@ function ConnectField({
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between">
-        <Label htmlFor={field.key}>{field.label}</Label>
+        <Label htmlFor={`${channelId}-${field.key}`}>{field.label}</Label>
         {error && (
           <motion.span
             className="text-xs text-destructive"
@@ -163,8 +166,8 @@ function ConnectField({
         transition={error ? { duration: 0.3 } : undefined}
       >
         <Input
-          data-onboarding-id={`onboarding.connect.key.${field.key}`}
-          id={field.key}
+          data-onboarding-id={`onboarding.connect.key.${channelId}.${field.key}`}
+          id={`${channelId}-${field.key}`}
           type={field.secret && !showSecret ? "password" : "text"}
           placeholder={field.placeholder}
           value={value}
