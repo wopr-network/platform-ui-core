@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import type {
   BillingInfo,
   BillingUsage,
+  BillingUsageSummary,
   HostedUsageEvent,
   HostedUsageSummary,
   ProviderCost,
@@ -41,8 +42,18 @@ const MOCK_USAGE: BillingUsage = {
 };
 
 const MOCK_PROVIDER_COSTS: ProviderCost[] = [
-  { provider: "Anthropic", estimatedCost: 23.4, inputTokens: 580000, outputTokens: 410000 },
-  { provider: "OpenAI", estimatedCost: 8.12, inputTokens: 210000, outputTokens: 145000 },
+  {
+    provider: "Anthropic",
+    estimatedCost: 23.4,
+    inputTokens: 580000,
+    outputTokens: 410000,
+  },
+  {
+    provider: "OpenAI",
+    estimatedCost: 8.12,
+    inputTokens: 210000,
+    outputTokens: 145000,
+  },
 ];
 
 const MOCK_HOSTED_USAGE: HostedUsageSummary = {
@@ -81,6 +92,15 @@ const MOCK_HOSTED_USAGE: HostedUsageSummary = {
   totalCost: 1.45,
   includedCredit: 50,
   amountDue: 0,
+};
+
+const MOCK_USAGE_SUMMARY: BillingUsageSummary = {
+  periodStart: "2026-02-01T00:00:00Z",
+  periodEnd: "2026-02-28T23:59:59Z",
+  totalSpend: 45.5,
+  includedCredit: 50.0,
+  amountDue: 0,
+  planName: "Pro",
 };
 
 const MOCK_HOSTED_EVENTS: HostedUsageEvent[] = [
@@ -189,6 +209,7 @@ vi.mock("@/lib/api", async (importOriginal) => {
     getHostedUsageEvents: vi.fn().mockResolvedValue(MOCK_HOSTED_EVENTS),
     getSpendingLimits: vi.fn().mockResolvedValue(MOCK_SPENDING_LIMITS),
     updateSpendingLimits: vi.fn().mockResolvedValue(undefined),
+    getBillingUsageSummary: vi.fn().mockResolvedValue(MOCK_USAGE_SUMMARY),
   };
 });
 
@@ -246,7 +267,7 @@ describe("Usage page", () => {
     // Initially shows skeleton loading state
     expect(document.querySelector('[data-slot="skeleton"]')).toBeInTheDocument();
     expect(await screen.findByText("Usage")).toBeInTheDocument();
-    expect(screen.getByText(/Pro plan/)).toBeInTheDocument();
+    expect(screen.getAllByText(/Pro plan/).length).toBeGreaterThanOrEqual(1);
   });
 
   it("renders platform usage metrics", async () => {
@@ -289,6 +310,16 @@ describe("Usage page", () => {
     expect(screen.getByText("~$23.40")).toBeInTheDocument();
     expect(screen.getByText("~$8.12")).toBeInTheDocument();
     expect(screen.getByText(/WOPR does not charge for inference/)).toBeInTheDocument();
+  });
+
+  it("renders billing usage summary card with total spend", async () => {
+    const { default: UsagePage } = await import("../app/(dashboard)/billing/usage/page");
+    render(<UsagePage />);
+
+    expect(await screen.findByText("Billing Summary")).toBeInTheDocument();
+    expect(screen.getByText("$45.50")).toBeInTheDocument();
+    expect(screen.getByText("-$50.00")).toBeInTheDocument();
+    expect(screen.getAllByText("$0.00").length).toBeGreaterThanOrEqual(1);
   });
 
   it("renders usage over time chart", async () => {
@@ -350,7 +381,9 @@ describe("Payment page", () => {
     const { default: PaymentPage } = await import("../app/(dashboard)/billing/payment/page");
     render(<PaymentPage />);
 
-    const downloadLinks = await screen.findAllByRole("link", { name: "Download" });
+    const downloadLinks = await screen.findAllByRole("link", {
+      name: "Download",
+    });
     expect(downloadLinks.length).toBe(3);
   });
 
@@ -365,7 +398,9 @@ describe("Payment page", () => {
     const { default: PaymentPage } = await import("../app/(dashboard)/billing/payment/page");
     render(<PaymentPage />);
 
-    const removeButtons = await screen.findAllByRole("button", { name: "Remove" });
+    const removeButtons = await screen.findAllByRole("button", {
+      name: "Remove",
+    });
     expect(removeButtons.length).toBe(2);
   });
 
@@ -373,7 +408,9 @@ describe("Payment page", () => {
     const { default: PaymentPage } = await import("../app/(dashboard)/billing/payment/page");
     render(<PaymentPage />);
 
-    const setDefaultButtons = await screen.findAllByRole("button", { name: "Set as default" });
+    const setDefaultButtons = await screen.findAllByRole("button", {
+      name: "Set as default",
+    });
     expect(setDefaultButtons).toHaveLength(1);
   });
 
@@ -383,7 +420,9 @@ describe("Payment page", () => {
     const { default: PaymentPage } = await import("../app/(dashboard)/billing/payment/page");
     render(<PaymentPage />);
 
-    const setDefaultBtn = await screen.findByRole("button", { name: "Set as default" });
+    const setDefaultBtn = await screen.findByRole("button", {
+      name: "Set as default",
+    });
     await user.click(setDefaultBtn);
 
     expect(api.setDefaultPaymentMethod).toHaveBeenCalledWith("pm-2");

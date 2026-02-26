@@ -30,6 +30,14 @@ vi.mock("@/lib/api", async (importOriginal) => {
   return {
     ...actual,
     getCreditBalance: vi.fn().mockResolvedValue(MOCK_BALANCE),
+    getBillingUsageSummary: vi.fn().mockResolvedValue({
+      periodStart: "2026-02-01T00:00:00Z",
+      periodEnd: "2026-02-28T23:59:59Z",
+      totalSpend: 30,
+      includedCredit: 50,
+      amountDue: 0,
+      planName: "Pro",
+    }),
   };
 });
 
@@ -85,6 +93,30 @@ describe("SuspensionBanner", () => {
 
     await waitFor(() => {
       expect(screen.getByText(/Credits critically low/)).toBeInTheDocument();
+    });
+  });
+
+  it("shows high-spend warning when amountDue exceeds zero", async () => {
+    const api = await import("@/lib/api");
+    vi.mocked(api.getCreditBalance).mockResolvedValueOnce({
+      balance: 10,
+      dailyBurn: 2,
+      runway: 5,
+    });
+    vi.mocked(api.getBillingUsageSummary).mockResolvedValueOnce({
+      periodStart: "2026-02-01T00:00:00Z",
+      periodEnd: "2026-02-28T23:59:59Z",
+      totalSpend: 120,
+      includedCredit: 50,
+      amountDue: 70,
+      planName: "Pro",
+    });
+
+    const { SuspensionBanner } = await import("@/components/billing/suspension-banner");
+    render(<SuspensionBanner />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/\$70\.00 due/)).toBeInTheDocument();
     });
   });
 
