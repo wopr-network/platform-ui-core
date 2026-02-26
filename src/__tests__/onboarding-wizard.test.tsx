@@ -582,7 +582,7 @@ describe("StepPowerSource", () => {
         byokKeyErrors={{}}
         onByokKeyChange={vi.fn()}
         onValidateByokKey={vi.fn()}
-        byokKeyValidationStatus={{}}
+        byokKeyValidationStatus={{ openrouter_api_key: "valid" }}
         byokKeyValidationErrors={{}}
         onValidateByokKeyAsync={vi.fn()}
       />,
