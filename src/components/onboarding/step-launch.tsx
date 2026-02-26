@@ -111,6 +111,7 @@ export function StepLaunch({
         {(deployStatus === "idle" || deployStatus === "error") && (
           <div className="flex justify-center">
             <Button
+              data-onboarding-id="onboarding.launch"
               size="lg"
               variant="terminal"
               className="px-12 text-lg"
@@ -313,7 +314,12 @@ function LaunchSuccess({
           transition={{ duration: 0.4, delay: 0.2 }}
           className="flex flex-col items-center gap-3"
         >
-          <Button size="lg" variant="terminal" onClick={onGoToDashboard}>
+          <Button
+            data-onboarding-id="onboarding.go-to-dashboard"
+            size="lg"
+            variant="terminal"
+            onClick={onGoToDashboard}
+          >
             Open Dashboard
           </Button>
         </motion.div>

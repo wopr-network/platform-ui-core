@@ -115,7 +115,12 @@ export function StepBilling({
             className="flex flex-col items-center gap-3 py-4"
           >
             <p className="text-sm text-destructive">{error}</p>
-            <Button variant="outline" size="sm" onClick={fetchSetupIntent}>
+            <Button
+              data-onboarding-id="onboarding.billing.retry"
+              variant="outline"
+              size="sm"
+              onClick={fetchSetupIntent}
+            >
               Try again
             </Button>
           </motion.div>
@@ -241,7 +246,13 @@ function BillingSetupForm({
         )}
       </AnimatePresence>
 
-      <Button type="submit" variant="terminal" disabled={!stripe || submitting} className="w-full">
+      <Button
+        data-onboarding-id="onboarding.billing.save-card"
+        type="submit"
+        variant="terminal"
+        disabled={!stripe || submitting}
+        className="w-full"
+      >
         {submitting && (
           <span className="size-3.5 animate-spin rounded-full border-2 border-terminal border-t-transparent" />
         )}

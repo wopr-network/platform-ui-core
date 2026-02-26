@@ -201,7 +201,12 @@ export function SetupChecklist() {
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base">Let&apos;s get your WOPR running</CardTitle>
-          <Button variant="ghost" size="xs" onClick={handleDismiss}>
+          <Button
+            data-onboarding-id="dashboard.checklist.dismiss"
+            variant="ghost"
+            size="xs"
+            onClick={handleDismiss}
+          >
             Dismiss
           </Button>
         </div>
@@ -229,7 +234,13 @@ export function SetupChecklist() {
                   {ch.ready ? (
                     <Badge variant="terminal">Ready</Badge>
                   ) : (
-                    <Button asChild variant="link" size="xs" className="h-auto p-0">
+                    <Button
+                      data-onboarding-id={`dashboard.checklist.setup-channel.${ch.id}`}
+                      asChild
+                      variant="link"
+                      size="xs"
+                      className="h-auto p-0"
+                    >
                       <Link href="/settings/providers">Set up &rarr;</Link>
                     </Button>
                   )}
@@ -261,7 +272,13 @@ export function SetupChecklist() {
                   {sp.ready ? (
                     <Badge variant="terminal">Ready (Hosted)</Badge>
                   ) : (
-                    <Button asChild variant="link" size="xs" className="h-auto p-0">
+                    <Button
+                      data-onboarding-id={`dashboard.checklist.configure-key.${sp.id}`}
+                      asChild
+                      variant="link"
+                      size="xs"
+                      className="h-auto p-0"
+                    >
                       <Link href="/settings/providers">Configure key &rarr;</Link>
                     </Button>
                   )}

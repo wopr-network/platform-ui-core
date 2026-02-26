@@ -78,6 +78,7 @@ export function StepConnect({
             {/* Verify button */}
             <div className="flex items-center gap-3 mt-2">
               <Button
+                data-onboarding-id={`onboarding.connect.verify.${channel.id}`}
                 type="button"
                 variant="outline"
                 size="sm"
@@ -162,6 +163,7 @@ function ConnectField({
         transition={error ? { duration: 0.3 } : undefined}
       >
         <Input
+          data-onboarding-id={`onboarding.connect.key.${field.key}`}
           id={field.key}
           type={field.secret && !showSecret ? "password" : "text"}
           placeholder={field.placeholder}

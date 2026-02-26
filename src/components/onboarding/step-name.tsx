@@ -66,6 +66,7 @@ export function StepName({
       <div className="space-y-2">
         <Label htmlFor="wopr-name">Name</Label>
         <Input
+          data-onboarding-id="onboarding.name.input"
           id="wopr-name"
           placeholder="e.g. jarvis, friday, hal"
           value={name}
@@ -81,7 +82,7 @@ export function StepName({
             value={cloneFromBotId}
             onValueChange={(value) => onCloneFromBot?.(value === "__none__" ? "" : value)}
           >
-            <SelectTrigger>
+            <SelectTrigger data-onboarding-id="onboarding.name.clone-from">
               <SelectValue placeholder="Start fresh" />
             </SelectTrigger>
             <SelectContent>
@@ -104,6 +105,7 @@ export function StepName({
             return (
               <button
                 key={p.id}
+                data-onboarding-id={`onboarding.name.personality.${p.id}`}
                 type="button"
                 className="text-left"
                 onClick={() => onPersonalityChange(p.id)}
@@ -158,6 +160,7 @@ export function StepName({
         <div className="space-y-2">
           <Label htmlFor="custom-personality">Describe your personality</Label>
           <Input
+            data-onboarding-id="onboarding.name.custom-personality"
             id="custom-personality"
             placeholder="e.g. Sarcastic but brilliant..."
             value={customPersonality}

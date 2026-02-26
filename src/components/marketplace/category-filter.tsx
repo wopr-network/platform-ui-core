@@ -30,6 +30,7 @@ export function CategoryFilter({ selected, onSelect, counts }: CategoryFilterPro
         return (
           <button
             key={item.id ?? "all"}
+            data-onboarding-id={`marketplace.category.${item.id ?? "all"}`}
             type="button"
             role="tab"
             aria-selected={isSelected}

@@ -203,7 +203,12 @@ export default function PluginDetailPage() {
       transition={{ duration: 0.3 }}
       className="p-6 space-y-6"
     >
-      <Button variant="ghost" onClick={() => router.push("/marketplace")} className="mb-2 gap-2">
+      <Button
+        data-onboarding-id="marketplace.back"
+        variant="ghost"
+        onClick={() => router.push("/marketplace")}
+        className="mb-2 gap-2"
+      >
         <ArrowLeft className="h-4 w-4" />
         Back to Superpowers
       </Button>
@@ -243,7 +248,12 @@ export default function PluginDetailPage() {
 
         {/* CTA -- above the fold */}
         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-          <Button size="lg" onClick={() => setInstalling(true)} className="gap-2 min-w-[280px]">
+          <Button
+            data-onboarding-id={`marketplace.install.${plugin.id}`}
+            size="lg"
+            onClick={() => setInstalling(true)}
+            className="gap-2 min-w-[280px]"
+          >
             <Download className="h-4 w-4" />
             Give my bot this superpower
           </Button>

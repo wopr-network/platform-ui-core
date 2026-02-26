@@ -40,6 +40,7 @@ export function StepChannels({
           return (
             <button
               key={channel.id}
+              data-onboarding-id={`onboarding.channel.${channel.id}`}
               type="button"
               className="text-left"
               onClick={() => onToggle(channel.id)}

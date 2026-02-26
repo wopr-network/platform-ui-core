@@ -246,16 +246,28 @@ export function InstallWizard({ plugin, onComplete, onCancel }: InstallWizardPro
       <CardFooter className="flex justify-between">
         <div>
           {isFirstStep ? (
-            <Button variant="ghost" onClick={onCancel}>
+            <Button
+              data-onboarding-id="marketplace.wizard.cancel"
+              variant="ghost"
+              onClick={onCancel}
+            >
               Cancel
             </Button>
           ) : (
-            <Button variant="ghost" onClick={handleBack}>
+            <Button
+              data-onboarding-id="marketplace.wizard.back"
+              variant="ghost"
+              onClick={handleBack}
+            >
               Back
             </Button>
           )}
         </div>
-        <Button onClick={handleNext} disabled={isContinueDisabled}>
+        <Button
+          data-onboarding-id="marketplace.wizard.continue"
+          onClick={handleNext}
+          disabled={isContinueDisabled}
+        >
           {currentPhase === "complete" ? "Done" : "Continue"}
         </Button>
       </CardFooter>
@@ -316,6 +328,7 @@ function BotSelector({
       {bots.map((bot) => (
         <button
           key={bot.id}
+          data-onboarding-id={`marketplace.wizard.select-bot.${bot.id}`}
           type="button"
           onClick={() => onSelect(bot.id)}
           className={cn(
@@ -399,6 +412,7 @@ function ProviderSelector({
             </div>
             <div className="mt-3 flex gap-2">
               <Button
+                data-onboarding-id={`marketplace.wizard.provider.hosted.${adapter.capability}`}
                 variant={choice === "hosted" ? "default" : "outline"}
                 size="sm"
                 onClick={() => onChoose(adapter.capability, "hosted")}
@@ -406,6 +420,7 @@ function ProviderSelector({
                 WOPR Hosted
               </Button>
               <Button
+                data-onboarding-id={`marketplace.wizard.provider.byok.${adapter.capability}`}
                 variant={choice === "byok" ? "default" : "outline"}
                 size="sm"
                 onClick={() => onChoose(adapter.capability, "byok")}

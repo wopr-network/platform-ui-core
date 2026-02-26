@@ -180,6 +180,7 @@ export function NuclearLaunchModal({ open, onConfirm, onCancel }: NuclearLaunchM
             {/* Abort button */}
             {phase === "keys" && (
               <Button
+                data-onboarding-id="onboarding.launch.abort"
                 variant="ghost"
                 className="text-muted-foreground hover:text-white"
                 onClick={handleCancel}
@@ -209,6 +210,7 @@ function KeySwitch({
     <button
       type="button"
       data-testid={testId}
+      data-onboarding-id={`onboarding.launch.${testId}`}
       onClick={onActivate}
       disabled={active}
       className="group flex flex-col items-center gap-2"

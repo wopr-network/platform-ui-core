@@ -232,10 +232,16 @@ export function OnboardingWizard({ mode = "onboarding" }: OnboardingWizardProps)
       {/* Navigation */}
       {showBackNext && state.step !== "launch" && (
         <div className="mt-8 flex justify-between">
-          <Button variant="ghost" onClick={actions.back} disabled={state.step === "name"}>
+          <Button
+            data-onboarding-id="onboarding.back"
+            variant="ghost"
+            onClick={actions.back}
+            disabled={state.step === "name"}
+          >
             Back
           </Button>
           <Button
+            data-onboarding-id="onboarding.continue"
             variant="terminal"
             onClick={actions.next}
             disabled={!actions.canAdvance()}

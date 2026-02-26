@@ -92,6 +92,7 @@ export function StepSuperpowers({
                   </div>
                 </div>
                 <Switch
+                  data-onboarding-id={`onboarding.superpower.${sp.id}`}
                   checked={isSelected}
                   onCheckedChange={() => onToggle(sp.id)}
                   aria-label={`Toggle ${sp.name}`}
