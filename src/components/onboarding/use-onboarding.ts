@@ -75,6 +75,8 @@ export interface OnboardingState {
   creditBalance: string;
   byokKeyValues: Record<string, string>;
   byokKeyErrors: Record<string, string | null>;
+  byokKeyValidationStatus: Record<string, "idle" | "validating" | "valid" | "invalid">;
+  byokKeyValidationErrors: Record<string, string | null>;
   // Step 5b: Billing (hosted mode only)
   paymentMethodReady: boolean;
   // Step 6: Launch
@@ -103,6 +105,7 @@ export interface OnboardingActions {
   setByokAiProvider: (provider: ByokAiProvider) => void;
   setByokKeyValue: (key: string, value: string) => void;
   validateByokKey: (key: string) => void;
+  validateByokKeyAsync: (key: string) => Promise<void>;
   // Step 5b
   setPaymentMethodReady: (ready: boolean) => void;
   // Navigation
@@ -257,6 +260,12 @@ export function useOnboarding(
   const [byokAiProvider, setByokAiProviderState] = useState<ByokAiProvider>("openrouter");
   const [byokKeyValues, setByokKeyValues] = useState<Record<string, string>>({});
   const [byokKeyErrors, setByokKeyErrors] = useState<Record<string, string | null>>({});
+  const [byokKeyValidationStatus, setByokKeyValidationStatus] = useState<
+    Record<string, "idle" | "validating" | "valid" | "invalid">
+  >({});
+  const [byokKeyValidationErrors, setByokKeyValidationErrors] = useState<
+    Record<string, string | null>
+  >({});
   // Step 5b: Billing
   const [paymentMethodReady, setPaymentMethodReady] = useState(false);
   // Step 6
@@ -460,6 +469,18 @@ export function useOnboarding(
         delete next.openrouter_api_key;
         return next;
       });
+      setByokKeyValidationStatus((prev) => {
+        const next = { ...prev };
+        delete next.openai_api_key;
+        delete next.openrouter_api_key;
+        return next;
+      });
+      setByokKeyValidationErrors((prev) => {
+        const next = { ...prev };
+        delete next.openai_api_key;
+        delete next.openrouter_api_key;
+        return next;
+      });
     },
     [byokAiProvider],
   );
@@ -467,6 +488,8 @@ export function useOnboarding(
   const setByokKeyValue = useCallback((key: string, value: string) => {
     setByokKeyValues((prev) => ({ ...prev, [key]: value }));
     setByokKeyErrors((prev) => ({ ...prev, [key]: null }));
+    setByokKeyValidationStatus((prev) => ({ ...prev, [key]: "idle" }));
+    setByokKeyValidationErrors((prev) => ({ ...prev, [key]: null }));
   }, []);
 
   const validateByokKey = useCallback(
@@ -478,6 +501,46 @@ export function useOnboarding(
       setByokKeyErrors((prev) => ({ ...prev, [key]: error }));
     },
     [byokConfigFields, byokKeyValues, registry],
+  );
+
+  const validateByokKeyAsync = useCallback(
+    async (key: string) => {
+      const value = byokKeyValues[key] || "";
+      if (!value.trim()) return;
+
+      let provider: string;
+      if (key === "openai_api_key") {
+        provider = "openai";
+      } else if (key === "openrouter_api_key") {
+        provider = "openrouter";
+      } else {
+        provider = key.replace(/_api_key$/, "");
+      }
+
+      setByokKeyValidationStatus((prev) => ({ ...prev, [key]: "validating" }));
+      setByokKeyValidationErrors((prev) => ({ ...prev, [key]: null }));
+
+      try {
+        const { testProviderKey } = await import("@/lib/settings-api");
+        const result = await testProviderKey(provider, value);
+        if (result.valid) {
+          setByokKeyValidationStatus((prev) => ({ ...prev, [key]: "valid" }));
+        } else {
+          setByokKeyValidationStatus((prev) => ({ ...prev, [key]: "invalid" }));
+          setByokKeyValidationErrors((prev) => ({
+            ...prev,
+            [key]: result.error ?? "Invalid API key. Please check and try again.",
+          }));
+        }
+      } catch {
+        setByokKeyValidationStatus((prev) => ({ ...prev, [key]: "invalid" }));
+        setByokKeyValidationErrors((prev) => ({
+          ...prev,
+          [key]: "Could not validate key. Check your connection and try again.",
+        }));
+      }
+    },
+    [byokKeyValues],
   );
 
   const canAdvance = useCallback((): boolean => {
@@ -499,10 +562,12 @@ export function useOnboarding(
         return true; // informational, always skippable
       case "power-source":
         if (providerMode === "hosted") return true;
-        // BYOK: all key fields must be valid
+        // BYOK: all key fields must pass regex AND server validation
         return byokConfigFields.every((f) => {
           const value = byokKeyValues[f.key] || "";
-          return registry.validateField(f, value) === null;
+          return (
+            registry.validateField(f, value) === null && byokKeyValidationStatus[f.key] === "valid"
+          );
         });
       case "billing":
         return paymentMethodReady;
@@ -519,6 +584,7 @@ export function useOnboarding(
     providerMode,
     byokConfigFields,
     byokKeyValues,
+    byokKeyValidationStatus,
     paymentMethodReady,
     deployStatus,
     registry,
@@ -659,6 +725,8 @@ export function useOnboarding(
     setByokAiProviderState("openrouter");
     setByokKeyValues({});
     setByokKeyErrors({});
+    setByokKeyValidationStatus({});
+    setByokKeyValidationErrors({});
     setPaymentMethodReady(false);
     setDeployStatus("idle");
   }, [isFleetAdd, fleetSuperpowers]);
@@ -683,6 +751,8 @@ export function useOnboarding(
     creditBalance: realCreditBalance,
     byokKeyValues,
     byokKeyErrors,
+    byokKeyValidationStatus,
+    byokKeyValidationErrors,
     paymentMethodReady,
     deployStatus,
     existingBots: isFleetAdd ? fetchedBots : [],
@@ -703,6 +773,7 @@ export function useOnboarding(
     setByokAiProvider,
     setByokKeyValue,
     validateByokKey,
+    validateByokKeyAsync,
     setPaymentMethodReady,
     next,
     back,

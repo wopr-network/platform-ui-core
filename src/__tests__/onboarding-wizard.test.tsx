@@ -363,6 +363,9 @@ describe("StepPowerSource", () => {
         byokKeyErrors={{}}
         onByokKeyChange={vi.fn()}
         onValidateByokKey={vi.fn()}
+        byokKeyValidationStatus={{}}
+        byokKeyValidationErrors={{}}
+        onValidateByokKeyAsync={vi.fn()}
       />,
     );
     expect(screen.getByText("WOPR Hosted")).toBeInTheDocument();
@@ -383,6 +386,9 @@ describe("StepPowerSource", () => {
         byokKeyErrors={{}}
         onByokKeyChange={vi.fn()}
         onValidateByokKey={vi.fn()}
+        byokKeyValidationStatus={{}}
+        byokKeyValidationErrors={{}}
+        onValidateByokKeyAsync={vi.fn()}
       />,
     );
     expect(screen.getByText("You have $5.00 credit")).toBeInTheDocument();
@@ -402,6 +408,9 @@ describe("StepPowerSource", () => {
         byokKeyErrors={{}}
         onByokKeyChange={vi.fn()}
         onValidateByokKey={vi.fn()}
+        byokKeyValidationStatus={{}}
+        byokKeyValidationErrors={{}}
+        onValidateByokKeyAsync={vi.fn()}
       />,
     );
     fireEvent.click(screen.getByText("WOPR Hosted"));
@@ -421,6 +430,9 @@ describe("StepPowerSource", () => {
         byokKeyErrors={{}}
         onByokKeyChange={vi.fn()}
         onValidateByokKey={vi.fn()}
+        byokKeyValidationStatus={{}}
+        byokKeyValidationErrors={{}}
+        onValidateByokKeyAsync={vi.fn()}
       />,
     );
     expect(screen.getByText("Replicate API Token")).toBeInTheDocument();
@@ -439,6 +451,9 @@ describe("StepPowerSource", () => {
         byokKeyErrors={{}}
         onByokKeyChange={vi.fn()}
         onValidateByokKey={vi.fn()}
+        byokKeyValidationStatus={{}}
+        byokKeyValidationErrors={{}}
+        onValidateByokKeyAsync={vi.fn()}
       />,
     );
     expect(screen.getByText("ImageGen")).toBeInTheDocument();
@@ -458,6 +473,9 @@ describe("StepPowerSource", () => {
         byokKeyErrors={{}}
         onByokKeyChange={vi.fn()}
         onValidateByokKey={vi.fn()}
+        byokKeyValidationStatus={{}}
+        byokKeyValidationErrors={{}}
+        onValidateByokKeyAsync={vi.fn()}
       />,
     );
     expect(screen.queryByText("Replicate API Token")).not.toBeInTheDocument();
@@ -476,6 +494,9 @@ describe("StepPowerSource", () => {
         byokKeyErrors={{}}
         onByokKeyChange={vi.fn()}
         onValidateByokKey={vi.fn()}
+        byokKeyValidationStatus={{}}
+        byokKeyValidationErrors={{}}
+        onValidateByokKeyAsync={vi.fn()}
       />,
     );
     expect(screen.getByText("OpenAI")).toBeInTheDocument();
@@ -496,6 +517,9 @@ describe("StepPowerSource", () => {
         byokKeyErrors={{}}
         onByokKeyChange={vi.fn()}
         onValidateByokKey={vi.fn()}
+        byokKeyValidationStatus={{}}
+        byokKeyValidationErrors={{}}
+        onValidateByokKeyAsync={vi.fn()}
       />,
     );
     expect(screen.getByText("OpenRouter API Key")).toBeInTheDocument();
@@ -514,6 +538,9 @@ describe("StepPowerSource", () => {
         byokKeyErrors={{}}
         onByokKeyChange={vi.fn()}
         onValidateByokKey={vi.fn()}
+        byokKeyValidationStatus={{}}
+        byokKeyValidationErrors={{}}
+        onValidateByokKeyAsync={vi.fn()}
       />,
     );
     expect(screen.getByText("OpenAI API Key")).toBeInTheDocument();
@@ -533,6 +560,9 @@ describe("StepPowerSource", () => {
         byokKeyErrors={{}}
         onByokKeyChange={vi.fn()}
         onValidateByokKey={vi.fn()}
+        byokKeyValidationStatus={{}}
+        byokKeyValidationErrors={{}}
+        onValidateByokKeyAsync={vi.fn()}
       />,
     );
     fireEvent.click(screen.getByText("OpenAI"));
@@ -552,6 +582,9 @@ describe("StepPowerSource", () => {
         byokKeyErrors={{}}
         onByokKeyChange={vi.fn()}
         onValidateByokKey={vi.fn()}
+        byokKeyValidationStatus={{}}
+        byokKeyValidationErrors={{}}
+        onValidateByokKeyAsync={vi.fn()}
       />,
     );
     expect(screen.getByText("Key validated -- capabilities unlocked:")).toBeInTheDocument();
@@ -573,6 +606,9 @@ describe("StepPowerSource", () => {
         byokKeyErrors={{ openrouter_api_key: "Must start with sk-or-" }}
         onByokKeyChange={vi.fn()}
         onValidateByokKey={vi.fn()}
+        byokKeyValidationStatus={{}}
+        byokKeyValidationErrors={{}}
+        onValidateByokKeyAsync={vi.fn()}
       />,
     );
     expect(screen.queryByText("Key validated -- capabilities unlocked:")).not.toBeInTheDocument();
@@ -591,6 +627,9 @@ describe("StepPowerSource", () => {
         byokKeyErrors={{}}
         onByokKeyChange={vi.fn()}
         onValidateByokKey={vi.fn()}
+        byokKeyValidationStatus={{}}
+        byokKeyValidationErrors={{}}
+        onValidateByokKeyAsync={vi.fn()}
       />,
     );
     expect(screen.getByText("Switch to Hosted")).toBeInTheDocument();
@@ -610,6 +649,9 @@ describe("StepPowerSource", () => {
         byokKeyErrors={{}}
         onByokKeyChange={vi.fn()}
         onValidateByokKey={vi.fn()}
+        byokKeyValidationStatus={{}}
+        byokKeyValidationErrors={{}}
+        onValidateByokKeyAsync={vi.fn()}
       />,
     );
     fireEvent.click(screen.getByText("Switch to Hosted"));
@@ -629,6 +671,9 @@ describe("StepPowerSource", () => {
         byokKeyErrors={{}}
         onByokKeyChange={vi.fn()}
         onValidateByokKey={vi.fn()}
+        byokKeyValidationStatus={{}}
+        byokKeyValidationErrors={{}}
+        onValidateByokKeyAsync={vi.fn()}
       />,
     );
     expect(screen.queryByText("Choose your AI provider")).not.toBeInTheDocument();
@@ -648,6 +693,9 @@ describe("StepPowerSource", () => {
         byokKeyErrors={{}}
         onByokKeyChange={vi.fn()}
         onValidateByokKey={vi.fn()}
+        byokKeyValidationStatus={{}}
+        byokKeyValidationErrors={{}}
+        onValidateByokKeyAsync={vi.fn()}
       />,
     );
     expect(screen.getByText("Choose your AI provider")).toBeInTheDocument();
