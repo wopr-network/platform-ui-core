@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Banner } from "@/components/ui/banner";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,9 @@ interface StepPowerSourceProps {
   byokKeyErrors: Record<string, string | null>;
   onByokKeyChange: (key: string, value: string) => void;
   onValidateByokKey: (key: string) => void;
+  byokKeyValidationStatus: Record<string, "idle" | "validating" | "valid" | "invalid">;
+  byokKeyValidationErrors: Record<string, string | null>;
+  onValidateByokKeyAsync: (key: string) => Promise<void>;
   mode?: WizardMode;
   stepNumber?: string;
   stepCode?: string;
@@ -45,6 +48,9 @@ export function StepPowerSource({
   byokKeyErrors,
   onByokKeyChange,
   onValidateByokKey,
+  byokKeyValidationStatus,
+  byokKeyValidationErrors,
+  onValidateByokKeyAsync,
   mode = "onboarding",
   stepNumber = "05",
   stepCode = "POWER SOURCE",
@@ -63,10 +69,10 @@ export function StepPowerSource({
   // Get the active AI key field based on selected provider
   const aiKeyField = useMemo(() => getAiKeyField(byokAiProvider), [byokAiProvider]);
 
-  // Check if the AI key is currently valid (has value, no error)
+  // Check if the AI key is server-validated
   const aiKeyValue = byokKeyValues[aiKeyField.key] || "";
   const aiKeyError = byokKeyErrors[aiKeyField.key] ?? null;
-  const aiKeyValid = aiKeyValue.trim().length > 0 && aiKeyError === null;
+  const aiKeyValid = byokKeyValidationStatus[aiKeyField.key] === "valid";
 
   // Deduplicated non-AI config fields
   const nonAiConfigFields = useMemo(() => {
@@ -271,11 +277,19 @@ export function StepPowerSource({
                 error={aiKeyError}
                 onChange={onByokKeyChange}
                 onValidate={onValidateByokKey}
+                validationStatus={byokKeyValidationStatus[aiKeyField.key] ?? "idle"}
+                validationError={byokKeyValidationErrors[aiKeyField.key] ?? null}
+                onValidateAsync={onValidateByokKeyAsync}
               />
 
-              {/* Capability unlock confirmation */}
+              {/* Capability unlock confirmation — gated on server validation */}
               {aiKeyValid && (
-                <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-4">
+                <motion.div
+                  className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-4"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, ease: "easeOut" }}
+                >
                   <p className="mb-3 text-sm font-medium text-emerald-500">
                     Key validated -- capabilities unlocked:
                   </p>
@@ -304,7 +318,7 @@ export function StepPowerSource({
                       );
                     })}
                   </ul>
-                </div>
+                </motion.div>
               )}
             </div>
           )}
@@ -318,6 +332,9 @@ export function StepPowerSource({
               error={byokKeyErrors[field.key] ?? null}
               onChange={onByokKeyChange}
               onValidate={onValidateByokKey}
+              validationStatus={byokKeyValidationStatus[field.key] ?? "idle"}
+              validationError={byokKeyValidationErrors[field.key] ?? null}
+              onValidateAsync={onValidateByokKeyAsync}
             />
           ))}
 
@@ -349,14 +366,21 @@ function ByokField({
   error,
   onChange,
   onValidate,
+  validationStatus = "idle",
+  validationError,
+  onValidateAsync,
 }: {
   field: OnboardingConfigField;
   value: string;
   error: string | null;
   onChange: (key: string, value: string) => void;
   onValidate: (key: string) => void;
+  validationStatus?: "idle" | "validating" | "valid" | "invalid";
+  validationError?: string | null;
+  onValidateAsync?: (key: string) => Promise<void>;
 }) {
   const [showSecret, setShowSecret] = useState(false);
+  const [shakeKey, setShakeKey] = useState(0);
 
   const handleBlur = useCallback(() => {
     if (value.trim()) {
@@ -364,16 +388,58 @@ function ByokField({
     }
   }, [field.key, value, onValidate]);
 
+  const handleValidateClick = useCallback(() => {
+    if (onValidateAsync) {
+      onValidateAsync(field.key).then(undefined, () => {
+        // Error is already handled inside validateByokKeyAsync
+      });
+    }
+  }, [field.key, onValidateAsync]);
+
+  // Trigger shake on transition to invalid
+  const handleShake = useCallback(() => {
+    setShakeKey((k) => k + 1);
+  }, []);
+
+  const prevStatusRef = useRef<string>("idle");
+  if (validationStatus === "invalid" && prevStatusRef.current !== "invalid") {
+    handleShake();
+  }
+  prevStatusRef.current = validationStatus;
+
   const hasValue = value.trim().length > 0;
-  const isValid = hasValue && error === null;
+  const isFormatOk = hasValue && error === null;
+
+  const validationButtonLabel =
+    validationStatus === "validating"
+      ? "[CHECKING...]"
+      : validationStatus === "valid"
+        ? "[VALIDATED]"
+        : "[VALIDATE]";
 
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between">
         <Label htmlFor={`byok-${field.key}`}>{field.label}</Label>
-        <div className="flex items-center gap-2 text-xs">
-          {isValid && <span className="text-emerald-500">valid</span>}
-          {error && (
+        <div className="flex items-center gap-2 font-mono text-xs">
+          {validationStatus === "valid" && <span className="text-emerald-500">validated</span>}
+          {validationStatus === "validating" && (
+            <span className="text-terminal animate-pulse">validating...</span>
+          )}
+          {validationStatus === "invalid" && validationError && (
+            <motion.span
+              className="text-destructive"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.2 }}
+            >
+              {validationError}
+            </motion.span>
+          )}
+          {validationStatus === "idle" && isFormatOk && (
+            <span className="text-muted-foreground">format ok</span>
+          )}
+          {validationStatus === "idle" && error && (
             <motion.span
               className="text-destructive"
               initial={{ opacity: 0 }}
@@ -385,9 +451,16 @@ function ByokField({
         </div>
       </div>
       <motion.div
+        key={shakeKey}
         className="flex gap-2"
-        animate={error ? { x: [0, -4, 4, -4, 0] } : undefined}
-        transition={error ? { duration: 0.3 } : undefined}
+        animate={
+          error || (validationStatus === "invalid" && shakeKey > 0)
+            ? { x: [0, -4, 4, -4, 0] }
+            : undefined
+        }
+        transition={
+          error || (validationStatus === "invalid" && shakeKey > 0) ? { duration: 0.3 } : undefined
+        }
       >
         <Input
           id={`byok-${field.key}`}
@@ -399,9 +472,11 @@ function ByokField({
           className={cn(
             "bg-black/50 border-terminal/30 font-mono text-sm placeholder:text-terminal/20",
             "focus-visible:border-terminal focus-visible:ring-terminal/30",
-            error && "border-destructive ring-destructive/20",
+            validationStatus === "validating" && "border-terminal/50",
+            validationStatus === "valid" && "border-emerald-500/40",
+            (error || validationStatus === "invalid") && "border-destructive ring-destructive/20",
           )}
-          aria-invalid={!!error}
+          aria-invalid={!!error || validationStatus === "invalid"}
         />
         {field.secret && (
           <Button
@@ -412,6 +487,24 @@ function ByokField({
             onClick={() => setShowSecret(!showSecret)}
           >
             {showSecret ? "[HIDE]" : "[SHOW]"}
+          </Button>
+        )}
+        {onValidateAsync && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className={cn(
+              "shrink-0 font-mono text-xs",
+              validationStatus === "valid"
+                ? "text-emerald-500/60 hover:text-emerald-500"
+                : "text-terminal/60 hover:text-terminal",
+              validationStatus === "validating" && "animate-pulse",
+            )}
+            disabled={!hasValue || !!error || validationStatus === "validating"}
+            onClick={handleValidateClick}
+          >
+            {validationButtonLabel}
           </Button>
         )}
       </motion.div>
