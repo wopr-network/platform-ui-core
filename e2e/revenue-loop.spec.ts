@@ -10,7 +10,7 @@ test.describe("Core revenue loop", () => {
 		await mockFleetAPI(page, state);
 
 		// Login
-		await page.goto("/login");
+		await page.goto("/login?callbackUrl=/marketplace");
 		await bypassOnboarding(page);
 		await page.getByLabel("Email").fill("e2e@wopr.test");
 		await page.getByLabel("Password").fill("TestPassword123!");
@@ -27,15 +27,15 @@ test.describe("Core revenue loop", () => {
 
 		// Navigate to Discord plugin detail and start install
 		await page.goto("/marketplace/discord");
-		await expect(page.getByText("Discord")).toBeVisible({ timeout: 10000 });
+		await expect(page.getByRole("heading", { name: "Discord" })).toBeVisible({ timeout: 10000 });
 
-		await page.getByRole("button", { name: /install/i }).click();
+		await page.getByRole("button", { name: "Give my bot this superpower" }).click();
 
 		// Install wizard: bot-select phase
 		await expect(
-			page.getByText("Select which bot to install this plugin on"),
+			page.getByText("Select which bot to install this plugin on").first(),
 		).toBeVisible({ timeout: 5000 });
-		await page.getByText("e2e-test-bot").click();
+		await page.getByRole("button", { name: /e2e-test-bot/ }).click();
 		await page.getByRole("button", { name: "Continue" }).click();
 
 		// Setup phase (Discord has 1 step with empty fields) -> just click Continue
@@ -49,8 +49,8 @@ test.describe("Core revenue loop", () => {
 
 		// Verify plugin appears active on /plugins page
 		await page.goto("/plugins");
-		await expect(page.getByText("e2e-test-bot")).toBeVisible({ timeout: 10000 });
-		await expect(page.getByText("Discord")).toBeVisible({ timeout: 5000 });
-		await expect(page.getByText("Active")).toBeVisible();
+		await expect(page.getByText("e2e-test-bot").first()).toBeVisible({ timeout: 10000 });
+		await expect(page.getByText("Discord").first()).toBeVisible({ timeout: 5000 });
+		await expect(page.getByText("Active").first()).toBeVisible();
 	});
 });
