@@ -12,6 +12,7 @@ const adminNavItems = [
   { label: "Accounting", href: "/admin/accounting" },
   { label: "Audit Log", href: "/admin/audit" },
   { label: "Marketplace", href: "/admin/marketplace" },
+  { label: "Inference", href: "/admin/inference" },
 ];
 
 export function AdminNav() {
