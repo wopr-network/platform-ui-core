@@ -16,9 +16,11 @@ interface CreditDetailedProps {
  */
 export function CreditDetailed({ value, className }: CreditDetailedProps) {
   const formatted = formatCreditDetailed(value);
-  // Split after the first 4 characters: "$X.XX" portion = chars 0-3 (e.g. "$0.00")
-  // The precise split point is after index 4 (dollar sign + digit + dot + 2 decimals)
-  const splitAt = 5; // "$X.XX" = 5 chars minimum
+  // Split at the decimal point + 2 decimal places so only sub-cent digits are muted.
+  // e.g. "$10.23" → splitAt=6, normal="$10.23", muted=""
+  //      "$0.000001" → splitAt=4, normal="$0.00", muted="0001"
+  const dotIndex = formatted.indexOf(".");
+  const splitAt = dotIndex === -1 ? formatted.length : dotIndex + 3;
   const normal = formatted.slice(0, splitAt);
   const muted = formatted.slice(splitAt);
 
