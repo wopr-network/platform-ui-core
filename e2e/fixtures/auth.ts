@@ -31,6 +31,21 @@ export async function mockAuthAPI(page: Page) {
 	// Mock sign-in endpoint
 	await page.route(`${PLATFORM_BASE_URL}/api/auth/sign-in/email`, async (route) => {
 		const sessionToken = `e2e-session-${randomUUID()}`;
+		// Inject the session cookie onto the app origin (localhost:3000) BEFORE fulfilling
+		// the response. The set-cookie header in the response lands on localhost:3001 (the
+		// platform origin) and is invisible to the Next.js middleware on localhost:3000.
+		// Setting the cookie first ensures it is present when the browser processes the
+		// successful sign-in response and immediately navigates to "/".
+		await page.context().addCookies([{
+			name: "better-auth.session_token",
+			value: sessionToken,
+			domain: "localhost",
+			path: "/",
+			httpOnly: true,
+			sameSite: "Lax",
+			secure: false,
+			expires: Math.floor(Date.now() / 1000) + 86400,
+		}]);
 		await route.fulfill({
 			status: 200,
 			contentType: "application/json",
@@ -54,42 +69,38 @@ export async function mockAuthAPI(page: Page) {
 				},
 			}),
 		});
-		// The set-cookie header above lands on localhost:3001 (the platform origin).
-		// The Next.js middleware runs on localhost:3000 and never sees it.
-		// Inject the session cookie directly onto the app origin so the middleware
-		// can redirect authenticated users to /marketplace.
-		await page.context().addCookies([{
-			name: "better-auth.session_token",
-			value: sessionToken,
-			domain: "localhost",
-			path: "/",
-			httpOnly: true,
-			sameSite: "Lax",
-			expires: Math.floor(Date.now() / 1000) + 86400,
-		}]);
 	});
 
-	// Mock get-session endpoint (for useSession hook after login)
+	// Mock get-session endpoint (for useSession hook after login).
+	// Only return a valid session when the browser has already received the session cookie
+	// (i.e. after a successful sign-in). This prevents AuthRedirect from firing on /login
+	// before the user has actually logged in.
 	await page.route(`${PLATFORM_BASE_URL}/api/auth/get-session`, async (route) => {
+		const cookieHeader = route.request().headers()["cookie"] ?? "";
+		const hasSession = cookieHeader.includes("better-auth.session_token");
 		await route.fulfill({
 			status: 200,
 			contentType: "application/json",
-			body: JSON.stringify({
-				user: {
-					id: "e2e-user-id",
-					name: "E2E Test User",
-					email: "e2e@wopr.test",
-					emailVerified: true,
-					createdAt: new Date().toISOString(),
-					updatedAt: new Date().toISOString(),
-				},
-				session: {
-					id: "e2e-session-id",
-					userId: "e2e-user-id",
-					token: "e2e-token",
-					expiresAt: new Date(Date.now() + 86400000).toISOString(),
-				},
-			}),
+			body: JSON.stringify(
+				hasSession
+					? {
+							user: {
+								id: "e2e-user-id",
+								name: "E2E Test User",
+								email: "e2e@wopr.test",
+								emailVerified: true,
+								createdAt: new Date().toISOString(),
+								updatedAt: new Date().toISOString(),
+							},
+							session: {
+								id: "e2e-session-id",
+								userId: "e2e-user-id",
+								token: "e2e-token",
+								expiresAt: new Date(Date.now() + 86400000).toISOString(),
+							},
+						}
+					: null,
+			),
 		});
 	});
 
@@ -115,6 +126,43 @@ export async function mockAuthAPI(page: Page) {
 			});
 		},
 	);
+
+	// Mock tRPC endpoints used by all authenticated dashboard pages.
+	// tRPC's httpBatchLink batches multiple queries into a single request like:
+	//   /trpc/org.getOrganization,org.listMyOrganizations?batch=1&input={...}
+	// The handler MUST return one result per procedure in the batch.
+	const mockOrg = {
+		id: "e2e-org-id",
+		name: "E2E Test Org",
+		slug: "e2e-test-org",
+		billingEmail: "e2e@wopr.test",
+		members: [{ userId: "e2e-user-id", role: "admin", email: "e2e@wopr.test" }],
+		invites: [],
+	};
+	const TRPC_MOCKS: Record<string, unknown> = {
+		"org.getOrganization": mockOrg,
+		"org.listMyOrganizations": [mockOrg],
+		"pageContext.update": null,
+	};
+	await page.route(
+		(url) =>
+			url.href.includes(PLATFORM_BASE_URL) &&
+			url.pathname.startsWith("/trpc/") &&
+			Object.keys(TRPC_MOCKS).some((proc) => url.pathname.includes(proc)),
+		async (route) => {
+			const procs = route.request().url().split("?")[0].split("/trpc/")[1]?.split(",") ?? [];
+			const results = procs.map((proc) =>
+				proc in TRPC_MOCKS
+					? { result: { data: TRPC_MOCKS[proc] } }
+					: { result: { data: null } },
+			);
+			await route.fulfill({
+				status: 200,
+				contentType: "application/json",
+				body: JSON.stringify(results),
+			});
+		},
+	);
 }
 
 /**
@@ -137,8 +185,8 @@ export const test = base.extend<{ authedPage: Page }>({
 	authedPage: async ({ page }, use) => {
 		await mockAuthAPI(page);
 
-		// Navigate to login to establish page context, then bypass onboarding
-		await page.goto("/login");
+		// Navigate to login with callbackUrl so login redirects to /marketplace
+		await page.goto("/login?callbackUrl=/marketplace");
 		await bypassOnboarding(page);
 
 		// Perform login via the form

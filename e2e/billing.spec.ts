@@ -27,95 +27,76 @@ const MOCK_CREDIT_OPTIONS = [
   },
 ];
 
-/** Mock the billing tRPC endpoints needed for the credits page to render. */
+/** Shared mock org used by auth fixture — duplicated here for batch-aware billing handler. */
+const MOCK_ORG = {
+  id: "e2e-org-id",
+  name: "E2E Test Org",
+  slug: "e2e-test-org",
+  billingEmail: "e2e@wopr.test",
+  members: [{ userId: "e2e-user-id", role: "admin", email: "e2e@wopr.test" }],
+  invites: [],
+};
+
+/**
+ * All known tRPC procedure responses for the billing test context.
+ * Must include BOTH billing and auth/org procedures because tRPC's httpBatchLink
+ * batches multiple queries (from different components) into ONE request like:
+ *   /trpc/billing.creditOptions,org.getOrganization,...?batch=1&input={...}
+ * The handler MUST return one result per procedure in the batch.
+ */
+const BILLING_TRPC_MOCKS: Record<string, unknown> = {
+  // Billing procedures
+  "billing.creditOptions": MOCK_CREDIT_OPTIONS,
+  "billing.creditsBalance": { balance_cents: 5000, daily_burn_cents: 100, runway_days: 50 },
+  "billing.inferenceMode": { mode: "hosted" },
+  "billing.creditsHistory": { entries: [] },
+  "billing.autoTopupSettings": {
+    usageBased: { enabled: false, thresholdCents: 500, topupAmountCents: 1000 },
+    scheduled: { enabled: false, amountCents: 1000, interval: "monthly" },
+  },
+  "billing.usageSummary": {
+    period_start: "",
+    period_end: "",
+    total_spend_cents: 0,
+    included_credit_cents: 0,
+    amount_due_cents: 0,
+    plan_name: "free",
+  },
+  // org.getOrganization intentionally NOT mocked here — returning null causes
+  // the credits page to fall through to the personal billing view (which shows
+  // the "Credits" heading that these tests assert on).
+  "org.listMyOrganizations": [MOCK_ORG],
+  "pageContext.update": null,
+};
+
+/**
+ * Mock the billing tRPC endpoints needed for the credits page to render.
+ *
+ * Registers ONE batch-aware handler that intercepts any tRPC request containing
+ * billing procedures and returns the correct number of results for the whole batch.
+ */
 async function mockBillingAPI(page: Page) {
   await page.route(
-    (url) => url.pathname.includes("/trpc/") && url.pathname.includes("billing.creditOptions"),
+    (url) =>
+      url.href.includes(PLATFORM_BASE_URL) &&
+      url.pathname.startsWith("/trpc/"),
     async (route) => {
+      const procs = route.request().url().split("?")[0].split("/trpc/")[1]?.split(",") ?? [];
+      const results = procs.map((proc) => ({
+        result: {
+          data: proc in BILLING_TRPC_MOCKS ? BILLING_TRPC_MOCKS[proc] : null,
+        },
+      }));
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify([{ result: { data: { json: MOCK_CREDIT_OPTIONS } } }]),
+        body: JSON.stringify(results),
       });
     },
   );
 
-  await page.route(
-    (url) => url.pathname.includes("/trpc/") && url.pathname.includes("billing.creditsBalance"),
-    async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify([
-          {
-            result: {
-              data: {
-                json: {
-                  balance_cents: 5000,
-                  daily_burn_cents: 100,
-                  runway_days: 50,
-                },
-              },
-            },
-          },
-        ]),
-      });
-    },
-  );
-
-  await page.route(
-    (url) => url.pathname.includes("/trpc/") && url.pathname.includes("billing.inferenceMode"),
-    async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify([{ result: { data: { json: { mode: "hosted" } } } }]),
-      });
-    },
-  );
-
-  await page.route(
-    (url) => url.pathname.includes("/trpc/") && url.pathname.includes("billing.creditsHistory"),
-    async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify([{ result: { data: { json: { entries: [] } } } }]),
-      });
-    },
-  );
-
-  await page.route(
-    (url) => url.pathname.includes("/trpc/") && url.pathname.includes("billing.autoTopupSettings"),
-    async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify([
-          {
-            result: {
-              data: {
-                json: {
-                  usageBased: {
-                    enabled: false,
-                    thresholdCents: 500,
-                    topupAmountCents: 1000,
-                  },
-                  scheduled: {
-                    enabled: false,
-                    amountCents: 1000,
-                    interval: "monthly",
-                  },
-                },
-              },
-            },
-          },
-        ]),
-      });
-    },
-  );
-
-  await page.route(`${PLATFORM_BASE_URL}/api/billing/dividend-stats`, async (route) => {
+  // REST endpoint for dividend stats
+  await page.route(`${PLATFORM_BASE_URL}/api/billing/dividend/stats`, async (route) => {
     await route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -137,17 +118,17 @@ test.describe("Billing: Credit Checkout", () => {
     await page.goto("/billing/credits");
 
     await expect(page.getByRole("heading", { name: "Credits" })).toBeVisible();
-    await expect(page.getByText("Buy Credits")).toBeVisible();
-    await expect(page.getByText("$10")).toBeVisible();
-    await expect(page.getByText("$25")).toBeVisible();
-    await expect(page.getByText("$50")).toBeVisible();
+    await expect(page.getByRole("main").getByText("Buy Credits", { exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: /\$10/ }).first()).toBeVisible();
+    await expect(page.getByRole("button", { name: /\$25/ }).first()).toBeVisible();
+    await expect(page.getByRole("button", { name: /\$50/ }).first()).toBeVisible();
 
     // Bonus badges visible for $25 and $50 tiers
-    await expect(page.getByText("+10%")).toBeVisible();
-    await expect(page.getByText("+20%")).toBeVisible();
+    await expect(page.getByText("+10%").first()).toBeVisible();
+    await expect(page.getByText("+20%").first()).toBeVisible();
 
     // Buy button should be disabled before selecting a tier
-    await expect(page.getByRole("button", { name: "Buy credits" })).toBeDisabled();
+    await expect(page.getByRole("button", { name: "Buy credits" }).first()).toBeDisabled();
   });
 
   test("checkout request contains real Stripe price ID (not synthetic)", async ({
@@ -183,26 +164,26 @@ test.describe("Billing: Credit Checkout", () => {
 
     await page.goto("/billing/credits");
 
-    await expect(page.getByText("$10")).toBeVisible();
+    await expect(page.getByRole("button", { name: /\$10/ }).first()).toBeVisible();
 
     // Select the $10 tier
-    await page.getByText("$10").click();
+    await page.getByRole("button", { name: /\$10/ }).first().click();
 
     // Buy button should now be enabled
-    await expect(page.getByRole("button", { name: "Buy credits" })).toBeEnabled();
+    await expect(page.getByRole("button", { name: "Buy credits" }).first()).toBeEnabled();
 
     // Click buy
-    await page.getByRole("button", { name: "Buy credits" }).click();
+    await page.getByRole("button", { name: "Buy credits" }).first().click();
 
     // Wait briefly for the route handler to fire
     await expect.poll(() => capturedCheckoutBody, { timeout: 5000 }).not.toBeNull();
 
-    // Extract priceId from tRPC batch body: { "0": { "json": { "priceId": "..." } } }
+    // Extract priceId from tRPC batch body: { "0": { "priceId": "..." } }
     const batchInput = capturedCheckoutBody as unknown as Record<
       string,
-      { json: { priceId: string } }
+      { priceId: string }
     >;
-    const priceId = batchInput["0"]?.json?.priceId;
+    const priceId = batchInput["0"]?.priceId;
 
     expect(priceId).toBeDefined();
     // CRITICAL: priceId must be a real Stripe price ID (price_xxx), not synthetic like "credit_10"
