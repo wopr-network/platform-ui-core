@@ -12,6 +12,38 @@ vi.mock("@/lib/settings-api", () => ({
   listCapabilities: vi.fn(),
 }));
 
+vi.mock("@/lib/marketplace-data", () => ({
+  listMarketplacePlugins: vi.fn().mockResolvedValue([
+    {
+      id: "discord",
+      name: "Discord",
+      description: "Discord channel plugin",
+      icon: "MessageCircle",
+      color: "#5865F2",
+      category: "channel",
+      capabilities: ["channel"],
+    },
+    {
+      id: "slack",
+      name: "Slack",
+      description: "Slack channel plugin",
+      icon: "Hash",
+      color: "#4A154B",
+      category: "channel",
+      capabilities: ["channel"],
+    },
+    {
+      id: "telegram",
+      name: "Telegram",
+      description: "Telegram channel plugin",
+      icon: "Send",
+      color: "#2AABEE",
+      category: "channel",
+      capabilities: ["channel"],
+    },
+  ]),
+}));
+
 // Mock next/link
 vi.mock("next/link", () => ({
   default: ({ href, children }: { href: string; children: React.ReactNode }) => (
