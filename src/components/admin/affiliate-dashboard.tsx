@@ -1,6 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,7 +28,7 @@ import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 50;
 const CAP_REFERRALS = 20;
-const CAP_CREDITS = 20000;
+const CAP_PAYOUT_CENTS = 20000;
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -131,7 +133,9 @@ function SuppressionFeed() {
               events.map((e) => (
                 <TableRow key={e.id} className="h-10 hover:bg-secondary/50">
                   <TableCell className="font-mono text-sm cursor-pointer hover:text-terminal hover:underline">
-                    <a href={`/admin/tenants?search=${e.referrerTenantId}`}>{e.referrerTenantId}</a>
+                    <Link href={`/admin/tenants?search=${e.referrerTenantId}`}>
+                      {e.referrerTenantId}
+                    </Link>
                   </TableCell>
                   <TableCell className="font-mono text-sm">{e.referredTenantId}</TableCell>
                   <TableCell>
@@ -196,7 +200,7 @@ function VelocityPanel() {
   useEffect(() => {
     (async () => {
       try {
-        const result = await getAffiliateVelocity(CAP_REFERRALS, CAP_CREDITS);
+        const result = await getAffiliateVelocity(CAP_REFERRALS, CAP_PAYOUT_CENTS);
         setReferrers(result);
       } catch {
         // keep empty
@@ -255,7 +259,7 @@ function VelocityPanel() {
             ) : (
               referrers.map((r) => {
                 const payoutRatio = r.payoutCount30d / CAP_REFERRALS;
-                const creditRatio = r.payoutTotal30d / CAP_CREDITS;
+                const creditRatio = r.payoutTotal30dCents / CAP_PAYOUT_CENTS;
                 const atCap = payoutRatio >= 1 || creditRatio >= 1;
                 const nearCap = !atCap && (payoutRatio >= 0.8 || creditRatio >= 0.8);
 
@@ -272,15 +276,15 @@ function VelocityPanel() {
                     className={cn("h-10 hover:bg-secondary/50", rowBg)}
                   >
                     <TableCell className="font-mono text-sm cursor-pointer hover:text-terminal hover:underline">
-                      <a href={`/admin/tenants?search=${r.referrerTenantId}`}>
+                      <Link href={`/admin/tenants?search=${r.referrerTenantId}`}>
                         {r.referrerTenantId}
-                      </a>
+                      </Link>
                     </TableCell>
                     <TableCell className={cn("font-mono text-sm", countColor)}>
                       {r.payoutCount30d} / {CAP_REFERRALS}
                     </TableCell>
                     <TableCell className={cn("font-mono text-sm", countColor)}>
-                      {formatCents(r.payoutTotal30d)} / {formatCents(CAP_CREDITS)}
+                      {formatCents(r.payoutTotal30dCents)} / {formatCents(CAP_PAYOUT_CENTS)}
                     </TableCell>
                     <TableCell>
                       {atCap && (
@@ -313,10 +317,12 @@ function VelocityPanel() {
 // --- Panel 3: Same-Card Clusters ---
 
 function FingerprintPanel() {
+  const router = useRouter();
   const [clusters, setClusters] = useState<FingerprintCluster[]>([]);
   const [loading, setLoading] = useState(true);
   const [confirmingFingerprint, setConfirmingFingerprint] = useState<string | null>(null);
   const [blockingFingerprint, setBlockingFingerprint] = useState<string | null>(null);
+  const [blockError, setBlockError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -335,12 +341,13 @@ function FingerprintPanel() {
 
   const handleBlock = async (fingerprint: string) => {
     setBlockingFingerprint(fingerprint);
+    setBlockError(null);
     try {
       await blockAffiliateFingerprint(fingerprint);
       setConfirmingFingerprint(null);
       await load();
     } catch {
-      // silent
+      setBlockError("Failed to block fingerprint. Please try again.");
     } finally {
       setBlockingFingerprint(null);
     }
@@ -428,7 +435,7 @@ function FingerprintPanel() {
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                          window.location.href = `/admin/tenants?search=${c.tenantIds.join(",")}`;
+                          router.push(`/admin/tenants?search=${c.tenantIds.join(",")}`);
                         }}
                       >
                         Review
@@ -471,6 +478,7 @@ function FingerprintPanel() {
           </TableBody>
         </Table>
       </div>
+      {blockError && <p className="text-xs text-red-400 font-mono mt-2">{blockError}</p>}
     </div>
   );
 }
@@ -485,12 +493,12 @@ function useSummary() {
       try {
         const [sup, vel, clust] = await Promise.all([
           getAffiliateSuppressions(1, 0),
-          getAffiliateVelocity(CAP_REFERRALS, CAP_CREDITS),
+          getAffiliateVelocity(CAP_REFERRALS, CAP_PAYOUT_CENTS),
           getAffiliateFingerprintClusters(),
         ]);
         const nearCapCount = vel.filter((r) => {
           const pr = r.payoutCount30d / CAP_REFERRALS;
-          const cr = r.payoutTotal30d / CAP_CREDITS;
+          const cr = r.payoutTotal30dCents / CAP_PAYOUT_CENTS;
           return pr >= 0.8 || cr >= 0.8;
         }).length;
         setSummary({

@@ -16,7 +16,7 @@ export interface SuppressionEvent {
 export interface VelocityReferrer {
   referrerTenantId: string;
   payoutCount30d: number;
-  payoutTotal30d: number;
+  payoutTotal30dCents: number;
 }
 
 export interface FingerprintCluster {
