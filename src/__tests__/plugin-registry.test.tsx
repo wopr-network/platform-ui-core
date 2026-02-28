@@ -9,12 +9,9 @@ describe("usePluginRegistry", () => {
     expect(categoryIds).toEqual(["memory", "voice", "integration", "ui"]);
   });
 
-  it("returns channel plugins", () => {
+  it("returns channel plugins (onboarding-only: signal, whatsapp, msteams; discord/slack/telegram are marketplace-sourced)", () => {
     const { result } = renderHook(() => usePluginRegistry());
     const channelIds = result.current.channels.map((c) => c.id);
-    expect(channelIds).toContain("discord");
-    expect(channelIds).toContain("slack");
-    expect(channelIds).toContain("telegram");
     expect(channelIds).toContain("signal");
     expect(channelIds).toContain("whatsapp");
     expect(channelIds).toContain("msteams");
@@ -138,14 +135,15 @@ describe("usePluginRegistry", () => {
   it("getAllPlugins returns combined channels, providers, and category plugins", () => {
     const { result } = renderHook(() => usePluginRegistry());
     const all = result.current.getAllPlugins();
-    expect(all.find((p) => p.id === "discord")).toBeDefined();
+    // signal is an onboarding-only channel in the static list; discord is marketplace-sourced
+    expect(all.find((p) => p.id === "signal")).toBeDefined();
     expect(all.find((p) => p.id === "anthropic")).toBeDefined();
     expect(all.find((p) => p.id === "semantic-memory")).toBeDefined();
   });
 
   it("getPluginById finds plugins from any source", () => {
     const { result } = renderHook(() => usePluginRegistry());
-    expect(result.current.getPluginById("discord")?.name).toBe("Discord");
+    expect(result.current.getPluginById("signal")?.name).toBe("Signal");
     expect(result.current.getPluginById("anthropic")?.name).toBe("Anthropic");
     expect(result.current.getPluginById("nonexistent")).toBeUndefined();
   });
