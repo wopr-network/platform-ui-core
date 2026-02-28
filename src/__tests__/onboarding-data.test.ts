@@ -13,11 +13,8 @@ import {
 
 describe("onboarding-data", () => {
   describe("channelPlugins", () => {
-    it("includes Discord, Slack, Telegram, Signal, WhatsApp, MS Teams", () => {
+    it("includes Signal, WhatsApp, MS Teams (onboarding-only channels; Discord/Slack/Telegram are marketplace-sourced via getChannelPlugins)", () => {
       const ids = channelPlugins.map((p) => p.id);
-      expect(ids).toContain("discord");
-      expect(ids).toContain("slack");
-      expect(ids).toContain("telegram");
       expect(ids).toContain("signal");
       expect(ids).toContain("whatsapp");
       expect(ids).toContain("msteams");
@@ -29,17 +26,16 @@ describe("onboarding-data", () => {
       }
     });
 
-    it("Discord has bot token and guild ID config fields", () => {
-      const discord = channelPlugins.find((p) => p.id === "discord");
-      expect(discord).toBeDefined();
-      const keys = discord?.configFields.map((f) => f.key);
-      expect(keys).toContain("discord_bot_token");
-      expect(keys).toContain("discord_guild_id");
+    it("Signal has phone number config field", () => {
+      const signal = channelPlugins.find((p) => p.id === "signal");
+      expect(signal).toBeDefined();
+      const keys = signal?.configFields.map((f) => f.key);
+      expect(keys).toContain("signal_phone");
     });
 
-    it("Discord bot token is marked as secret", () => {
-      const discord = channelPlugins.find((p) => p.id === "discord");
-      const tokenField = discord?.configFields.find((f) => f.key === "discord_bot_token");
+    it("WhatsApp token is marked as secret", () => {
+      const whatsapp = channelPlugins.find((p) => p.id === "whatsapp");
+      const tokenField = whatsapp?.configFields.find((f) => f.key === "whatsapp_token");
       expect(tokenField?.secret).toBe(true);
     });
   });
@@ -121,8 +117,9 @@ describe("onboarding-data", () => {
     it("returns all plugins from all categories", () => {
       const all = getAllPlugins();
       expect(all.length).toBeGreaterThan(10);
-      // Should include channels, providers, and optional plugins
-      expect(all.find((p) => p.id === "discord")).toBeDefined();
+      // Should include onboarding-only channels, providers, and optional plugins
+      // (Discord/Slack/Telegram are marketplace-sourced via getChannelPlugins, not in static list)
+      expect(all.find((p) => p.id === "signal")).toBeDefined();
       expect(all.find((p) => p.id === "anthropic")).toBeDefined();
       expect(all.find((p) => p.id === "semantic-memory")).toBeDefined();
     });
@@ -130,9 +127,9 @@ describe("onboarding-data", () => {
 
   describe("getPluginById", () => {
     it("returns a plugin by id", () => {
-      const discord = getPluginById("discord");
-      expect(discord).toBeDefined();
-      expect(discord?.name).toBe("Discord");
+      const signal = getPluginById("signal");
+      expect(signal).toBeDefined();
+      expect(signal?.name).toBe("Signal");
     });
 
     it("returns undefined for unknown id", () => {
@@ -142,18 +139,17 @@ describe("onboarding-data", () => {
 
   describe("collectConfigFields", () => {
     it("collects fields from selected channels, providers, and plugins", () => {
-      const fields = collectConfigFields(["discord"], ["anthropic"], ["elevenlabs-tts"]);
+      const fields = collectConfigFields(["signal"], ["anthropic"], ["elevenlabs-tts"]);
       const keys = fields.map((f) => f.key);
-      expect(keys).toContain("discord_bot_token");
-      expect(keys).toContain("discord_guild_id");
+      expect(keys).toContain("signal_phone");
       expect(keys).toContain("anthropic_api_key");
       expect(keys).toContain("elevenlabs_api_key");
     });
 
     it("deduplicates fields by key", () => {
-      const fields = collectConfigFields(["discord", "discord"], ["anthropic"], []);
-      const tokenFields = fields.filter((f) => f.key === "discord_bot_token");
-      expect(tokenFields).toHaveLength(1);
+      const fields = collectConfigFields(["signal", "signal"], ["anthropic"], []);
+      const phoneFields = fields.filter((f) => f.key === "signal_phone");
+      expect(phoneFields).toHaveLength(1);
     });
 
     it("returns empty array for no selections", () => {

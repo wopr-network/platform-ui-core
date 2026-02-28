@@ -9,7 +9,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { CapabilitySetting, ChannelInfo } from "@/lib/api";
 import { getCreditBalance, listChannels, listInstances } from "@/lib/api";
 import { formatCreditStandard } from "@/lib/format-credit";
-import { channelPlugins, superpowers } from "@/lib/onboarding-data";
+import { listMarketplacePlugins } from "@/lib/marketplace-data";
+import { channelPlugins, type PluginOption, superpowers } from "@/lib/onboarding-data";
 import { listCapabilities } from "@/lib/settings-api";
 
 const STORAGE_KEY = "wopr:setup-checklist-dismissed";
@@ -32,12 +33,13 @@ interface SuperpowerStatus {
 function resolveChannelStatuses(
   selectedIds: string[],
   connectedChannels: Map<string, ChannelInfo["status"]>,
+  allChannels: PluginOption[],
 ): ChannelStatus[] {
   return selectedIds.map((id) => {
     if (id === "web-ui") {
       return { id, name: "Web UI", color: "#3B82F6", ready: true };
     }
-    const plugin = channelPlugins.find((c) => c.id === id);
+    const plugin = allChannels.find((c) => c.id === id);
     return {
       id,
       name: plugin?.name ?? id,
@@ -91,6 +93,7 @@ export function SetupChecklist() {
     new Map(),
   );
   const [capabilities, setCapabilities] = useState<CapabilitySetting[]>([]);
+  const [allChannels, setAllChannels] = useState<PluginOption[]>(channelPlugins);
 
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -102,11 +105,13 @@ export function SetupChecklist() {
 
     async function load() {
       try {
-        const [instancesResult, creditsResult, capabilitiesResult] = await Promise.allSettled([
-          listInstances(),
-          getCreditBalance(),
-          listCapabilities(),
-        ]);
+        const [instancesResult, creditsResult, capabilitiesResult, marketplaceResult] =
+          await Promise.allSettled([
+            listInstances(),
+            getCreditBalance(),
+            listCapabilities(),
+            listMarketplacePlugins(),
+          ]);
         if (cancelled) return;
 
         if (instancesResult.status === "fulfilled") {
@@ -153,6 +158,21 @@ export function SetupChecklist() {
         if (capabilitiesResult.status === "fulfilled") {
           setCapabilities(capabilitiesResult.value);
         }
+
+        if (!cancelled && marketplaceResult.status === "fulfilled") {
+          const marketplaceChannels = marketplaceResult.value
+            .filter((m) => m.category === "channel")
+            .map((m) => ({
+              id: m.id,
+              name: m.name,
+              description: m.description,
+              icon: m.icon,
+              color: m.color,
+              capabilities: m.capabilities,
+              configFields: [],
+            }));
+          setAllChannels([...marketplaceChannels, ...channelPlugins]);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -193,7 +213,7 @@ export function SetupChecklist() {
   // No instances — checklist is meaningless
   if (!hasInstances) return null;
 
-  const channels = resolveChannelStatuses(selectedChannels, connectedChannels);
+  const channels = resolveChannelStatuses(selectedChannels, connectedChannels, allChannels);
   const powers = resolveSuperpowerStatuses(selectedSuperpowers, capabilities);
   const allComplete = channels.every((c) => c.ready) && powers.every((p) => p.ready);
 
