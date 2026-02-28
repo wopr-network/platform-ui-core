@@ -14,6 +14,8 @@ const publicExactPaths = new Set(["/", "/og", "/terms", "/privacy", "/pricing"])
 
 const MUTATION_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
+const PLATFORM_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+
 /**
  * Validate that a state-changing request originates from this application.
  * Checks the Origin header (preferred) with Referer as fallback.
@@ -51,7 +53,33 @@ export function validateCsrfOrigin(request: NextRequest): boolean {
   return false;
 }
 
-export default function middleware(request: NextRequest) {
+/**
+ * Fetch the authenticated user's role from Better Auth's get-session endpoint.
+ * Returns the role string (e.g. "platform_admin", "user") or null if the
+ * session is invalid or the request fails. Fails closed: any error → null.
+ */
+async function getSessionRole(request: NextRequest): Promise<string | null> {
+  const sessionCookie =
+    request.cookies.get("better-auth.session_token") ??
+    request.cookies.get("__Secure-better-auth.session_token");
+
+  if (!sessionCookie?.value.trim()) return null;
+
+  try {
+    const res = await fetch(`${PLATFORM_BASE_URL}/api/auth/get-session`, {
+      headers: {
+        cookie: `${sessionCookie.name}=${sessionCookie.value}`,
+      },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data?.user?.role ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export default async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const host = request.headers.get("host") || "";
 
@@ -86,6 +114,22 @@ export default function middleware(request: NextRequest) {
       // On app subdomain (or no configured app domain) — redirect to /marketplace
       return NextResponse.redirect(new URL("/marketplace", request.url));
     }
+  }
+
+  // --- Admin route authorization (server-side) ---
+  // Non-admins are redirected before any page JS loads.
+  // Unauthenticated users fall through to the session check below (→ /login).
+  if (pathname.startsWith("/admin")) {
+    const sessionCookie =
+      request.cookies.get("better-auth.session_token") ??
+      request.cookies.get("__Secure-better-auth.session_token");
+    if (sessionCookie?.value.trim()) {
+      const role = await getSessionRole(request);
+      if (role !== "platform_admin") {
+        return NextResponse.redirect(new URL("/marketplace", request.url));
+      }
+    }
+    // No session cookie → fall through to the session check below which redirects to /login
   }
 
   // Allow public paths
