@@ -1,0 +1,94 @@
+"use client";
+
+import { Check, X } from "lucide-react";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { trpcVanilla } from "@/lib/trpc";
+import { cn } from "@/lib/utils";
+
+interface CouponProcedures {
+  billing: {
+    applyCoupon: {
+      mutate(input: { code: string }): Promise<{
+        creditsGranted: number;
+        message: string;
+      }>;
+    };
+  };
+}
+
+const client = trpcVanilla as unknown as CouponProcedures;
+
+type CouponState = "idle" | "loading" | "success" | "error";
+
+export function CouponInput() {
+  const [code, setCode] = useState("");
+  const [state, setState] = useState<CouponState>("idle");
+  const [message, setMessage] = useState("");
+  const [creditsGranted, setCreditsGranted] = useState(0);
+
+  async function handleApply() {
+    if (!code.trim()) return;
+    setState("loading");
+    setMessage("");
+    try {
+      const result = await client.billing.applyCoupon.mutate({
+        code: code.trim().toUpperCase(),
+      });
+      setCreditsGranted(result.creditsGranted);
+      setMessage(result.message);
+      setState("success");
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Invalid coupon code");
+      setState("error");
+    }
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex gap-2">
+        <Input
+          value={code}
+          onChange={(e) => {
+            setCode(e.target.value.toUpperCase());
+            if (state !== "idle" && state !== "loading") setState("idle");
+          }}
+          placeholder="Coupon code"
+          className={cn(
+            "font-mono uppercase max-w-xs",
+            state === "success" && "border-terminal/50",
+            state === "error" && "border-destructive/50",
+          )}
+          disabled={state === "loading" || state === "success"}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") handleApply();
+          }}
+        />
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleApply}
+          disabled={!code.trim() || state === "loading" || state === "success"}
+        >
+          {state === "loading" ? "Applying..." : "Apply"}
+        </Button>
+      </div>
+
+      {state === "success" && (
+        <p className="flex items-center gap-1.5 text-sm text-terminal">
+          <Check className="h-4 w-4" />
+          Code applied — +${(creditsGranted / 100).toFixed(2)} credits will be added after your
+          purchase
+        </p>
+      )}
+
+      {state === "error" && (
+        <p className="flex items-center gap-1.5 text-sm text-destructive">
+          <X className="h-4 w-4" />
+          {message}
+        </p>
+      )}
+    </div>
+  );
+}
