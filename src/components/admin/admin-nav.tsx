@@ -14,6 +14,8 @@ const adminNavItems = [
   { label: "Audit Log", href: "/admin/audit" },
   { label: "Marketplace", href: "/admin/marketplace" },
   { label: "Inference", href: "/admin/inference" },
+  { label: "Promotions", href: "/admin/promotions" },
+  { label: "Rate Overrides", href: "/admin/rate-overrides" },
   { label: "Affiliates", href: "/admin/affiliates" },
 ];
 

@@ -36,6 +36,25 @@ type AppRouterRecord = TRPCRouterRecord & {
       sessionCost: AnyTRPCQueryProcedure;
     };
   };
+  promotions: {
+    list: AnyTRPCQueryProcedure;
+    get: AnyTRPCQueryProcedure;
+    create: AnyTRPCMutationProcedure;
+    update: AnyTRPCMutationProcedure;
+    activate: AnyTRPCMutationProcedure;
+    pause: AnyTRPCMutationProcedure;
+    cancel: AnyTRPCMutationProcedure;
+    generateCouponBatch: AnyTRPCMutationProcedure;
+    listRedemptions: AnyTRPCQueryProcedure;
+  };
+  rateOverrides: {
+    list: AnyTRPCQueryProcedure;
+    create: AnyTRPCMutationProcedure;
+    cancel: AnyTRPCMutationProcedure;
+  };
+  billing: {
+    applyCoupon: AnyTRPCMutationProcedure;
+  };
 };
 
 export type AppRouter = TRPCBuiltRouter<AnyTRPCRootTypes, AppRouterRecord>;
