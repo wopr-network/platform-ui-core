@@ -56,6 +56,7 @@ vi.mock("@/lib/tenant-context", () => ({
 describe("API null guards", () => {
   it("listInstances handles missing bots array", async () => {
     const { trpcVanilla } = await import("@/lib/trpc");
+    // biome-ignore lint/suspicious/noExplicitAny: test mock access
     const fleet = (trpcVanilla as any).fleet;
     fleet.listInstances.query.mockResolvedValue({});
 
@@ -66,6 +67,7 @@ describe("API null guards", () => {
 
   it("listInstances handles null bots", async () => {
     const { trpcVanilla } = await import("@/lib/trpc");
+    // biome-ignore lint/suspicious/noExplicitAny: test mock access
     const fleet = (trpcVanilla as any).fleet;
     fleet.listInstances.query.mockResolvedValue({ bots: null });
 
@@ -76,6 +78,7 @@ describe("API null guards", () => {
 
   it("getFleetHealth handles missing bots array", async () => {
     const { trpcVanilla } = await import("@/lib/trpc");
+    // biome-ignore lint/suspicious/noExplicitAny: test mock access
     const fleet = (trpcVanilla as any).fleet;
     fleet.listInstances.query.mockResolvedValue({});
 
@@ -86,6 +89,7 @@ describe("API null guards", () => {
 
   it("getInstanceMetrics handles null stats", async () => {
     const { trpcVanilla } = await import("@/lib/trpc");
+    // biome-ignore lint/suspicious/noExplicitAny: test mock access
     const fleet = (trpcVanilla as any).fleet;
     fleet.getInstanceMetrics.query.mockResolvedValue({ id: "x", stats: null });
 
@@ -96,6 +100,7 @@ describe("API null guards", () => {
 
   it("getCreditBalance handles empty response", async () => {
     const { trpcVanilla } = await import("@/lib/trpc");
+    // biome-ignore lint/suspicious/noExplicitAny: test mock access
     const billing = (trpcVanilla as any).billing;
     billing.creditsBalance.query.mockResolvedValue({});
 
@@ -108,6 +113,7 @@ describe("API null guards", () => {
 
   it("getCreditHistory handles empty response", async () => {
     const { trpcVanilla } = await import("@/lib/trpc");
+    // biome-ignore lint/suspicious/noExplicitAny: test mock access
     const billing = (trpcVanilla as any).billing;
     billing.creditsHistory.query.mockResolvedValue({});
 
@@ -119,6 +125,7 @@ describe("API null guards", () => {
 
   it("getAffiliateStats handles empty response", async () => {
     const { trpcVanilla } = await import("@/lib/trpc");
+    // biome-ignore lint/suspicious/noExplicitAny: test mock access
     const billing = (trpcVanilla as any).billing;
     billing.affiliateStats.query.mockResolvedValue({});
 
@@ -133,6 +140,7 @@ describe("API null guards", () => {
 
   it("getAffiliateReferrals handles empty response", async () => {
     const { trpcVanilla } = await import("@/lib/trpc");
+    // biome-ignore lint/suspicious/noExplicitAny: test mock access
     const billing = (trpcVanilla as any).billing;
     billing.affiliateReferrals.query.mockResolvedValue({});
 
@@ -143,6 +151,7 @@ describe("API null guards", () => {
   });
 
   it("getDividendStats handles partial response", async () => {
+    // biome-ignore lint/suspicious/noExplicitAny: test mock assignment
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
@@ -159,6 +168,7 @@ describe("API null guards", () => {
 
   it("getBillingUsageSummary handles empty response", async () => {
     const { trpcVanilla } = await import("@/lib/trpc");
+    // biome-ignore lint/suspicious/noExplicitAny: test mock access
     const billing = (trpcVanilla as any).billing;
     billing.usageSummary.query.mockResolvedValue({});
 
@@ -170,6 +180,7 @@ describe("API null guards", () => {
   });
 
   it("getDividendHistory handles empty response", async () => {
+    // biome-ignore lint/suspicious/noExplicitAny: test mock assignment
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
@@ -183,6 +194,7 @@ describe("API null guards", () => {
 
   it("getInstanceLogs handles empty logs array", async () => {
     const { trpcVanilla } = await import("@/lib/trpc");
+    // biome-ignore lint/suspicious/noExplicitAny: test mock access
     const fleet = (trpcVanilla as any).fleet;
     fleet.getInstanceLogs.query.mockResolvedValue({});
 
