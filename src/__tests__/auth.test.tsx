@@ -1,11 +1,12 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock next/navigation
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: vi.fn() }),
-  useSearchParams: () => new URLSearchParams(),
-  useParams: () => ({ provider: "github" }),
+  useRouter: vi.fn(() => ({ push: vi.fn() })),
+  useSearchParams: vi.fn(() => new URLSearchParams()),
+  useParams: vi.fn(() => ({ provider: "github" })),
 }));
 
 // Mock better-auth/react
@@ -146,10 +147,123 @@ describe("Reset password page", () => {
 });
 
 describe("OAuth callback page", () => {
+  const mockPush = vi.fn();
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    mockPush.mockClear();
+    vi.mocked(useRouter).mockReturnValue({ push: mockPush } as unknown as ReturnType<
+      typeof useRouter
+    >);
+    vi.mocked(useParams).mockReturnValue({ provider: "github" });
+    vi.mocked(useSearchParams).mockReturnValue(
+      new URLSearchParams() as ReturnType<typeof useSearchParams>,
+    );
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("renders loading state when no error", async () => {
     const { default: OAuthCallbackPage } = await import("../app/auth/callback/[provider]/page");
     render(<OAuthCallbackPage />);
 
     expect(screen.getByText(/Completing sign in with github/)).toBeInTheDocument();
+  });
+
+  it("redirects to / after 1 second when no error and no callbackUrl", async () => {
+    const { default: OAuthCallbackPage } = await import("../app/auth/callback/[provider]/page");
+    render(<OAuthCallbackPage />);
+
+    await vi.advanceTimersByTimeAsync(1000);
+
+    expect(mockPush).toHaveBeenCalledWith("/");
+  });
+
+  it("redirects to callbackUrl when provided", async () => {
+    vi.mocked(useSearchParams).mockReturnValue(
+      new URLSearchParams("callbackUrl=/dashboard") as ReturnType<typeof useSearchParams>,
+    );
+    const { default: OAuthCallbackPage } = await import("../app/auth/callback/[provider]/page");
+    render(<OAuthCallbackPage />);
+
+    await vi.advanceTimersByTimeAsync(1000);
+
+    expect(mockPush).toHaveBeenCalledWith("/dashboard");
+  });
+
+  it("sanitizes unsafe callbackUrl and redirects to /", async () => {
+    vi.mocked(useSearchParams).mockReturnValue(
+      new URLSearchParams("callbackUrl=//evil.com") as ReturnType<typeof useSearchParams>,
+    );
+    const { default: OAuthCallbackPage } = await import("../app/auth/callback/[provider]/page");
+    render(<OAuthCallbackPage />);
+
+    await vi.advanceTimersByTimeAsync(1000);
+
+    expect(mockPush).toHaveBeenCalledWith("/");
+  });
+
+  it("shows access denied error for error=access_denied", async () => {
+    vi.mocked(useSearchParams).mockReturnValue(
+      new URLSearchParams("error=access_denied") as ReturnType<typeof useSearchParams>,
+    );
+    const { default: OAuthCallbackPage } = await import("../app/auth/callback/[provider]/page");
+    render(<OAuthCallbackPage />);
+
+    expect(screen.getByText("Authentication failed")).toBeInTheDocument();
+    expect(screen.getByText("Access was denied. Please try again.")).toBeInTheDocument();
+    expect(screen.getByText("Could not sign in with github")).toBeInTheDocument();
+    expect(mockPush).not.toHaveBeenCalled();
+  });
+
+  it("shows account already linked error", async () => {
+    vi.mocked(useSearchParams).mockReturnValue(
+      new URLSearchParams("error=account_already_linked") as ReturnType<typeof useSearchParams>,
+    );
+    const { default: OAuthCallbackPage } = await import("../app/auth/callback/[provider]/page");
+    render(<OAuthCallbackPage />);
+
+    expect(screen.getByText("Authentication failed")).toBeInTheDocument();
+    expect(
+      screen.getByText("An account with this email already exists. Sign in to link your account."),
+    ).toBeInTheDocument();
+    expect(mockPush).not.toHaveBeenCalled();
+  });
+
+  it("shows generic error for unknown error param", async () => {
+    vi.mocked(useSearchParams).mockReturnValue(
+      new URLSearchParams("error=server_error") as ReturnType<typeof useSearchParams>,
+    );
+    const { default: OAuthCallbackPage } = await import("../app/auth/callback/[provider]/page");
+    render(<OAuthCallbackPage />);
+
+    expect(screen.getByText("Authentication failed")).toBeInTheDocument();
+    expect(screen.getByText("Authentication failed: server_error")).toBeInTheDocument();
+    expect(mockPush).not.toHaveBeenCalled();
+  });
+
+  it("renders back to sign in link on error", async () => {
+    vi.mocked(useSearchParams).mockReturnValue(
+      new URLSearchParams("error=access_denied") as ReturnType<typeof useSearchParams>,
+    );
+    const { default: OAuthCallbackPage } = await import("../app/auth/callback/[provider]/page");
+    render(<OAuthCallbackPage />);
+
+    const link = screen.getByText("Back to sign in");
+    expect(link).toBeInTheDocument();
+    expect(link.closest("a")).toHaveAttribute("href", "/login");
+  });
+
+  it("displays correct provider name from route params", async () => {
+    vi.mocked(useParams).mockReturnValue({ provider: "discord" });
+    vi.mocked(useSearchParams).mockReturnValue(
+      new URLSearchParams("error=access_denied") as ReturnType<typeof useSearchParams>,
+    );
+    const { default: OAuthCallbackPage } = await import("../app/auth/callback/[provider]/page");
+    render(<OAuthCallbackPage />);
+
+    expect(screen.getByText("Could not sign in with discord")).toBeInTheDocument();
   });
 });
