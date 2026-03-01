@@ -124,6 +124,29 @@ describe("ActivityPage", () => {
     expect(screen.getByRole("button", { name: "Previous" })).toBeDisabled();
   });
 
+  it("page 2 requests offset 50 (not 100)", async () => {
+    mockFetchAuditLog.mockResolvedValueOnce({
+      events: MOCK_AUDIT_RESPONSE.events,
+      total: 100,
+      hasMore: true,
+    });
+    const user = userEvent.setup();
+    render(<ActivityPage />);
+
+    await screen.findByText("Bot Create");
+
+    mockFetchAuditLog.mockResolvedValueOnce({
+      events: MOCK_AUDIT_RESPONSE.events,
+      total: 100,
+      hasMore: false,
+    });
+    await user.click(screen.getByRole("button", { name: "Next" }));
+
+    expect(mockFetchAuditLog).toHaveBeenLastCalledWith(
+      expect.objectContaining({ offset: 50, limit: 50 }),
+    );
+  });
+
   it("calls fetchAuditLog with correct params", async () => {
     mockFetchAuditLog.mockResolvedValueOnce(MOCK_AUDIT_RESPONSE);
     render(<ActivityPage />);
