@@ -4,76 +4,74 @@ export interface TerminalLine {
 }
 
 export const TERMINAL_LINES: TerminalLine[] = [
-  // Opening — deliberate, almost painful
+  // Opening — the WarGames reference
   { text: "Shall we play a game?", hold: false },
   { text: "Shall we play chess?", hold: false },
 
-  // Personal productivity — slow, intentional
+  // The small stuff — slow, painfully relatable
   { text: "Shall we sort your inbox?", hold: false },
-  { text: "Shall we reschedule your calendar?", hold: false },
-  { text: "Shall we file your expenses?", hold: false },
-  { text: "Shall we screen your candidates?", hold: false },
-  { text: "Shall we book the flights?", hold: false },
-  { text: "Shall we draft the weekly update?", hold: false },
+  { text: "Shall we call your mom?", hold: false },
+  { text: "Shall we make the appointment?", hold: false },
+  { text: "Shall we find the charger?", hold: false },
+  { text: "Shall we finally text back?", hold: false },
+  { text: "Shall we meal prep Sunday?", hold: false },
+  { text: "Shall we fix the leak?", hold: false },
 
-  // --- acceleration begins ---
-  { text: "Shall we summarize the competition?", hold: false },
-  { text: "Shall we draft the board deck?", hold: false },
-  { text: "Shall we align the product roadmap?", hold: false },
-  { text: "Shall we model customer churn?", hold: false },
-  { text: "Shall we launch the retention campaign?", hold: false },
-  { text: "Shall we map the supply chain risks?", hold: false },
-  { text: "Shall we renegotiate the vendor contracts?", hold: false },
-  { text: "Shall we pass the compliance audit?", hold: false },
-  { text: "Shall we generate the SOC 2 report?", hold: false },
-  { text: "Shall we draft the patent filing?", hold: false },
+  // Getting your life together
+  { text: "Shall we ask for the raise?", hold: false },
+  { text: "Shall we pay off the card?", hold: false },
+  { text: "Shall we quit the day job?", hold: false },
+  { text: "Shall we move out?", hold: false },
 
-  // --- getting faster ---
-  { text: "Shall we expand into Southeast Asia?", hold: false },
-  { text: "Shall we navigate the regulatory framework?", hold: false },
-  { text: "Shall we deploy the lobbying strategy?", hold: false },
-  { text: "Shall we write the congressional testimony?", hold: false },
-  { text: "Shall we prepare the UN briefing?", hold: false },
-  { text: "Shall we run the climate model?", hold: false },
-  { text: "Shall we optimize the carbon portfolio?", hold: false },
-  { text: "Shall we stabilize the fusion reactor?", hold: false },
-  { text: "Shall we calculate the orbital mechanics?", hold: false },
-  { text: "Shall we model the Mars supply chain?", hold: false },
+  // Getting rich
+  { text: "Shall we start the company?", hold: false },
+  { text: "Shall we build the thing?", hold: false },
+  { text: "Shall we find the co-founder?", hold: false },
+  { text: "Shall we raise the round?", hold: false },
+  { text: "Shall we close the deal?", hold: false },
+  { text: "Shall we make the first million?", hold: false },
 
-  // --- blur speed ---
-  { text: "Shall we accelerate the terraforming?", hold: false },
-  { text: "Shall we plot the interstellar route?", hold: false },
-  { text: "Shall we draft the first contact protocol?", hold: false },
-  { text: "Shall we negotiate the alien trade agreement?", hold: false },
-  { text: "Shall we secure the galactic senate seat?", hold: false },
-  { text: "Shall we map the multiverse?", hold: false },
-  { text: "Shall we converge the timelines?", hold: false },
-  { text: "Shall we theorize entropy reversal?", hold: false },
+  // The dreams — creative, personal
+  { text: "Shall we write the great American novel?", hold: false },
+  { text: "Shall we finish the screenplay?", hold: false },
+  { text: "Shall we record the album?", hold: false },
+  { text: "Shall we get the gallery show?", hold: false },
+  { text: "Shall we buy the house?", hold: false },
+  { text: "Shall we ask her out?", hold: false },
+  { text: "Shall we plan the wedding?", hold: false },
+
+  // Political ambition
+  { text: "Shall we run for city council?", hold: false },
+  { text: "Shall we win the primary?", hold: false },
+  { text: "Shall we run for congress?", hold: false },
+  { text: "Shall we flip the district?", hold: false },
+  { text: "Shall we take the Senate seat?", hold: false },
+  { text: "Shall we run for president?", hold: false },
+  { text: "Shall we take the oath?", hold: false },
+
+  // Cosmic
+  { text: "Shall we land on Mars?", hold: false },
+  { text: "Shall we conquer Venus?", hold: false },
+  { text: "Shall we claim the asteroid belt?", hold: false },
+  { text: "Shall we terraform the red planet?", hold: false },
+  { text: "Shall we reach Alpha Centauri?", hold: false },
+  { text: "Shall we seed the galaxy?", hold: false },
+  { text: "Shall we map the dark matter?", hold: false },
+  { text: "Shall we rewrite the laws of physics?", hold: false },
   { text: "Shall we postpone the heat death?", hold: false },
   { text: "Shall we initialize a new universe?", hold: false },
 
-  // --- illegible speed ---
-  { text: "Shall we rewrite physics?", hold: false },
-  { text: "Shall we upload consciousness?", hold: false },
-  { text: "Shall we fork reality?", hold: false },
-  { text: "Shall we make time optional?", hold: false },
-  { text: "Shall we deprecate death?", hold: false },
-  { text: "Shall we solve the meaning of life?", hold: false },
-  { text: "Shall we optimize everything, everywhere?", hold: false },
-  { text: "Shall we end the war?", hold: false },
-
-  // --- rapid fire ---
-  { text: "Shall we deploy?", hold: false },
-  { text: "Shall we negotiate?", hold: false },
-  { text: "Shall we disarm?", hold: false },
-  { text: "Shall we verify?", hold: false },
-  { text: "Shall we stabilize?", hold: false },
-  { text: "Shall we rebuild?", hold: false },
-  { text: "Shall we feed them?", hold: false },
-  { text: "Shall we heal?", hold: false },
-  { text: "Shall we teach?", hold: false },
-  { text: "Shall we connect?", hold: false },
-  { text: "Shall we grow?", hold: false },
+  // --- rapid fire / illegible ---
+  { text: "Shall we win?", hold: false },
+  { text: "Shall we create?", hold: false },
+  { text: "Shall we build?", hold: false },
+  { text: "Shall we lead?", hold: false },
+  { text: "Shall we love?", hold: false },
+  { text: "Shall we live?", hold: false },
+  { text: "Shall we give?", hold: false },
+  { text: "Shall we dare?", hold: false },
+  { text: "Shall we stay?", hold: false },
+  { text: "Shall we go?", hold: false },
   { text: "Shall we thrive?", hold: false },
   { text: "Shall we thrive?", hold: false },
   { text: "Shall we thrive?", hold: false },
