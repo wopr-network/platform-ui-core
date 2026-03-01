@@ -252,7 +252,7 @@ export function PortfolioChart({ onMilestoneRef, onFadeStartRef }: PortfolioChar
         ctx.lineWidth = 6;
         ctx.shadowColor = color;
         ctx.shadowBlur = 20;
-        ctx.globalAlpha = 0.4 * lineAlpha;
+        ctx.globalAlpha = 0.2 * lineAlpha;
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
         ctx.stroke();
@@ -267,7 +267,7 @@ export function PortfolioChart({ onMilestoneRef, onFadeStartRef }: PortfolioChar
         }
         ctx.strokeStyle = color;
         ctx.lineWidth = 1.5;
-        ctx.globalAlpha = 0.85 * lineAlpha;
+        ctx.globalAlpha = 0.45 * lineAlpha;
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
         ctx.stroke();
@@ -283,7 +283,7 @@ export function PortfolioChart({ onMilestoneRef, onFadeStartRef }: PortfolioChar
 
         if (mx < -20 || my > h + 20 || alpha <= 0) continue;
 
-        const outerRadius = 20 + (1 - age) * 40;
+        const outerRadius = 40 + (1 - age) * 80;
         const grad = ctx.createRadialGradient(mx, my, 0, mx, my, outerRadius);
         grad.addColorStop(0, m.color);
         grad.addColorStop(1, "transparent");
@@ -300,7 +300,7 @@ export function PortfolioChart({ onMilestoneRef, onFadeStartRef }: PortfolioChar
         ctx.globalAlpha = alpha;
         ctx.fillStyle = m.color;
         ctx.beginPath();
-        ctx.arc(mx, my, 6, 0, Math.PI * 2);
+        ctx.arc(mx, my, 12, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
       }
