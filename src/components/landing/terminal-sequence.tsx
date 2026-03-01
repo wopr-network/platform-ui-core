@@ -5,6 +5,7 @@ import { TERMINAL_LINES } from "./terminal-lines";
 
 interface TerminalSequenceProps {
   onComplete?: () => void;
+  onMilestone?: () => void;
 }
 
 // "Shall we" persists on screen — only the suffix animates
@@ -56,7 +57,7 @@ type AnimState =
   | "cursor-death"
   | "done";
 
-export function TerminalSequence({ onComplete }: TerminalSequenceProps) {
+export function TerminalSequence({ onComplete, onMilestone }: TerminalSequenceProps) {
   const [lines, setLines] = useState<string[]>([]);
   const [currentText, setCurrentText] = useState("");
   const [showCursor, setShowCursor] = useState(true);
@@ -67,6 +68,8 @@ export function TerminalSequence({ onComplete }: TerminalSequenceProps) {
   // Keep onComplete in a ref so changing the prop never restarts the animation
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
+  const onMilestoneRef = useRef(onMilestone);
+  onMilestoneRef.current = onMilestone;
   const stateRef = useRef<{
     state: AnimState;
     lineIndex: number;
@@ -171,6 +174,7 @@ export function TerminalSequence({ onComplete }: TerminalSequenceProps) {
             const currentLine = TERMINAL_LINES[s.lineIndex];
             const newLines = [...linesRef.current, currentLine.text];
             updateLines(newLines);
+            onMilestoneRef.current?.();
             s.state = "backspacing";
             s.elapsed = 0;
           }
@@ -218,6 +222,7 @@ export function TerminalSequence({ onComplete }: TerminalSequenceProps) {
             if (s.elapsed >= FINAL_BLANK_PAUSE) {
               const newLines = [...linesRef.current, ""];
               updateLines(newLines);
+              onMilestoneRef.current?.();
               s.lineIndex++;
               s.charIndex = 0;
               s.startCharIndex = 0;
@@ -236,6 +241,7 @@ export function TerminalSequence({ onComplete }: TerminalSequenceProps) {
             // Commit this line and move to next
             const newLines = [...linesRef.current, currentLine.text];
             updateLines(newLines);
+            onMilestoneRef.current?.();
             updateCurrentText("");
             s.lineIndex++;
             s.charIndex = 0;
@@ -289,7 +295,7 @@ export function TerminalSequence({ onComplete }: TerminalSequenceProps) {
     <div
       role="img"
       aria-label="Terminal animation showing WOPR Bot capabilities accelerating from mundane tasks to cosmic scale, ending at $5/month"
-      className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden bg-black"
+      className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden"
     >
       {/* Grid dot background */}
       <div

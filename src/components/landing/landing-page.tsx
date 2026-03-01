@@ -2,9 +2,10 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { LandingNav } from "./landing-nav";
+import { PortfolioChart } from "./portfolio-chart";
 import { StorySections } from "./story-sections";
 import { TerminalSequence } from "./terminal-sequence";
 
@@ -21,12 +22,19 @@ function CtaBlock({ className }: { className?: string }) {
 
 export function LandingPage() {
   const [animationDone, setAnimationDone] = useState(false);
+  const milestoneRef = useRef<(() => void) | null>(null);
 
   return (
     <div className="bg-black font-mono">
       <LandingNav />
       {/* Hero — Terminal Animation */}
-      <TerminalSequence onComplete={() => setAnimationDone(true)} />
+      <div className="relative bg-black">
+        <PortfolioChart onMilestoneRef={milestoneRef} />
+        <TerminalSequence
+          onComplete={() => setAnimationDone(true)}
+          onMilestone={() => milestoneRef.current?.()}
+        />
+      </div>
 
       {/* Top CTA — fades in after animation */}
       <motion.div
