@@ -234,13 +234,13 @@ describe("OAuth callback page", () => {
 
   it("shows generic error for unknown error param", async () => {
     vi.mocked(useSearchParams).mockReturnValue(
-      new URLSearchParams("error=server_error") as ReturnType<typeof useSearchParams>,
+      new URLSearchParams("error=totally_unknown_code") as ReturnType<typeof useSearchParams>,
     );
     const { default: OAuthCallbackPage } = await import("../app/auth/callback/[provider]/page");
     render(<OAuthCallbackPage />);
 
     expect(screen.getByText("Authentication failed")).toBeInTheDocument();
-    expect(screen.getByText("Authentication failed: server_error")).toBeInTheDocument();
+    expect(screen.getByText("Authentication failed. Please try again.")).toBeInTheDocument();
     expect(mockPush).not.toHaveBeenCalled();
   });
 
