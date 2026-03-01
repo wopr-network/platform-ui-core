@@ -1,15 +1,17 @@
 /**
- * AppRouter type from wopr-platform.
+ * AppRouter type stub for wopr-platform.
  *
- * The platform backend is a separate repo (wopr-network/wopr-platform).
- * This type will eventually be published via @wopr-network/sdk and imported from there.
+ * NOTE(WOP-1189): The platform backend is a separate repo (wopr-network/wopr-platform)
+ * and @wopr-network/wopr-platform is not published on npm. Using a local `link:`
+ * dependency breaks CI (ERR_PNPM_LOCKFILE_CONFIG_MISMATCH — the path doesn't exist
+ * on GitHub Actions runners). This stub re-declares the procedures consumed by the UI
+ * so the build stays type-safe without a local path dependency.
  *
- * For local development with full type safety, run:
- *   cd ../wopr-platform && pnpm build && cd ../wopr-platform-ui && pnpm link ../wopr-platform
- * Then switch to:
- *   export type { AppRouter } from "@wopr-network/wopr-platform/dist/trpc/index.js";
+ * When @wopr-network/sdk is published, replace this file with:
+ *   export type { AppRouter } from "@wopr-network/sdk";
  *
- * TODO: WOP-1189 — import from @wopr-network/sdk and delete this stub
+ * The real AppRouter type lives at:
+ *   wopr-network/wopr-platform/src/trpc/index.ts → `export type AppRouter = typeof appRouter;`
  */
 import type {
   AnyTRPCMutationProcedure,
@@ -21,8 +23,7 @@ import type {
 
 /**
  * Minimal router record for the procedures this UI consumes.
- * Replacing this with the real router record from @wopr-network/sdk adds full autocomplete.
- * TODO: WOP-1189 — import from @wopr-network/sdk and delete this stub
+ * Extend this when adding new tRPC calls. Remove entries when procedures are dropped.
  */
 type AppRouterRecord = TRPCRouterRecord & {
   pageContext: {
@@ -54,6 +55,17 @@ type AppRouterRecord = TRPCRouterRecord & {
   };
   billing: {
     applyCoupon: AnyTRPCMutationProcedure;
+  };
+  settings: {
+    notificationPreferences: AnyTRPCQueryProcedure;
+    updateNotificationPreferences: AnyTRPCMutationProcedure;
+  };
+  capabilities: {
+    storeKey: AnyTRPCMutationProcedure;
+    testKey: AnyTRPCMutationProcedure;
+    listCapabilitySettings: AnyTRPCQueryProcedure;
+    updateCapabilitySettings: AnyTRPCMutationProcedure;
+    listCapabilityMeta: AnyTRPCQueryProcedure;
   };
 };
 
