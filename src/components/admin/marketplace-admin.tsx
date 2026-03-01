@@ -183,6 +183,9 @@ export function MarketplaceAdmin() {
     return (
       <div className="flex h-40 flex-col items-center justify-center gap-3">
         <p className="text-sm text-destructive font-mono">{loadError}</p>
+        <Button variant="outline" size="sm" onClick={load}>
+          Retry
+        </Button>
       </div>
     );
   }

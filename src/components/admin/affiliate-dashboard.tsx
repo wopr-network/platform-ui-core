@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -344,7 +345,7 @@ function FingerprintPanel() {
       const result = await getAffiliateFingerprintClusters();
       setClusters(result);
     } catch {
-      // keep empty
+      toast.error("Failed to load fingerprint clusters. Please try again.");
     } finally {
       setLoading(false);
     }
