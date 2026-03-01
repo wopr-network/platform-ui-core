@@ -161,6 +161,7 @@ export function FieldQR({ field, value: _value, onChange, error, botId }: FieldQ
               <div className="absolute bottom-0 left-0 h-3 w-3 border-b-2 border-l-2 border-terminal" />
               <div className="absolute bottom-0 right-0 h-3 w-3 border-b-2 border-r-2 border-terminal" />
 
+              {/* bg-white is intentional -- QR codes require white background for scanability */}
               <div className="h-40 w-40 rounded-sm bg-white p-3 min-[375px]:h-48 min-[375px]:w-48">
                 {/* biome-ignore lint/performance/noImgElement: QR code is a base64 data URL, not optimizable by next/image */}
                 <img
@@ -201,6 +202,7 @@ export function FieldQR({ field, value: _value, onChange, error, botId }: FieldQ
               <div className="absolute bottom-0 left-0 h-3 w-3 border-b-2 border-l-2 border-terminal/30" />
               <div className="absolute bottom-0 right-0 h-3 w-3 border-b-2 border-r-2 border-terminal/30" />
 
+              {/* bg-white is intentional -- QR codes require white background for scanability */}
               <div className="relative h-40 w-40 rounded-sm bg-white p-3 min-[375px]:h-48 min-[375px]:w-48">
                 {qrPng && (
                   // biome-ignore lint/performance/noImgElement: QR code is a base64 data URL

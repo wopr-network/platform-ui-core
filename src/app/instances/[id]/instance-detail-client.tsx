@@ -863,7 +863,7 @@ export function InstanceDetailClient({ instanceId }: { instanceId: string }) {
                   </TableHeader>
                   <TableBody>
                     {secretKeys.map((key) => (
-                      <TableRow key={key} className="hover:bg-white/[0.02]">
+                      <TableRow key={key} className="hover:bg-muted/50">
                         <TableCell className="font-mono text-sm">
                           {key}
                           <Badge
@@ -888,7 +888,7 @@ export function InstanceDetailClient({ instanceId }: { instanceId: string }) {
                       </TableRow>
                     ))}
                     {newSecretRows.map((row) => (
-                      <TableRow key={`new-${row.id}`} className="hover:bg-white/[0.02]">
+                      <TableRow key={`new-${row.id}`} className="hover:bg-muted/50">
                         <TableCell>
                           <Input
                             placeholder="SECRET_KEY_NAME"
