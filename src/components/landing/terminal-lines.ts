@@ -10,7 +10,6 @@ export const TERMINAL_LINES: TerminalLine[] = [
 
   // The small stuff — slow, painfully relatable
   { text: "Shall we sort your inbox?", hold: false },
-  { text: "Shall we call your mom?", hold: false },
   { text: "Shall we visit home?", hold: false },
   { text: "Shall we make the appointment?", hold: false },
   { text: "Shall we find the charger?", hold: false },
