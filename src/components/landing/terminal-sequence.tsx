@@ -179,9 +179,6 @@ export function TerminalSequence({ onComplete }: TerminalSequenceProps) {
           if (newLen === PREFIX_LENGTH) {
             // Commit completed line to dimmed history
             const newLines = [...linesRef.current, currentLine.text];
-            if (newLines.length > 20) {
-              newLines.splice(0, newLines.length - 20);
-            }
             updateLines(newLines);
             // "Shall we" stays in currentText — next line types its suffix onto it
             s.lineIndex++;
@@ -303,40 +300,47 @@ export function TerminalSequence({ onComplete }: TerminalSequenceProps) {
       {/* CRT scanlines */}
       <div className="crt-scanlines pointer-events-none absolute inset-0 z-10" />
 
-      {/* Terminal buffer — current line is truly fixed at 50vh; history grows upward from it */}
-      <div className="absolute top-1/2 z-20 w-full max-w-2xl -translate-y-1/2 px-4">
-        {/* History: absolutely above the current line, fades toward the top.
-            Mask only applied during animation — in reduced-motion/done mode lines must be fully visible. */}
-        <div
-          ref={bufferRef}
-          className="absolute bottom-full w-full overflow-hidden font-mono text-xs leading-relaxed sm:text-sm"
-          style={{
-            // Fixed height so justify-end has something to push against —
-            // content anchors at the bottom, old lines overflow off the top into the mask
-            height: "45vh",
-            ...(animationDone
-              ? {}
-              : {
-                  maskImage: "linear-gradient(to bottom, transparent 0%, black 60%)",
-                  WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, black 60%)",
-                }),
-          }}
-        >
-          <div className="absolute bottom-0 flex w-full flex-col">
-            {lines.map((line, i) => (
-              <div
-                key={`${i}-${line}`}
-                className={animationDone ? "text-terminal" : "text-terminal/30"}
-              >
-                {line || "\u00A0"}
-              </div>
-            ))}
-          </div>
+      {/* History: viewport-anchored from 5vh down to just above 50vh.
+          Both history and current-line use the same viewport reference so
+          neither depends on the other's rendered height. */}
+      <div
+        ref={bufferRef}
+        className="absolute z-20 mx-auto w-full max-w-2xl overflow-hidden px-4 font-mono text-xs leading-relaxed sm:text-sm"
+        style={{
+          // top 5vh → bottom calc(50vh + 14px): leaves room for the current line
+          top: "5vh",
+          bottom: "calc(50vh + 14px)",
+          left: "50%",
+          transform: "translateX(-50%)",
+          ...(animationDone
+            ? {}
+            : {
+                maskImage: "linear-gradient(to bottom, transparent 0%, black 50%)",
+                WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, black 50%)",
+              }),
+        }}
+      >
+        {/* absolute bottom-0 anchors newest lines at container bottom;
+            old lines overflow upward and are clipped + faded by the mask */}
+        <div className="absolute bottom-0 flex w-full flex-col">
+          {lines.map((line, i) => (
+            <div
+              key={`${i}-${line}`}
+              className={animationDone ? "text-terminal" : "text-terminal/30"}
+            >
+              {line || "\u00A0"}
+            </div>
+          ))}
         </div>
+      </div>
 
-        {/* Current line — sits at exactly 50vh, never moves */}
-        {!animationDone && (
-          <div className="text-terminal font-mono text-xs sm:text-sm">
+      {/* Current line — viewport-anchored at exactly 50vh, never moves */}
+      {!animationDone && (
+        <div
+          className="absolute z-20 w-full max-w-2xl px-4 font-mono text-xs leading-relaxed sm:text-sm"
+          style={{ top: "50vh", left: "50%", transform: "translate(-50%, -50%)" }}
+        >
+          <span className="text-terminal">
             <span style={textBlur > 0 ? { filter: `blur(${textBlur}px)` } : undefined}>
               {currentText}
             </span>
@@ -347,9 +351,9 @@ export function TerminalSequence({ onComplete }: TerminalSequenceProps) {
                 style={{ opacity: cursorVisible ? 1 : 0 }}
               />
             )}
-          </div>
-        )}
-      </div>
+          </span>
+        </div>
+      )}
     </div>
   );
 }
