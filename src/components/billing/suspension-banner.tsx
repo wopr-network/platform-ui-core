@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { DegradedStateBanner } from "@/components/billing/degraded-state-banner";
 import { LowBalanceBanner } from "@/components/billing/low-balance-banner";
 import { Banner } from "@/components/ui/banner";
 import type { BillingUsageSummary } from "@/lib/api";
@@ -35,6 +36,7 @@ export function SuspensionBanner() {
 
   return (
     <>
+      <DegradedStateBanner />
       <LowBalanceBanner balance={balance} runway={runway} global />
       {summary && summary.amountDue > 0 && (
         <Banner variant="warning" role="alert">

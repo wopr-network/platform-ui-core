@@ -30,6 +30,7 @@ vi.mock("@/lib/api", async (importOriginal) => {
   return {
     ...actual,
     getCreditBalance: vi.fn().mockResolvedValue(MOCK_BALANCE),
+    getAccountStatus: vi.fn().mockResolvedValue(null),
     getBillingUsageSummary: vi.fn().mockResolvedValue({
       periodStart: "2026-02-01T00:00:00Z",
       periodEnd: "2026-02-28T23:59:59Z",

@@ -1140,6 +1140,13 @@ interface BillingProcedures {
       scheduled?: { enabled: boolean; amountCents: number; interval: AutoTopupInterval };
     }): Promise<AutoTopupSettings>;
   };
+  accountStatus: {
+    query(input?: Record<never, never>): Promise<{
+      status: string;
+      status_reason: string | null;
+      grace_deadline: string | null;
+    }>;
+  };
 }
 
 const billingClient = (trpcVanilla as unknown as { billing: BillingProcedures }).billing;
@@ -1506,6 +1513,30 @@ export async function updateAutoTopupSettings(update: {
   scheduled?: { enabled: boolean; amountCents: number; interval: AutoTopupInterval };
 }): Promise<AutoTopupSettings> {
   return billingClient.updateAutoTopupSettings.mutate(update);
+}
+
+// --- Account status types ---
+
+export type AccountStatusValue = "active" | "grace_period" | "suspended" | "banned";
+
+export interface AccountStatus {
+  status: AccountStatusValue;
+  statusReason: string | null;
+  graceDeadline: string | null;
+}
+
+export async function getAccountStatus(): Promise<AccountStatus | null> {
+  try {
+    const res = await billingClient.accountStatus.query();
+    return {
+      status: (res?.status as AccountStatusValue) ?? "active",
+      statusReason: res?.status_reason ?? null,
+      graceDeadline: res?.grace_deadline ?? null,
+    };
+  } catch {
+    // Endpoint may not exist yet — non-critical
+    return null;
+  }
 }
 
 // --- Model selection types ---
