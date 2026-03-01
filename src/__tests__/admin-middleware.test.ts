@@ -111,6 +111,36 @@ describe("Admin route middleware authorization", () => {
     expect(res.headers.get("location")).toContain("/marketplace");
   });
 
+  it("sets no-cache headers on admin page responses for admin users", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        session: { id: "s1" },
+        user: { id: "u1", role: "platform_admin" },
+      }),
+    });
+
+    const req = mockRequest({
+      url: "https://app.wopr.dev/admin/tenants",
+      cookies: { "better-auth.session_token": "valid-token" },
+    });
+
+    const res = await middleware(req);
+    expect(res.headers.get("cache-control")).toBe("no-store, no-cache, must-revalidate");
+    expect(res.headers.get("pragma")).toBe("no-cache");
+  });
+
+  it("does not set restrictive cache headers on non-admin pages", async () => {
+    const req = mockRequest({
+      url: "https://app.wopr.dev/marketplace",
+      cookies: { "better-auth.session_token": "valid-token" },
+    });
+
+    const res = await middleware(req);
+    expect(res.headers.get("cache-control")).toBeNull();
+    expect(res.headers.get("pragma")).toBeNull();
+  });
+
   it("does not call get-session for non-admin routes", async () => {
     const fetchSpy = vi.fn();
     globalThis.fetch = fetchSpy;

@@ -180,6 +180,12 @@ export default async function middleware(request: NextRequest) {
       if (role !== "platform_admin") {
         return withCsp(NextResponse.redirect(new URL("/marketplace", request.url)));
       }
+      // Admin confirmed — serve page with anti-cache headers so revocation
+      // is detected on the very next navigation (browser must revalidate).
+      const response = NextResponse.next();
+      response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
+      response.headers.set("Pragma", "no-cache");
+      return withCsp(response);
     }
     // No session cookie → fall through to the session check below which redirects to /login
   }
