@@ -12,7 +12,7 @@ type ProviderName = "discord" | "google" | "deepgram" | "elevenlabs" | "anthropi
 // ---- Settings API calls ----
 
 export async function getNotificationPreferences(): Promise<NotificationPreferences> {
-  return trpcVanilla.settings.notificationPreferences.query();
+  return trpcVanilla.settings.notificationPreferences.query(undefined);
 }
 
 export async function updateNotificationPreferences(
@@ -44,7 +44,7 @@ export async function testProviderKey(
 }
 
 export async function listCapabilities(): Promise<CapabilitySetting[]> {
-  return trpcVanilla.capabilities.listCapabilitySettings.query();
+  return trpcVanilla.capabilities.listCapabilitySettings.query(undefined);
 }
 
 export async function updateCapability(
