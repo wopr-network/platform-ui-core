@@ -140,6 +140,7 @@ declare module "react-markdown" {
   interface ReactMarkdownProps {
     children?: string;
     remarkPlugins?: unknown[];
+    rehypePlugins?: unknown[];
     components?: Record<string, ComponentType<Record<string, unknown>>>;
   }
   export default function ReactMarkdown(props: ReactMarkdownProps): ReactNode;
@@ -152,6 +153,22 @@ declare module "react-markdown" {
 declare module "remark-gfm" {
   const remarkGfm: (...args: unknown[]) => unknown;
   export default remarkGfm;
+}
+
+// ---------------------------------------------------------------------------
+// rehype-sanitize – HTML sanitization plugin for rehype/react-markdown
+// Same exports-map issue as react-markdown above.
+// ---------------------------------------------------------------------------
+declare module "rehype-sanitize" {
+  interface SanitizeSchema {
+    tagNames?: string[];
+    attributes?: Record<string, string[]>;
+    protocols?: Record<string, string[]>;
+    [key: string]: unknown;
+  }
+  export const defaultSchema: SanitizeSchema;
+  const rehypeSanitize: (...args: unknown[]) => unknown;
+  export default rehypeSanitize;
 }
 
 // ---------------------------------------------------------------------------

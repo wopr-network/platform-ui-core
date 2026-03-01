@@ -3,7 +3,16 @@
 import type { ComponentPropsWithoutRef } from "react";
 import { useMemo } from "react";
 import ReactMarkdown from "react-markdown";
+import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import remarkGfm from "remark-gfm";
+
+const sanitizeSchema = {
+  ...defaultSchema,
+  protocols: {
+    ...defaultSchema.protocols,
+    href: ["http", "https", "mailto"],
+  },
+};
 
 interface SuperpowerContentProps {
   markdown: string;
@@ -68,7 +77,11 @@ export function SuperpowerContent({ markdown }: SuperpowerContentProps) {
 
   return (
     <div className="space-y-6">
-      <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        rehypePlugins={[[rehypeSanitize, sanitizeSchema]]}
+        components={mdComponents}
+      >
         {preamble}
       </ReactMarkdown>
 
@@ -77,7 +90,11 @@ export function SuperpowerContent({ markdown }: SuperpowerContentProps) {
           <details key={section.heading} className="group rounded-lg border p-4">
             <summary className="cursor-pointer text-lg font-semibold">{section.heading}</summary>
             <div className="mt-3">
-              <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                rehypePlugins={[[rehypeSanitize, sanitizeSchema]]}
+                components={mdComponents}
+              >
                 {section.body}
               </ReactMarkdown>
             </div>
@@ -85,7 +102,11 @@ export function SuperpowerContent({ markdown }: SuperpowerContentProps) {
         ) : (
           <div key={section.heading}>
             <h2 className="text-xl font-semibold tracking-tight mb-3">{section.heading}</h2>
-            <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              rehypePlugins={[[rehypeSanitize, sanitizeSchema]]}
+              components={mdComponents}
+            >
               {section.body}
             </ReactMarkdown>
           </div>
