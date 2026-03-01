@@ -81,8 +81,6 @@ export function PortfolioChart({ onMilestoneRef, onFadeStartRef }: PortfolioChar
     anchorX: 1.0, // fraction of w where current point renders (1.0 = right edge)
     anchorTopFrac: 0.3, // fraction of yRange above current point (0 = current at top edge)
     smoothedSlope: 0, // EMA of screen-space slope
-    // t-positions of the last 4 milestones (permanent, for end-fade clip)
-    lastMilestoneTs: [] as number[],
     // Set when terminal enters final-typing phase — drives the end fade
     fadeStartTime: -1,
   });
@@ -104,10 +102,6 @@ export function PortfolioChart({ onMilestoneRef, onFadeStartRef }: PortfolioChar
       lifetime,
       color, // freeze birth color
     });
-
-    // Track last 3 milestone t-positions for the history fade
-    s.lastMilestoneTs.push(s.t);
-    if (s.lastMilestoneTs.length > 4) s.lastMilestoneTs.shift();
   }, []);
 
   // Wire milestone ref
@@ -241,31 +235,7 @@ export function PortfolioChart({ onMilestoneRef, onFadeStartRef }: PortfolioChar
 
       const color = getLineColor(s.milestoneCount, now);
 
-      // Gradient clips the line to the last 4 milestones' trail only.
-      // Everything older is transparent — this is permanent, not animated.
-      // Old history simply ceases to exist as new milestones push it out.
-      const anchorScreenX = w * s.anchorX;
-      const fadeOriginT = s.lastMilestoneTs.length > 0 ? s.lastMilestoneTs[0] : xLeft;
-      const fadeX = Math.max(0, toScreenX(fadeOriginT));
-
-      const makeGrad = () => {
-        const g = ctx.createLinearGradient(0, 0, anchorScreenX, 0);
-        g.addColorStop(0, "transparent");
-        if (s.lastMilestoneTs.length >= 4 && anchorScreenX > 0) {
-          const f = Math.min(0.999, fadeX / anchorScreenX);
-          g.addColorStop(Math.max(0, f - 0.001), "transparent");
-          g.addColorStop(f, color);
-        } else {
-          // Fewer than 4 milestones — show full line
-          g.addColorStop(0.001, color);
-        }
-        g.addColorStop(1, color);
-        return g;
-      };
-
       // End-of-sequence fade: triggered when terminal enters final-typing.
-      // Fades over 6 seconds. Old history already gone via gradient —
-      // only the last 4 segments are visible as everything dissolves.
       const FADE_DURATION = 6000; // ms
       const lineAlpha =
         s.fadeStartTime < 0 ? 1 : Math.max(0, 1 - (now - s.fadeStartTime) / FADE_DURATION);
@@ -278,7 +248,7 @@ export function PortfolioChart({ onMilestoneRef, onFadeStartRef }: PortfolioChar
         for (let i = 1; i < screenPoints.length; i++) {
           ctx.lineTo(screenPoints[i][0], screenPoints[i][1]);
         }
-        ctx.strokeStyle = makeGrad();
+        ctx.strokeStyle = color;
         ctx.lineWidth = 6;
         ctx.shadowColor = color;
         ctx.shadowBlur = 20;
@@ -295,7 +265,7 @@ export function PortfolioChart({ onMilestoneRef, onFadeStartRef }: PortfolioChar
         for (let i = 1; i < screenPoints.length; i++) {
           ctx.lineTo(screenPoints[i][0], screenPoints[i][1]);
         }
-        ctx.strokeStyle = makeGrad();
+        ctx.strokeStyle = color;
         ctx.lineWidth = 1.5;
         ctx.globalAlpha = 0.85 * lineAlpha;
         ctx.lineCap = "round";
