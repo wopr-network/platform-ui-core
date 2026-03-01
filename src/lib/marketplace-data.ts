@@ -1,5 +1,7 @@
 // --- Plugin Manifest types ---
 
+import { z } from "zod";
+
 export type PluginCategory =
   | "channel"
   | "provider"
@@ -14,29 +16,33 @@ export type PluginCategory =
 
 export type SetupFlowType = "paste" | "oauth" | "qr" | "interactive";
 
-export interface ConfigSchemaField {
-  key: string;
-  label: string;
-  type: "string" | "number" | "boolean" | "select";
-  required: boolean;
-  secret?: boolean;
-  setupFlow?: SetupFlowType;
-  placeholder?: string;
-  description?: string;
-  default?: string | number | boolean;
-  options?: { label: string; value: string }[];
-  validation?: { pattern: string; message: string };
-  oauthProvider?: string;
-}
+const configSchemaFieldSchema = z.object({
+  key: z.string(),
+  label: z.string(),
+  type: z.enum(["string", "number", "boolean", "select"]),
+  required: z.boolean(),
+  secret: z.boolean().optional(),
+  setupFlow: z.enum(["paste", "oauth", "qr", "interactive"]).optional(),
+  placeholder: z.string().optional(),
+  description: z.string().optional(),
+  default: z.union([z.string(), z.number(), z.boolean()]).optional(),
+  options: z.array(z.object({ label: z.string(), value: z.string() })).optional(),
+  validation: z.object({ pattern: z.string(), message: z.string() }).optional(),
+  oauthProvider: z.string().optional(),
+});
 
-export interface SetupStep {
-  id: string;
-  title: string;
-  description: string;
-  fields: ConfigSchemaField[];
-  instruction?: string;
-  externalUrl?: string;
-}
+export type ConfigSchemaField = z.infer<typeof configSchemaFieldSchema>;
+
+const setupStepSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  description: z.string(),
+  fields: z.array(configSchemaFieldSchema),
+  instruction: z.string().optional(),
+  externalUrl: z.string().optional(),
+});
+
+export type SetupStep = z.infer<typeof setupStepSchema>;
 
 export type MarketplaceTab = "superpower" | "channel" | "capability" | "utility";
 
@@ -47,37 +53,57 @@ export const MARKETPLACE_TABS: { id: MarketplaceTab; label: string }[] = [
   { id: "utility", label: "Utilities" },
 ];
 
-export interface PluginManifest {
-  id: string;
-  name: string;
-  description: string;
-  version: string;
-  author: string;
-  icon: string;
-  color: string;
-  category: PluginCategory;
-  tags: string[];
-  capabilities: string[];
-  requires: { id: string; label: string }[];
-  install: string[];
-  configSchema: ConfigSchemaField[];
-  setup: SetupStep[];
-  installCount: number;
-  changelog: { version: string; date: string; notes: string }[];
-  connectionTest?: {
-    label: string;
-    endpoint: string;
-  };
-  /** Outcome-first headline for the superpower surface */
-  superpowerHeadline?: string;
-  /** One punchy tagline sentence */
-  superpowerTagline?: string;
-  /** Long-form markdown content (from SUPERPOWER.md) */
-  superpowerMarkdown?: string;
-  /** User-facing outcome bullets */
-  superpowerOutcomes?: string[];
-  /** Marketplace category for the 4-tab nav */
-  marketplaceTab?: MarketplaceTab;
+const pluginManifestSchema = z.object({
+  id: z.string(),
+  name: z.string().min(1),
+  description: z.string().default("No description provided"),
+  version: z.string().default("unknown"),
+  author: z.string().default("Unknown"),
+  icon: z.string().default("Package"),
+  color: z.string().default("#6B7280"),
+  category: z
+    .enum([
+      "channel",
+      "provider",
+      "voice",
+      "memory",
+      "context",
+      "webhook",
+      "integration",
+      "ui",
+      "moderation",
+      "analytics",
+    ])
+    .default("integration"),
+  tags: z.array(z.string()).default([]),
+  capabilities: z.array(z.string()).default([]),
+  requires: z.array(z.object({ id: z.string(), label: z.string() })).default([]),
+  install: z.array(z.string()).default([]),
+  configSchema: z.array(configSchemaFieldSchema).default([]),
+  setup: z.array(setupStepSchema).default([]),
+  installCount: z.number().default(0),
+  changelog: z
+    .array(z.object({ version: z.string(), date: z.string(), notes: z.string() }))
+    .default([]),
+  connectionTest: z.object({ label: z.string(), endpoint: z.string() }).optional(),
+  superpowerHeadline: z.string().optional(),
+  superpowerTagline: z.string().optional(),
+  superpowerMarkdown: z.string().optional(),
+  superpowerOutcomes: z.array(z.string()).optional(),
+  marketplaceTab: z.enum(["superpower", "channel", "capability", "utility"]).optional(),
+});
+
+export type PluginManifest = z.infer<typeof pluginManifestSchema>;
+
+/** Parse and validate a plugin manifest, applying defaults for missing optional fields. Throws on invalid data (missing id or name). */
+export function parseManifest(data: unknown): PluginManifest {
+  return pluginManifestSchema.parse(data);
+}
+
+/** Safe version — returns null instead of throwing on invalid data. */
+export function parseManifestSafe(data: unknown): PluginManifest | null {
+  const result = pluginManifestSchema.safeParse(data);
+  return result.success ? result.data : null;
 }
 
 // --- Hosted Adapter Registry ---
@@ -197,7 +223,8 @@ export async function listBots(): Promise<BotSummary[]> {
 }
 
 export async function listMarketplacePlugins(): Promise<PluginManifest[]> {
-  return apiFetch<PluginManifest[]>("/marketplace/plugins");
+  const raw = await apiFetch<unknown[]>("/marketplace/plugins");
+  return raw.map((item) => parseManifestSafe(item)).filter((r): r is PluginManifest => r !== null);
 }
 
 export interface PluginContentResponse {
@@ -216,7 +243,8 @@ export async function getPluginContent(pluginId: string): Promise<PluginContentR
 }
 
 export async function getMarketplacePlugin(id: string): Promise<PluginManifest | null> {
-  return apiFetch<PluginManifest>(`/marketplace/plugins/${id}`);
+  const raw = await apiFetch<unknown>(`/marketplace/plugins/${id}`);
+  return raw ? parseManifestSafe(raw) : null;
 }
 
 export async function installPlugin(
