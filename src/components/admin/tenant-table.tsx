@@ -111,15 +111,23 @@ export function TenantTable() {
   async function handleBulkSuspend() {
     const reason = window.prompt("Reason for suspension:");
     if (!reason) return;
-    await bulkSuspendTenants(Array.from(selected), reason);
-    setSelected(new Set());
-    reload();
+    try {
+      await bulkSuspendTenants(Array.from(selected), reason);
+      setSelected(new Set());
+      reload();
+    } catch {
+      // Keep selection on error
+    }
   }
 
   async function handleBulkReactivate() {
-    await bulkReactivateTenants(Array.from(selected));
-    setSelected(new Set());
-    reload();
+    try {
+      await bulkReactivateTenants(Array.from(selected));
+      setSelected(new Set());
+      reload();
+    } catch {
+      // Keep selection on error
+    }
   }
 
   async function handleBulkGrantCredits() {
@@ -129,9 +137,13 @@ export function TenantTable() {
     if (Number.isNaN(amountCents) || amountCents <= 0) return;
     const reason = window.prompt("Reason for grant:");
     if (!reason) return;
-    await bulkGrantCredits(Array.from(selected), amountCents, reason);
-    setSelected(new Set());
-    reload();
+    try {
+      await bulkGrantCredits(Array.from(selected), amountCents, reason);
+      setSelected(new Set());
+      reload();
+    } catch {
+      // Keep selection on error
+    }
   }
 
   function handleExport() {

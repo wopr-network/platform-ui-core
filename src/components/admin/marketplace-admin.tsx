@@ -89,19 +89,27 @@ export function MarketplaceAdmin() {
   // ---- Handlers ----
 
   const handleToggle = async (plugin: AdminPlugin, field: "enabled" | "featured") => {
-    const updated = await updatePlugin({ id: plugin.id, [field]: !plugin[field] });
-    if (selected?.id === plugin.id) setSelected(updated);
-    await load();
+    try {
+      const updated = await updatePlugin({ id: plugin.id, [field]: !plugin[field] });
+      if (selected?.id === plugin.id) setSelected(updated);
+      await load();
+    } catch {
+      // Keep previous state on error
+    }
   };
 
   const handleReview = async (plugin: AdminPlugin, enable: boolean) => {
-    await updatePlugin({
-      id: plugin.id,
-      reviewed: true,
-      enabled: enable,
-    });
-    if (selected?.id === plugin.id) setSelected(null);
-    await load();
+    try {
+      await updatePlugin({
+        id: plugin.id,
+        reviewed: true,
+        enabled: enable,
+      });
+      if (selected?.id === plugin.id) setSelected(null);
+      await load();
+    } catch {
+      // Keep previous state on error
+    }
   };
 
   const handleNotesChange = (value: string) => {
@@ -109,8 +117,12 @@ export function MarketplaceAdmin() {
     if (notesTimerRef.current) clearTimeout(notesTimerRef.current);
     notesTimerRef.current = setTimeout(async () => {
       if (selected) {
-        const updated = await updatePlugin({ id: selected.id, notes: value });
-        setSelected(updated);
+        try {
+          const updated = await updatePlugin({ id: selected.id, notes: value });
+          setSelected(updated);
+        } catch {
+          // Silently ignore autosave failures
+        }
       }
     }, 800);
   };
@@ -149,7 +161,11 @@ export function MarketplaceAdmin() {
     reordered.splice(to, 0, moved);
     setEnabled(reordered);
 
-    await reorderPlugins(reordered.map((p) => p.id));
+    try {
+      await reorderPlugins(reordered.map((p) => p.id));
+    } catch {
+      // Reorder API failure is non-critical; visual order already updated
+    }
     dragItemRef.current = null;
     dragOverRef.current = null;
   };
