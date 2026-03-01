@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { PluginManifest } from "../lib/marketplace-data";
 import {
   ALL_CATEGORIES,
   formatInstallCount,
@@ -11,8 +12,7 @@ import {
 
 // vi.hoisted runs before module imports so TEST_PLUGINS is available in vi.mock factories
 const { TEST_PLUGINS } = vi.hoisted(() => {
-  // biome-ignore lint/suspicious/noExplicitAny: type not available at hoist time
-  const TEST_PLUGINS: any[] = [
+  const TEST_PLUGINS: Array<Record<string, unknown>> = [
     {
       id: "discord",
       name: "Discord",
@@ -260,10 +260,10 @@ vi.mock("../lib/marketplace-data", async () => {
   };
 });
 
-function findManifest(id: string) {
+function findManifest(id: string): PluginManifest {
   const m = TEST_PLUGINS.find((p) => p.id === id);
   if (!m) throw new Error(`Manifest ${id} not found in TEST_PLUGINS`);
-  return m;
+  return m as unknown as PluginManifest;
 }
 
 function closestButton(el: HTMLElement): HTMLElement {
@@ -621,7 +621,7 @@ describe("InstallWizard", () => {
 describe("PluginCard", () => {
   it("renders plugin info with link to detail page", async () => {
     const { PluginCard } = await import("../components/marketplace/plugin-card");
-    const plugin = TEST_PLUGINS[0]; // discord
+    const plugin = TEST_PLUGINS[0] as unknown as PluginManifest; // discord
 
     render(<PluginCard plugin={plugin} />);
 

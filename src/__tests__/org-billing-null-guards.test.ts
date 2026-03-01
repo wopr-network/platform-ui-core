@@ -1,4 +1,21 @@
+import type { Mock } from "vitest";
 import { describe, expect, it, vi } from "vitest";
+
+interface MockQuery {
+  query: Mock;
+}
+interface MockMutate {
+  mutate: Mock;
+}
+
+interface MockTrpcVanilla {
+  org: {
+    orgBillingBalance: MockQuery;
+    orgMemberUsage: MockQuery;
+    orgBillingInfo: MockQuery;
+    orgTopupCheckout: MockMutate;
+  };
+}
 
 vi.mock("@/lib/trpc", () => ({
   trpcVanilla: {
@@ -14,7 +31,7 @@ vi.mock("@/lib/trpc", () => ({
 describe("org-billing-api null guards", () => {
   it("getOrgCreditBalance handles empty response", async () => {
     const { trpcVanilla } = await import("@/lib/trpc");
-    const org = (trpcVanilla as any).org;
+    const { org } = trpcVanilla as unknown as MockTrpcVanilla;
     org.orgBillingBalance.query.mockResolvedValue({});
 
     const { getOrgCreditBalance } = await import("@/lib/org-billing-api");
@@ -26,7 +43,7 @@ describe("org-billing-api null guards", () => {
 
   it("getOrgMemberUsage handles missing members array", async () => {
     const { trpcVanilla } = await import("@/lib/trpc");
-    const org = (trpcVanilla as any).org;
+    const { org } = trpcVanilla as unknown as MockTrpcVanilla;
     org.orgMemberUsage.query.mockResolvedValue({ orgId: "o", periodStart: "2026-01-01" });
 
     const { getOrgMemberUsage } = await import("@/lib/org-billing-api");
@@ -36,7 +53,7 @@ describe("org-billing-api null guards", () => {
 
   it("getOrgBillingInfo handles empty response", async () => {
     const { trpcVanilla } = await import("@/lib/trpc");
-    const org = (trpcVanilla as any).org;
+    const { org } = trpcVanilla as unknown as MockTrpcVanilla;
     org.orgBillingInfo.query.mockResolvedValue({});
 
     const { getOrgBillingInfo } = await import("@/lib/org-billing-api");

@@ -140,8 +140,7 @@ declare module "react-markdown" {
   interface ReactMarkdownProps {
     children?: string;
     remarkPlugins?: unknown[];
-    // biome-ignore lint/suspicious/noExplicitAny: stub for missing package types
-    components?: Record<string, ComponentType<any>>;
+    components?: Record<string, ComponentType<Record<string, unknown>>>;
   }
   export default function ReactMarkdown(props: ReactMarkdownProps): ReactNode;
 }
@@ -151,8 +150,7 @@ declare module "react-markdown" {
 // Same exports-map issue as react-markdown above.
 // ---------------------------------------------------------------------------
 declare module "remark-gfm" {
-  // biome-ignore lint/suspicious/noExplicitAny: stub for missing package types
-  const remarkGfm: (...args: any[]) => any;
+  const remarkGfm: (...args: unknown[]) => unknown;
   export default remarkGfm;
 }
 
