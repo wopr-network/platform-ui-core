@@ -91,34 +91,23 @@ export function BotSettingsClient({ botId }: { botId: string }) {
 
   const settingsLoaded = settings !== null;
 
-  // Poll bot status every 10 seconds
-  useEffect(() => {
-    if (!settingsLoaded) return;
-    const interval = setInterval(async () => {
-      try {
-        const { status } = await getBotStatus(botId);
-        setSettings((prev) => (prev ? { ...prev, status } : prev));
-      } catch {
-        // Silently ignore polling errors
-      }
-    }, 10_000);
-    return () => clearInterval(interval);
-  }, [botId, settingsLoaded]);
-
-  // Poll health data every 10 seconds
+  // Poll bot status and health data every 10 seconds (combined to reduce requests)
   useEffect(() => {
     if (!settingsLoaded) return;
     let cancelled = false;
-    async function fetchHealth() {
+    async function fetchStatusAndHealth() {
       try {
-        const h = await getInstanceHealth(botId);
-        if (!cancelled) setHealth(h);
+        const [{ status }, h] = await Promise.all([getBotStatus(botId), getInstanceHealth(botId)]);
+        if (!cancelled) {
+          setSettings((prev) => (prev ? { ...prev, status } : prev));
+          setHealth(h);
+        }
       } catch {
-        // silent
+        // Silently ignore polling errors
       }
     }
-    fetchHealth();
-    const interval = setInterval(fetchHealth, 10_000);
+    fetchStatusAndHealth();
+    const interval = setInterval(fetchStatusAndHealth, 10_000);
     return () => {
       cancelled = true;
       clearInterval(interval);
@@ -128,12 +117,14 @@ export function BotSettingsClient({ botId }: { botId: string }) {
   // Detect status changes for badge glow animation
   useEffect(() => {
     if (!settings) return;
-    if (prevStatusRef.current && prevStatusRef.current !== settings.status) {
+    const currentStatus = settings.status;
+    const changed = prevStatusRef.current !== null && prevStatusRef.current !== currentStatus;
+    prevStatusRef.current = currentStatus;
+    if (changed) {
       setStatusChanged(true);
       const timeout = setTimeout(() => setStatusChanged(false), 1000);
       return () => clearTimeout(timeout);
     }
-    prevStatusRef.current = settings.status;
   }, [settings]);
 
   // Auto-dismiss action error after 5 seconds
