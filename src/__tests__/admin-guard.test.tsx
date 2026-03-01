@@ -28,8 +28,10 @@ describe("AdminGuard", () => {
         },
       },
       isPending: false,
+      isRefetching: false,
       error: null,
-    } as ReturnType<typeof useSession>);
+      refetch: vi.fn(),
+    } as unknown as ReturnType<typeof useSession>);
 
     render(
       <AdminGuard>
@@ -46,8 +48,10 @@ describe("AdminGuard", () => {
         user: { id: "2", name: "User", email: "u@b.com", role: "user" },
       },
       isPending: false,
+      isRefetching: false,
       error: null,
-    } as ReturnType<typeof useSession>);
+      refetch: vi.fn(),
+    } as unknown as ReturnType<typeof useSession>);
 
     render(
       <AdminGuard>

@@ -88,12 +88,12 @@ function parseOS(ua: string): string {
 interface Session {
   id: string;
   token: string;
-  expiresAt: string;
+  expiresAt: Date | string;
   userAgent?: string;
   ipAddress?: string;
   current?: boolean;
-  createdAt?: string;
-  updatedAt?: string;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
 }
 
 // ---------- step indicator ----------
@@ -245,7 +245,7 @@ function TwoFactorSection() {
     setDisabling(true);
     setDisableError(null);
     try {
-      await authClient.twoFactor.disable({ code: disableCode });
+      await authClient.twoFactor.disable({ password: disableCode });
       setEnabled(false);
       setDisableOpen(false);
       setDisableCode("");
@@ -261,7 +261,7 @@ function TwoFactorSection() {
     setRegenError(null);
     try {
       const res = await authClient.twoFactor.generateBackupCodes({
-        code: regenCode,
+        password: regenCode,
       });
       const data = res?.data as { backupCodes?: string[] } | undefined;
       setRegenCodes(data?.backupCodes ?? []);
@@ -875,7 +875,7 @@ function SessionsSection() {
                         <Tooltip>
                           <TooltipTrigger className="text-xs text-muted-foreground">
                             {relativeTime(
-                              session.updatedAt ?? session.createdAt ?? session.expiresAt,
+                              String(session.updatedAt ?? session.createdAt ?? session.expiresAt),
                             )}
                           </TooltipTrigger>
                           <TooltipContent>

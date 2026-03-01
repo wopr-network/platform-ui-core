@@ -1,10 +1,9 @@
 /**
- * Stub type declarations for packages whose type files are absent in this
- * npm install. These stubs preserve type-safety for the packages that DO
- * have types, while allowing tsc to complete without errors for the ones
- * that are missing their .d.ts files.
+ * Stub type declarations for packages whose type files cannot be resolved
+ * by moduleResolution:"bundler" due to missing `types` conditions in their
+ * package.json `exports` maps, or for Node.js built-in modules.
  *
- * Remove individual stubs when the real package types become available.
+ * Remove individual stubs when the upstream package fixes its exports map.
  */
 
 // ---------------------------------------------------------------------------
@@ -19,41 +18,6 @@ declare namespace NodeJS {
     readonly NODE_ENV?: "development" | "production" | "test";
     [key: string]: string | undefined;
   }
-}
-
-// ---------------------------------------------------------------------------
-// better-auth/react – React hooks for better-auth
-// ---------------------------------------------------------------------------
-declare module "better-auth/react" {
-  // biome-ignore lint/suspicious/noExplicitAny: stub for missing package types
-  export function createAuthClient(options?: Record<string, any>): any;
-  // biome-ignore lint/suspicious/noExplicitAny: stub for missing package types
-  export function useSession(): any;
-  // biome-ignore lint/suspicious/noExplicitAny: stub for missing package types
-  export function signIn(options?: Record<string, any>): Promise<any>;
-  // biome-ignore lint/suspicious/noExplicitAny: stub for missing package types
-  export function signOut(options?: Record<string, any>): Promise<any>;
-  // biome-ignore lint/suspicious/noExplicitAny: stub for missing package types
-  export function signUp(options?: Record<string, any>): Promise<any>;
-}
-
-// ---------------------------------------------------------------------------
-// @trpc/react-query – tRPC React Query adapter
-// ---------------------------------------------------------------------------
-declare module "@trpc/react-query" {
-  // biome-ignore lint/suspicious/noExplicitAny: stub for missing package types
-  export function createTRPCReact<T = any>(): any;
-  // biome-ignore lint/suspicious/noExplicitAny: stub for missing package types
-  export type inferReactQueryProcedureOptions<T> = any;
-}
-
-// ---------------------------------------------------------------------------
-// tailwind-merge – utility for merging Tailwind CSS class names
-// ---------------------------------------------------------------------------
-declare module "tailwind-merge" {
-  export type ClassNameValue = string | null | undefined | boolean | ClassNameValue[];
-  export function twMerge(...inputs: ClassNameValue[]): string;
-  export function extendTailwindMerge(config: object): typeof twMerge;
 }
 
 // ---------------------------------------------------------------------------
