@@ -3,6 +3,30 @@ import { logger } from "@/lib/logger";
 
 const log = logger("middleware");
 
+const apiOrigin = process.env.NEXT_PUBLIC_API_URL
+  ? new URL(process.env.NEXT_PUBLIC_API_URL).origin
+  : "";
+
+const isSecureOrigin = apiOrigin.startsWith("https://");
+
+/** Build the CSP header value with a per-request nonce. */
+function buildCsp(nonce: string): string {
+  return [
+    "default-src 'self'",
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://js.stripe.com`,
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob:",
+    "font-src 'self'",
+    `connect-src 'self' https://api.stripe.com${apiOrigin ? ` ${apiOrigin}` : ""}`,
+    "frame-src https://js.stripe.com",
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "object-src 'none'",
+    ...(isSecureOrigin ? ["upgrade-insecure-requests"] : []),
+  ].join("; ");
+}
+
 const publicPaths = [
   "/login",
   "/signup",
@@ -100,6 +124,17 @@ export default async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const host = request.headers.get("host") || "";
 
+  // Generate a per-request nonce for CSP
+  const nonce = crypto.randomUUID();
+  const cspHeaderValue = buildCsp(nonce);
+
+  /** Apply CSP and nonce headers to any response before returning it. */
+  function withCsp(response: NextResponse): NextResponse {
+    response.headers.set("Content-Security-Policy", cspHeaderValue);
+    response.headers.set("x-nonce", nonce);
+    return response;
+  }
+
   // CSRF protection: validate Origin/Referer on state-changing API requests.
   // Exempt /api/auth routes — Better Auth handles its own CSRF protection
   // and applying ours breaks OAuth callback flows.
@@ -126,10 +161,10 @@ export default async function middleware(request: NextRequest) {
       const appDomain = process.env.NEXT_PUBLIC_APP_DOMAIN;
       if (appDomain && !host.startsWith("app.")) {
         // On marketing domain — redirect to the app subdomain
-        return NextResponse.redirect(new URL(`https://${appDomain}/marketplace`));
+        return withCsp(NextResponse.redirect(new URL(`https://${appDomain}/marketplace`)));
       }
       // On app subdomain (or no configured app domain) — redirect to /marketplace
-      return NextResponse.redirect(new URL("/marketplace", request.url));
+      return withCsp(NextResponse.redirect(new URL("/marketplace", request.url)));
     }
   }
 
@@ -143,7 +178,7 @@ export default async function middleware(request: NextRequest) {
     if (sessionCookie?.value.trim()) {
       const role = await getSessionRole(request);
       if (role !== "platform_admin") {
-        return NextResponse.redirect(new URL("/marketplace", request.url));
+        return withCsp(NextResponse.redirect(new URL("/marketplace", request.url)));
       }
     }
     // No session cookie → fall through to the session check below which redirects to /login
@@ -151,12 +186,12 @@ export default async function middleware(request: NextRequest) {
 
   // Allow public paths
   if (publicExactPaths.has(pathname) || publicPaths.some((p) => pathname.startsWith(p))) {
-    return NextResponse.next();
+    return withCsp(NextResponse.next());
   }
 
   // Allow static files (but not API paths with dots, e.g. /api/config.json)
   if (pathname.startsWith("/_next") || (pathname.includes(".") && !pathname.startsWith("/api"))) {
-    return NextResponse.next();
+    return withCsp(NextResponse.next());
   }
 
   // Check for session cookie (Better Auth uses "better-auth.session_token" by default).
@@ -171,10 +206,10 @@ export default async function middleware(request: NextRequest) {
   if (!sessionToken || !sessionToken.value.trim()) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("callbackUrl", pathname);
-    return NextResponse.redirect(loginUrl);
+    return withCsp(NextResponse.redirect(loginUrl));
   }
 
-  return NextResponse.next();
+  return withCsp(NextResponse.next());
 }
 
 export const config = {

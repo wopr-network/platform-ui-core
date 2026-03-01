@@ -532,6 +532,69 @@ describe("validateCsrfOrigin", () => {
 });
 
 // ---------------------------------------------------------------------------
+// CSP nonce header
+// ---------------------------------------------------------------------------
+describe("CSP nonce in middleware", () => {
+  it("sets a Content-Security-Policy header with a nonce in script-src", async () => {
+    const req = buildRequest("/login");
+    const res = await middleware(req);
+    const csp = res.headers.get("content-security-policy");
+    expect(csp).toBeTruthy();
+    expect(csp).toMatch(/script-src [^;]*'nonce-[A-Za-z0-9+/=_-]+'[^;]*/);
+    // script-src must not use 'unsafe-inline' (nonce replaces it)
+    const scriptSrc = csp?.split(";").find((d) => d.trim().startsWith("script-src"));
+    expect(scriptSrc).not.toContain("'unsafe-inline'");
+  });
+
+  it("generates a different nonce per request", async () => {
+    const res1 = await middleware(buildRequest("/login"));
+    const res2 = await middleware(buildRequest("/login"));
+    const csp1 = res1.headers.get("content-security-policy") ?? "";
+    const csp2 = res2.headers.get("content-security-policy") ?? "";
+    const nonce1 = csp1.match(/'nonce-([^']+)'/)?.[1];
+    const nonce2 = csp2.match(/'nonce-([^']+)'/)?.[1];
+    expect(nonce1).toBeTruthy();
+    expect(nonce2).toBeTruthy();
+    expect(nonce1).not.toBe(nonce2);
+  });
+
+  it("includes 'strict-dynamic' in script-src", async () => {
+    const req = buildRequest("/login");
+    const res = await middleware(req);
+    const csp = res.headers.get("content-security-policy");
+    expect(csp).toContain("'strict-dynamic'");
+  });
+
+  it("keeps https://js.stripe.com in script-src for CSP Level 2 fallback", async () => {
+    const req = buildRequest("/login");
+    const res = await middleware(req);
+    const csp = res.headers.get("content-security-policy");
+    expect(csp).toContain("https://js.stripe.com");
+  });
+
+  it("passes the nonce to downstream via x-nonce request header", async () => {
+    const req = buildRequest("/login");
+    const res = await middleware(req);
+    const csp = res.headers.get("content-security-policy") ?? "";
+    const nonceFromCsp = csp.match(/'nonce-([^']+)'/)?.[1];
+    const nonceHeader = res.headers.get("x-nonce");
+    expect(nonceHeader).toBe(nonceFromCsp);
+  });
+
+  it("preserves all other CSP directives (default-src, style-src, connect-src, etc.)", async () => {
+    const req = buildRequest("/login");
+    const res = await middleware(req);
+    const csp = res.headers.get("content-security-policy") ?? "";
+    expect(csp).toContain("default-src 'self'");
+    expect(csp).toContain("style-src 'self' 'unsafe-inline'");
+    expect(csp).toContain("img-src 'self' data: blob:");
+    expect(csp).toContain("frame-src https://js.stripe.com");
+    expect(csp).toContain("frame-ancestors 'none'");
+    expect(csp).toContain("object-src 'none'");
+  });
+});
+
+// ---------------------------------------------------------------------------
 // config export
 // ---------------------------------------------------------------------------
 describe("middleware config", () => {

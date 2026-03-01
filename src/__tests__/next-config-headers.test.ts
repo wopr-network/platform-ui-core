@@ -16,8 +16,8 @@ describe("next.config headers", () => {
     );
     expect(headerMap.get("X-Frame-Options")).toBe("DENY");
     expect(headerMap.get("X-Content-Type-Options")).toBe("nosniff");
-    expect(headerMap.get("Content-Security-Policy")).toContain("default-src 'self'");
-    expect(headerMap.get("Content-Security-Policy")).toContain("https://js.stripe.com");
+    // CSP is now set exclusively by middleware (nonce-based), not next.config.ts
+    expect(headerMap.get("Content-Security-Policy")).toBeUndefined();
     // HSTS is only set when NEXT_PUBLIC_API_URL is an https:// origin
     const hsts = headerMap.get("Strict-Transport-Security");
     if (hsts !== undefined) {
