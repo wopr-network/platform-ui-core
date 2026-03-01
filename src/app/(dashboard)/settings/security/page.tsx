@@ -448,6 +448,7 @@ function TwoFactorSection() {
                 </DialogDescription>
               </DialogHeader>
               <div className="flex flex-col items-center gap-4">
+                {/* bg-white is intentional -- QR codes require white background for scanability */}
                 <div className="rounded-sm border border-border bg-white p-3">
                   <QRCodeSVG value={totpUri} size={192} />
                 </div>
