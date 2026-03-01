@@ -8,20 +8,46 @@ interface PortfolioChartProps {
 
 const BUFFER_SIZE = 800;
 
-// Hard color phase transitions — no lerp, CRT phosphor behavior
+// Color stops: [milestone, r, g, b]
+const COLOR_STOPS: [number, number, number, number][] = [
+  [0, 0, 255, 65],    // #00FF41 terminal green
+  [13, 245, 158, 11], // #F59E0B amber
+  [26, 239, 68, 68],  // #EF4444 red
+  [39, 255, 255, 255], // #FFFFFF white
+];
+
+function lerpColor(
+  a: [number, number, number],
+  b: [number, number, number],
+  t: number,
+): string {
+  const r = Math.round(a[0] + (b[0] - a[0]) * t);
+  const g = Math.round(a[1] + (b[1] - a[1]) * t);
+  const bl = Math.round(a[2] + (b[2] - a[2]) * t);
+  return `rgb(${r},${g},${bl})`;
+}
+
 function getLineColor(milestoneCount: number, now: number): string {
+  // Pulsing phase — lerp between white and terminal green
   if (milestoneCount >= 53) {
-    // 2Hz pulse: white <-> terminal green
     const t = Math.sin(now * 0.004 * Math.PI) * 0.5 + 0.5;
-    const r = Math.round(255 * (1 - t));
-    const g = Math.round(255 * (1 - t) + 255 * t);
-    const b = Math.round(255 * (1 - t) + 65 * t);
-    return `rgb(${r},${g},${b})`;
+    return lerpColor([255, 255, 255], [0, 255, 65], t);
   }
-  if (milestoneCount >= 39) return "#FFFFFF";
-  if (milestoneCount >= 26) return "#EF4444";
-  if (milestoneCount >= 13) return "#F59E0B";
-  return "#00FF41";
+
+  // Find surrounding stops and lerp between them
+  for (let i = COLOR_STOPS.length - 1; i >= 0; i--) {
+    const [m, r, g, b] = COLOR_STOPS[i];
+    if (milestoneCount >= m) {
+      const next = COLOR_STOPS[i + 1];
+      if (!next) return `rgb(${r},${g},${b})`;
+      const [nm, nr, ng, nb] = next;
+      const t = (milestoneCount - m) / (nm - m);
+      // Ease in-out so the blend feels gradual, not linear
+      const ease = t * t * (3 - 2 * t);
+      return lerpColor([r, g, b], [nr, ng, nb], ease);
+    }
+  }
+  return `rgb(${COLOR_STOPS[0][1]},${COLOR_STOPS[0][2]},${COLOR_STOPS[0][3]})`;
 }
 
 // Box-Muller single output
