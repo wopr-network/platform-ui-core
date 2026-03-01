@@ -11,6 +11,7 @@ vi.mock("@/lib/fetch-utils", () => ({
 // Mock api-config
 vi.mock("@/lib/api-config", () => ({
   API_BASE_URL: "http://test-api:3001/api",
+  PLATFORM_BASE_URL: "http://test-api:3001/api",
 }));
 
 import {
