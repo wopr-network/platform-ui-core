@@ -314,4 +314,122 @@ describe("Reset password page", () => {
     const link = screen.getByText("Back to sign in");
     expect(link.closest("a")).toHaveAttribute("href", "/login");
   });
+
+  it("shows error when password is shorter than 12 characters", async () => {
+    vi.mocked(useSearchParams).mockReturnValue(
+      new URLSearchParams("token=valid-token") as ReturnType<typeof useSearchParams>,
+    );
+    const user = userEvent.setup();
+    const { default: ResetPasswordPage } = await import("../app/(auth)/reset-password/page");
+    render(<ResetPasswordPage />);
+
+    await user.type(screen.getByLabelText("New password"), "Short1!");
+    await user.type(screen.getByLabelText("Confirm password"), "Short1!");
+    await user.click(screen.getByRole("button", { name: "Reset password" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Password must be at least 12 characters")).toBeInTheDocument();
+    });
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it("shows error when password has no uppercase letter", async () => {
+    vi.mocked(useSearchParams).mockReturnValue(
+      new URLSearchParams("token=valid-token") as ReturnType<typeof useSearchParams>,
+    );
+    const user = userEvent.setup();
+    const { default: ResetPasswordPage } = await import("../app/(auth)/reset-password/page");
+    render(<ResetPasswordPage />);
+
+    await user.type(screen.getByLabelText("New password"), "alllowercase123!");
+    await user.type(screen.getByLabelText("Confirm password"), "alllowercase123!");
+    await user.click(screen.getByRole("button", { name: "Reset password" }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Password must contain at least one uppercase letter"),
+      ).toBeInTheDocument();
+    });
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it("shows error when password has no lowercase letter", async () => {
+    vi.mocked(useSearchParams).mockReturnValue(
+      new URLSearchParams("token=valid-token") as ReturnType<typeof useSearchParams>,
+    );
+    const user = userEvent.setup();
+    const { default: ResetPasswordPage } = await import("../app/(auth)/reset-password/page");
+    render(<ResetPasswordPage />);
+
+    await user.type(screen.getByLabelText("New password"), "ALLUPPERCASE123!");
+    await user.type(screen.getByLabelText("Confirm password"), "ALLUPPERCASE123!");
+    await user.click(screen.getByRole("button", { name: "Reset password" }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Password must contain at least one lowercase letter"),
+      ).toBeInTheDocument();
+    });
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it("shows error when password has no digit", async () => {
+    vi.mocked(useSearchParams).mockReturnValue(
+      new URLSearchParams("token=valid-token") as ReturnType<typeof useSearchParams>,
+    );
+    const user = userEvent.setup();
+    const { default: ResetPasswordPage } = await import("../app/(auth)/reset-password/page");
+    render(<ResetPasswordPage />);
+
+    await user.type(screen.getByLabelText("New password"), "NoDigitsHere!!");
+    await user.type(screen.getByLabelText("Confirm password"), "NoDigitsHere!!");
+    await user.click(screen.getByRole("button", { name: "Reset password" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Password must contain at least one digit")).toBeInTheDocument();
+    });
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it("shows error when password has no special character", async () => {
+    vi.mocked(useSearchParams).mockReturnValue(
+      new URLSearchParams("token=valid-token") as ReturnType<typeof useSearchParams>,
+    );
+    const user = userEvent.setup();
+    const { default: ResetPasswordPage } = await import("../app/(auth)/reset-password/page");
+    render(<ResetPasswordPage />);
+
+    await user.type(screen.getByLabelText("New password"), "NoSpecialChar12");
+    await user.type(screen.getByLabelText("Confirm password"), "NoSpecialChar12");
+    await user.click(screen.getByRole("button", { name: "Reset password" }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Password must contain at least one special character"),
+      ).toBeInTheDocument();
+    });
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it("allows submission when password meets all complexity requirements", async () => {
+    vi.mocked(useSearchParams).mockReturnValue(
+      new URLSearchParams("token=valid-token") as ReturnType<typeof useSearchParams>,
+    );
+    mockFetch.mockResolvedValueOnce({ error: undefined });
+    const user = userEvent.setup();
+    const { default: ResetPasswordPage } = await import("../app/(auth)/reset-password/page");
+    render(<ResetPasswordPage />);
+
+    await user.type(screen.getByLabelText("New password"), "ValidPass12!@");
+    await user.type(screen.getByLabelText("Confirm password"), "ValidPass12!@");
+    await user.click(screen.getByRole("button", { name: "Reset password" }));
+
+    await waitFor(() => {
+      expect(mockPush).toHaveBeenCalledWith("/login");
+    });
+    expect(mockFetch).toHaveBeenCalledWith("/reset-password", {
+      method: "POST",
+      body: { newPassword: "ValidPass12!@", token: "valid-token" },
+    });
+  });
 });
