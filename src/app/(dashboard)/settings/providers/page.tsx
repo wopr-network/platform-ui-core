@@ -179,7 +179,7 @@ export default function ProvidersPage() {
     setTestingCap(capability);
     setTestCapResult((prev) => ({ ...prev, [capability]: null }));
     try {
-      await testCapabilityViaTrpc(capability as CapabilityName, "");
+      await testCapabilityViaTrpc(capability as CapabilityName);
       const caps = await listCapabilities();
       setCapabilities(caps);
       const updatedCap = caps.find((c) => c.capability === capability);

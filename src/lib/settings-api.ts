@@ -30,7 +30,7 @@ interface CapabilitiesProcedures {
     }): Promise<{ ok: true; id: string; provider: string }>;
   };
   testKey: {
-    mutate(input: { provider: string; key: string }): Promise<{ valid: boolean; error?: string }>;
+    mutate(input: { provider: string; key?: string }): Promise<{ valid: boolean; error?: string }>;
   };
   listCapabilitySettings: {
     query(): Promise<CapabilitySetting[]>;
@@ -76,7 +76,7 @@ export async function saveProviderKey(
 
 export async function testProviderKey(
   provider: string,
-  key: string,
+  key?: string,
 ): Promise<{ valid: boolean; error?: string }> {
   return capabilitiesClient.testKey.mutate({ provider, key });
 }
