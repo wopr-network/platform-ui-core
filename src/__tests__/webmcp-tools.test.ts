@@ -7,6 +7,7 @@ const mockControlInstance = vi.fn();
 const mockGetInstanceHealth = vi.fn();
 const mockGetInstanceLogs = vi.fn();
 const mockListMarketplacePlugins = vi.fn();
+const mockInstallPlugin = vi.fn();
 
 vi.mock("@/lib/api", () => ({
   listInstances: (...args: unknown[]) => mockListInstances(...args),
@@ -18,6 +19,10 @@ vi.mock("@/lib/api", () => ({
 
 vi.mock("@/lib/marketplace-data", () => ({
   listMarketplacePlugins: (...args: unknown[]) => mockListMarketplacePlugins(...args),
+}));
+
+vi.mock("@/lib/bot-settings-data", () => ({
+  installPlugin: (...args: unknown[]) => mockInstallPlugin(...args),
 }));
 
 const mockConfirm = vi.fn<(message: string) => Promise<boolean>>();
@@ -230,20 +235,23 @@ describe("getWebMCPTools", () => {
   });
 
   describe("wopr_install_plugin handler", () => {
-    it("returns plugin info for valid plugin name", async () => {
+    it("calls installPlugin and returns success for valid plugin", async () => {
       mockListMarketplacePlugins.mockResolvedValue(MOCK_PLUGINS);
+      mockInstallPlugin.mockResolvedValue(undefined);
       const tool = getTool("wopr_install_plugin");
 
       const result = (await tool.handler({
         instanceId: "inst-001",
         pluginName: "discord",
-      })) as { status: string; plugin: { id: string } };
+      })) as { ok: boolean; instanceId: string; pluginName: string };
 
-      expect(result.status).toBe("pending");
-      expect(result.plugin.id).toBe("discord");
+      expect(mockInstallPlugin).toHaveBeenCalledWith("inst-001", "discord");
+      expect(result.ok).toBe(true);
+      expect(result.instanceId).toBe("inst-001");
+      expect(result.pluginName).toBe("discord");
     });
 
-    it("returns error for unknown plugin name", async () => {
+    it("returns error for unknown plugin name without calling install", async () => {
       mockListMarketplacePlugins.mockResolvedValue(MOCK_PLUGINS);
       const tool = getTool("wopr_install_plugin");
 
@@ -253,6 +261,20 @@ describe("getWebMCPTools", () => {
       })) as { error: string };
 
       expect(result.error).toContain("nonexistent-plugin");
+      expect(mockInstallPlugin).not.toHaveBeenCalled();
+    });
+
+    it("returns error when installPlugin rejects", async () => {
+      mockListMarketplacePlugins.mockResolvedValue(MOCK_PLUGINS);
+      mockInstallPlugin.mockRejectedValue(new Error("Server error"));
+      const tool = getTool("wopr_install_plugin");
+
+      const result = (await tool.handler({
+        instanceId: "inst-001",
+        pluginName: "discord",
+      })) as { error: string };
+
+      expect(result.error).toBe("Server error");
     });
   });
 

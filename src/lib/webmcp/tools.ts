@@ -5,6 +5,7 @@ import {
   getInstanceLogs,
   listInstances,
 } from "@/lib/api";
+import { installPlugin } from "@/lib/bot-settings-data";
 import { listMarketplacePlugins } from "@/lib/marketplace-data";
 
 /** Actions that require UI confirmation before executing. */
@@ -131,17 +132,23 @@ export function getWebMCPTools(confirm: ConfirmCallback): ModelContextTool[] {
       },
       handler: async (params) => {
         try {
-          // The current UI uses mock install flow (install-wizard.tsx).
-          // The real install endpoint will be POST /fleet/bots/:id/plugins
-          // For now, return the plugin manifest as acknowledgment.
+          const pluginName = params.pluginName as string;
+          const instanceId = params.instanceId as string;
+
+          // Pre-check: verify the plugin exists in the marketplace
           const allPlugins = await listMarketplacePlugins();
-          const plugin = allPlugins.find((p) => p.id === (params.pluginName as string));
+          const plugin = allPlugins.find((p) => p.id === pluginName);
           if (!plugin) {
-            return { error: `Plugin '${params.pluginName}' not found in marketplace` };
+            return { error: `Plugin '${pluginName}' not found in marketplace` };
           }
+
+          // Install via the real fleet endpoint
+          await installPlugin(instanceId, pluginName);
+
           return {
-            status: "pending",
-            message: `Plugin '${plugin.name}' queued for installation on instance ${params.instanceId}. Full install API coming in a future release.`,
+            ok: true,
+            instanceId,
+            pluginName,
             plugin: { id: plugin.id, name: plugin.name, version: plugin.version },
           };
         } catch (err) {
