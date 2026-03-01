@@ -12,7 +12,6 @@ export const TERMINAL_LINES: TerminalLine[] = [
   { text: "Shall we sort your inbox?", hold: false },
   { text: "Shall we visit home?", hold: false },
   { text: "Shall we make the appointment?", hold: false },
-  { text: "Shall we find the charger?", hold: false },
   { text: "Shall we finally text back?", hold: false },
   { text: "Shall we say yes?", hold: false },
   { text: "Shall we meal prep Sunday?", hold: false },
@@ -65,6 +64,7 @@ export const TERMINAL_LINES: TerminalLine[] = [
   { text: "Shall we run for president?", hold: false },
   { text: "Shall we take the oath?", hold: false },
   { text: "Shall we remember this?", hold: false },
+  { text: "Shall we solve the energy problem?", hold: false },
 
   // Cosmic
   { text: "Shall we land on Mars?", hold: false },
