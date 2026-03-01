@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { fetchDividendStats } from "@/lib/api";
+import { toUserMessage } from "@/lib/errors";
 import { formatCreditStandard } from "@/lib/format-credit";
 
 function useCountUp(target: number, duration = 1200) {
@@ -45,18 +46,25 @@ export function DividendStats() {
   const [users, setUsers] = useState(0);
   const [dividend, setDividend] = useState(0);
   const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    fetchDividendStats().then((data) => {
-      if (cancelled) return;
-      if (data) {
-        setPool(data.poolAmountDollars);
-        setUsers(data.activeUsers);
-        setDividend(data.projectedDailyDividend);
-      }
-      setLoaded(true);
-    });
+    fetchDividendStats()
+      .then((data) => {
+        if (cancelled) return;
+        if (data) {
+          setPool(data.poolAmountDollars);
+          setUsers(data.activeUsers);
+          setDividend(data.projectedDailyDividend);
+        }
+        setLoaded(true);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setError(toUserMessage(err, "Failed to load dividend stats"));
+        setLoaded(true);
+      });
     return () => {
       cancelled = true;
     };
@@ -68,6 +76,7 @@ export function DividendStats() {
 
   return (
     <div className="grid gap-4 sm:grid-cols-3">
+      {error && <p className="col-span-full text-center text-sm text-red-500">{error}</p>}
       <Card className="border-terminal/30">
         <CardContent className="flex flex-col items-center gap-1 py-6 text-center">
           <p className="text-xs uppercase tracking-widest text-muted-foreground">
