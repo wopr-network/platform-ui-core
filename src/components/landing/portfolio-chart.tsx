@@ -108,7 +108,7 @@ export function PortfolioChart({ onMilestoneRef }: PortfolioChartProps) {
 
     // Track last 3 milestone t-positions for the history fade
     s.lastMilestoneTs.push(s.t);
-    if (s.lastMilestoneTs.length > 3) s.lastMilestoneTs.shift();
+    if (s.lastMilestoneTs.length > 4) s.lastMilestoneTs.shift();
   }, []);
 
   // Wire milestone ref
@@ -231,77 +231,82 @@ export function PortfolioChart({ onMilestoneRef }: PortfolioChartProps) {
 
       const color = getLineColor(s.milestoneCount, now);
 
-      // History fade gradient: as chart accelerates (slopeFactor→1), old history
-      // fades out. At slopeFactor=1 only the trail from the oldest of the last 3
-      // milestones is visible. At slopeFactor=0 the full line is shown.
+      // Gradient clips the line to the last 4 milestones' trail only.
+      // Everything older is transparent — this is permanent, not animated.
+      // Old history simply ceases to exist as new milestones push it out.
       const anchorScreenX = w * s.anchorX;
       const fadeOriginT = s.lastMilestoneTs.length > 0 ? s.lastMilestoneTs[0] : xLeft;
-      // Blend: at slopeFactor=0 gradient starts at x=0 (full history visible)
-      //        at slopeFactor=1 gradient starts at toScreenX(fadeOriginT)
-      const fadeX = toScreenX(fadeOriginT) * slopeFactor;
+      const fadeX = Math.max(0, toScreenX(fadeOriginT));
 
-      const makeGrad = (opaque: string) => {
+      const makeGrad = () => {
         const g = ctx.createLinearGradient(0, 0, anchorScreenX, 0);
-        if (fadeX > 1) {
-          g.addColorStop(0, "transparent");
-          // Hard fade-in over a short stretch so the cut looks intentional
-          g.addColorStop(Math.min(0.999, (fadeX - 2) / anchorScreenX), "transparent");
-          g.addColorStop(Math.min(0.999, (fadeX + 40) / anchorScreenX), opaque);
+        g.addColorStop(0, "transparent");
+        if (s.lastMilestoneTs.length >= 4 && anchorScreenX > 0) {
+          const f0 = Math.min(0.998, (fadeX - 2) / anchorScreenX);
+          const f1 = Math.min(0.999, (fadeX + 60) / anchorScreenX);
+          g.addColorStop(Math.max(0, f0), "transparent");
+          g.addColorStop(f1, color);
         } else {
-          g.addColorStop(0, opaque);
+          // Fewer than 4 milestones — show full line
+          g.addColorStop(0.001, color);
         }
-        g.addColorStop(1, opaque);
+        g.addColorStop(1, color);
         return g;
       };
 
-      // Base opacity for entire chart — background texture
-      ctx.save();
-      ctx.globalAlpha = 0.25;
+      // End-of-sequence fade: everything dissolves at high milestone count.
+      // Gradient already stripped old history — only last 4 segments remain
+      // visible during the fade, making them "all that survives".
+      const FADE_START = 14;
+      const FADE_END   = 24;
+      const lineAlpha = 1 - Math.min(1, Math.max(0,
+        (s.milestoneCount - FADE_START) / (FADE_END - FADE_START)
+      ));
 
-      // Layer 1: Bloom (phosphor glow) — shadowBlur, not ctx.filter
-      ctx.save();
-      ctx.beginPath();
-      ctx.moveTo(screenPoints[0][0], screenPoints[0][1]);
-      for (let i = 1; i < screenPoints.length; i++) {
-        ctx.lineTo(screenPoints[i][0], screenPoints[i][1]);
+      if (lineAlpha > 0.01) {
+        // Layer 1: Bloom
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(screenPoints[0][0], screenPoints[0][1]);
+        for (let i = 1; i < screenPoints.length; i++) {
+          ctx.lineTo(screenPoints[i][0], screenPoints[i][1]);
+        }
+        ctx.strokeStyle = makeGrad();
+        ctx.lineWidth = 6;
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 20;
+        ctx.globalAlpha = 0.4 * lineAlpha;
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.stroke();
+        ctx.restore();
+
+        // Layer 2: Sharp trace
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(screenPoints[0][0], screenPoints[0][1]);
+        for (let i = 1; i < screenPoints.length; i++) {
+          ctx.lineTo(screenPoints[i][0], screenPoints[i][1]);
+        }
+        ctx.strokeStyle = makeGrad();
+        ctx.lineWidth = 1.5;
+        ctx.globalAlpha = 0.85 * lineAlpha;
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.stroke();
+        ctx.restore();
       }
-      ctx.strokeStyle = makeGrad(color);
-      ctx.lineWidth = 6;
-      ctx.shadowColor = color;
-      ctx.shadowBlur = 20;
-      ctx.globalAlpha = 0.4;
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
-      ctx.stroke();
-      ctx.restore();
 
-      // Layer 2: Sharp trace on top
-      ctx.save();
-      ctx.beginPath();
-      ctx.moveTo(screenPoints[0][0], screenPoints[0][1]);
-      for (let i = 1; i < screenPoints.length; i++) {
-        ctx.lineTo(screenPoints[i][0], screenPoints[i][1]);
-      }
-      ctx.strokeStyle = makeGrad(color);
-      ctx.lineWidth = 1.5;
-      ctx.globalAlpha = 0.85;
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
-      ctx.stroke();
-      ctx.restore();
-
-      // Milestone nodes
+      // Milestone dots — also fade with lineAlpha
       for (const m of s.milestones) {
         const mx = toScreenX(m.t);
         const my = toScreenY(m.value);
         const age = (now - m.born) / m.lifetime;
-        const alpha = Math.max(0, 1 - age);
+        const alpha = Math.max(0, 1 - age) * lineAlpha;
 
         if (mx < -20 || my > h + 20 || alpha <= 0) continue;
 
         const outerRadius = 20 + (1 - age) * 40;
-
-        // Halo
         const grad = ctx.createRadialGradient(mx, my, 0, mx, my, outerRadius);
         grad.addColorStop(0, m.color);
         grad.addColorStop(1, "transparent");
@@ -314,7 +319,6 @@ export function PortfolioChart({ onMilestoneRef }: PortfolioChartProps) {
         ctx.fill();
         ctx.restore();
 
-        // Solid core
         ctx.save();
         ctx.globalAlpha = alpha;
         ctx.fillStyle = m.color;
@@ -323,8 +327,6 @@ export function PortfolioChart({ onMilestoneRef }: PortfolioChartProps) {
         ctx.fill();
         ctx.restore();
       }
-
-      ctx.restore(); // base opacity
 
       s.animId = requestAnimationFrame(tick);
     };
