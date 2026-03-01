@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { usePaginationParams } from "@/hooks/use-pagination-params";
 import type { ActivityEvent, DividendWalletStats, FleetInstance, FleetResources } from "@/lib/api";
 import { getActivityFeed, getDividendStats, getFleetHealth, getFleetResources } from "@/lib/api";
 import { toUserMessage } from "@/lib/errors";
@@ -172,7 +173,14 @@ export function CommandCenter() {
     return () => clearInterval(interval);
   }, [load]);
 
+  const FLEET_PAGE_SIZE = 20;
+  const { page: fleetPage, setPage: setFleetPage } = usePaginationParams(FLEET_PAGE_SIZE);
+
   const stats = computeFleetStats(instances, resources);
+
+  const fleetTotal = instances.length;
+  const fleetStart = (fleetPage - 1) * FLEET_PAGE_SIZE;
+  const pagedInstances = instances.slice(fleetStart, fleetStart + FLEET_PAGE_SIZE);
 
   return (
     <div className="space-y-6 p-6">
@@ -403,9 +411,9 @@ export function CommandCenter() {
       </Card>
 
       {/* Fleet Grid — bot cards + "Add another WOPR Bot" CTA */}
-      {!loading && instances.length > 0 && (
+      {!loading && pagedInstances.length > 0 && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {instances.map((inst) => (
+          {pagedInstances.map((inst) => (
             <Link key={inst.id} href={`/instances/${inst.id}`}>
               <motion.div
                 data-onboarding-id={`dashboard.bot.${inst.id}`}
@@ -464,6 +472,34 @@ export function CommandCenter() {
               </Card>
             </motion.div>
           </Link>
+        </div>
+      )}
+
+      {/* Fleet Pagination */}
+      {fleetTotal > FLEET_PAGE_SIZE && (
+        <div className="flex items-center justify-between text-xs text-muted-foreground font-mono">
+          <span>
+            Showing {fleetStart + 1}-{Math.min(fleetStart + FLEET_PAGE_SIZE, fleetTotal)} of{" "}
+            {fleetTotal}
+          </span>
+          <div className="flex gap-2">
+            <Button
+              variant="ghost"
+              size="xs"
+              disabled={fleetPage <= 1}
+              onClick={() => setFleetPage(fleetPage - 1)}
+            >
+              Previous
+            </Button>
+            <Button
+              variant="ghost"
+              size="xs"
+              disabled={fleetStart + FLEET_PAGE_SIZE >= fleetTotal}
+              onClick={() => setFleetPage(fleetPage + 1)}
+            >
+              Next
+            </Button>
+          </div>
         </div>
       )}
 

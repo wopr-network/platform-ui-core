@@ -2,9 +2,13 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
+const mockPush = vi.fn();
+const mockReplace = vi.fn();
+const mockSearchParams = new URLSearchParams();
+
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: vi.fn() }),
-  useSearchParams: () => new URLSearchParams(),
+  useRouter: () => ({ push: mockPush, replace: mockReplace }),
+  useSearchParams: () => mockSearchParams,
   usePathname: () => "/admin",
 }));
 

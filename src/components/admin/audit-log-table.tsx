@@ -1,6 +1,7 @@
 "use client";
 
 import { Search } from "lucide-react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -73,10 +74,18 @@ function actionBadgeClasses(action: string): string {
 }
 
 export function AuditLogTable() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
   const [data, setData] = useState<AuditLogResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
-  const [offset, setOffset] = useState(0);
+  const initialPage = (() => {
+    const raw = searchParams.get("page");
+    return raw ? Math.max(1, parseInt(raw, 10) || 1) : 1;
+  })();
+  const [offset, setOffset] = useState((initialPage - 1) * PAGE_SIZE);
   const [dateRange, setDateRange] = useState("30");
   const [actionFilter, setActionFilter] = useState("all");
   const [search, setSearch] = useState("");
@@ -114,6 +123,22 @@ export function AuditLogTable() {
     load(0, controller.signal);
     return () => controller.abort();
   }, [load]);
+
+  // Sync offset to URL
+  useEffect(() => {
+    const currentPage = Math.floor(offset / PAGE_SIZE) + 1;
+    const params = new URLSearchParams(searchParams.toString());
+    const urlPage = params.get("page");
+    const urlPageNum = urlPage ? parseInt(urlPage, 10) : 1;
+    if (urlPageNum === currentPage) return;
+    if (currentPage <= 1) {
+      params.delete("page");
+    } else {
+      params.set("page", String(currentPage));
+    }
+    const qs = params.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  }, [offset, router, pathname, searchParams]);
 
   const filteredEvents = useMemo(() => {
     if (!data) return [];
@@ -273,6 +298,9 @@ export function AuditLogTable() {
             Showing {offset + 1}-{Math.min(offset + PAGE_SIZE, data.total)} of {data.total}
           </span>
           <div className="flex gap-2">
+            <Button variant="ghost" size="xs" disabled={offset === 0} onClick={() => load(0)}>
+              First
+            </Button>
             <Button
               variant="ghost"
               size="xs"
@@ -288,6 +316,17 @@ export function AuditLogTable() {
               onClick={() => load(offset + PAGE_SIZE)}
             >
               Next
+            </Button>
+            <Button
+              variant="ghost"
+              size="xs"
+              disabled={!data.hasMore}
+              onClick={() => {
+                const lastPageOffset = Math.floor((data.total - 1) / PAGE_SIZE) * PAGE_SIZE;
+                load(lastPageOffset);
+              }}
+            >
+              Last
             </Button>
           </div>
         </div>

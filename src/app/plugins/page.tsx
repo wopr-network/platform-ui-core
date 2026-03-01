@@ -75,6 +75,8 @@ export default function PluginsPage() {
   const [botsLoading, setBotsLoading] = useState(true);
   const [toggling, setToggling] = useState<string | null>(null);
   const [toggleError, setToggleError] = useState<string | null>(null);
+  const [installedPage, setInstalledPage] = useState(1);
+  const [catalogPage, setCatalogPage] = useState(1);
 
   // Load bots on mount
   useEffect(() => {
@@ -170,6 +172,19 @@ export default function PluginsPage() {
     return result;
   }, [catalog, installedIds, search]);
 
+  const PLUGINS_PAGE_SIZE = 20;
+
+  const installedTotal = installedManifests.length;
+  const installedStart = (installedPage - 1) * PLUGINS_PAGE_SIZE;
+  const pagedInstalled = installedManifests.slice(
+    installedStart,
+    installedStart + PLUGINS_PAGE_SIZE,
+  );
+
+  const catalogTotal = availablePlugins.length;
+  const catalogStart = (catalogPage - 1) * PLUGINS_PAGE_SIZE;
+  const pagedCatalog = availablePlugins.slice(catalogStart, catalogStart + PLUGINS_PAGE_SIZE);
+
   if (loading) {
     return (
       <div className="p-8">
@@ -260,7 +275,7 @@ export default function PluginsPage() {
               {toggleError}
             </div>
           )}
-          {installedManifests.length === 0 ? (
+          {installedTotal === 0 ? (
             <div className="flex h-40 flex-col items-center justify-center gap-3 rounded-sm border border-dashed border-terminal/20">
               <p className="font-mono text-sm text-terminal/60">
                 &gt; NO PLUGINS INSTALLED. YOUR ARSENAL IS EMPTY.
@@ -281,7 +296,7 @@ export default function PluginsPage() {
               animate="show"
               className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
             >
-              {installedManifests.map((item) => {
+              {pagedInstalled.map((item) => {
                 const manifest = item.manifest;
                 if (!manifest) return null;
                 return (
@@ -334,17 +349,46 @@ export default function PluginsPage() {
               })}
             </motion.div>
           )}
+          {installedTotal > PLUGINS_PAGE_SIZE && (
+            <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground font-mono">
+              <span>
+                Showing {installedStart + 1}-
+                {Math.min(installedStart + PLUGINS_PAGE_SIZE, installedTotal)} of {installedTotal}
+              </span>
+              <div className="flex gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={installedPage <= 1}
+                  onClick={() => setInstalledPage(installedPage - 1)}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={installedStart + PLUGINS_PAGE_SIZE >= installedTotal}
+                  onClick={() => setInstalledPage(installedPage + 1)}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="catalog" className="mt-6 space-y-6">
           <Input
             placeholder="Search plugins..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setCatalogPage(1);
+            }}
             className="max-w-sm bg-black/50 border-terminal/30 placeholder:text-terminal/30 focus-visible:border-terminal focus-visible:ring-terminal/20"
           />
 
-          {availablePlugins.length === 0 ? (
+          {catalogTotal === 0 ? (
             <div className="flex h-40 items-center justify-center rounded-sm border border-dashed border-terminal/20">
               <p className="font-mono text-sm text-terminal/60">&gt; NO MATCHING PLUGINS FOUND.</p>
             </div>
@@ -355,7 +399,7 @@ export default function PluginsPage() {
               animate="show"
               className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
             >
-              {availablePlugins.map((plugin) => {
+              {pagedCatalog.map((plugin) => {
                 const hostedAvailable = hasHostedOption(plugin.capabilities);
                 return (
                   <motion.div key={plugin.id} variants={staggerItem}>
@@ -420,6 +464,32 @@ export default function PluginsPage() {
                 );
               })}
             </motion.div>
+          )}
+          {catalogTotal > PLUGINS_PAGE_SIZE && (
+            <div className="flex items-center justify-between text-xs text-muted-foreground font-mono">
+              <span>
+                Showing {catalogStart + 1}-
+                {Math.min(catalogStart + PLUGINS_PAGE_SIZE, catalogTotal)} of {catalogTotal}
+              </span>
+              <div className="flex gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={catalogPage <= 1}
+                  onClick={() => setCatalogPage(catalogPage - 1)}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={catalogStart + PLUGINS_PAGE_SIZE >= catalogTotal}
+                  onClick={() => setCatalogPage(catalogPage + 1)}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
           )}
         </TabsContent>
       </Tabs>

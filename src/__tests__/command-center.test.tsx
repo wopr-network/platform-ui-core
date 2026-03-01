@@ -1,6 +1,12 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ replace: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(),
+  usePathname: () => "/",
+}));
+
 vi.mock("@/lib/api", () => ({
   getFleetHealth: vi.fn().mockResolvedValue([
     {
