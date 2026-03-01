@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toUserMessage } from "@/lib/errors";
 import { trpcVanilla } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 
@@ -144,7 +145,7 @@ export function BillingHealthDashboard() {
           setLastUpdated(new Date());
         }
       } catch (err) {
-        if (active) setError(err instanceof Error ? err.message : "Failed to fetch billing health");
+        if (active) setError(toUserMessage(err, "Failed to fetch billing health"));
       }
     }
 

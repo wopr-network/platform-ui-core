@@ -24,6 +24,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { toUserMessage } from "@/lib/errors";
 import type { AdapterRateOverride, RateOverrideStatus } from "@/lib/promotions-types";
 import { trpcVanilla } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
@@ -118,7 +119,7 @@ export default function RateOverridesPage() {
       await client.rateOverrides.cancel.mutate({ id });
       await load();
     } catch (err) {
-      setCancelError(err instanceof Error ? err.message : "Failed to cancel override");
+      setCancelError(toUserMessage(err, "Failed to cancel override"));
     }
   }
 
@@ -142,7 +143,7 @@ export default function RateOverridesPage() {
       setFormNotes("");
       await load();
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : "Failed to create override");
+      setFormError(toUserMessage(err, "Failed to create override"));
     } finally {
       setCreating(false);
     }

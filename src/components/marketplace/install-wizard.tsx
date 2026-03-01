@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
+import { toUserMessage } from "@/lib/errors";
 import type {
   BotSummary,
   ConfigSchemaField,
@@ -71,7 +72,7 @@ export function InstallWizard({ plugin, onComplete, onCancel }: InstallWizardPro
         setBotsLoading(false);
       })
       .catch((err: unknown) => {
-        setBotsError(err instanceof Error ? err.message : "Failed to load bots");
+        setBotsError(toUserMessage(err, "Failed to load bots"));
         setBotsLoading(false);
       });
   }, []);

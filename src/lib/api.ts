@@ -5,6 +5,7 @@ import type { ApiPricingResponse, DividendStats } from "./pricing-data";
 import { getActiveTenantId } from "./tenant-context";
 import { trpcVanilla } from "./trpc";
 
+export { ApiError, NetworkError, toUserMessage, ValidationError } from "./errors";
 export { UnauthorizedError } from "./fetch-utils";
 
 // --- Public pricing API (no auth required) ---

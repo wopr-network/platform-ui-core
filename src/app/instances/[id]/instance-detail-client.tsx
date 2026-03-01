@@ -48,6 +48,7 @@ import {
   updateInstanceConfig,
   updateInstanceSecrets,
 } from "@/lib/api";
+import { toUserMessage } from "@/lib/errors";
 import { cn } from "@/lib/utils";
 
 export function InstanceDetailClient({ instanceId }: { instanceId: string }) {
@@ -105,7 +106,7 @@ export function InstanceDetailClient({ instanceId }: { instanceId: string }) {
       await toggleInstancePlugin(instanceId, pluginId, enabled);
     } catch (err) {
       setInstance((prev) => (prev ? { ...prev, plugins: previousPlugins } : prev));
-      setActionError(err instanceof Error ? err.message : "Failed to toggle plugin");
+      setActionError(toUserMessage(err, "Failed to toggle plugin"));
     } finally {
       setTogglingPlugin(null);
     }
@@ -118,7 +119,7 @@ export function InstanceDetailClient({ instanceId }: { instanceId: string }) {
       await pullImageUpdate(instanceId);
       await load();
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Failed to pull update");
+      setActionError(toUserMessage(err, "Failed to pull update"));
     } finally {
       setPulling(false);
     }
@@ -132,7 +133,7 @@ export function InstanceDetailClient({ instanceId }: { instanceId: string }) {
       setInstance(data);
       setConfigText(JSON.stringify(data.config, null, 2));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load instance");
+      setError(toUserMessage(err, "Failed to load instance"));
     } finally {
       setLoading(false);
     }
@@ -145,7 +146,7 @@ export function InstanceDetailClient({ instanceId }: { instanceId: string }) {
       const data = await listSnapshots(instanceId);
       setSnapshots(data);
     } catch (err) {
-      setSnapshotsError(err instanceof Error ? err.message : "Failed to load snapshots");
+      setSnapshotsError(toUserMessage(err, "Failed to load snapshots"));
     } finally {
       setSnapshotsLoading(false);
     }
@@ -174,7 +175,7 @@ export function InstanceDetailClient({ instanceId }: { instanceId: string }) {
     } catch (err) {
       setSecretKeys([]);
       setSecretsStatus("error");
-      setSecretsError(err instanceof Error ? err.message : "Failed to load secrets");
+      setSecretsError(toUserMessage(err, "Failed to load secrets"));
     } finally {
       setSecretsLoading(false);
     }
@@ -227,7 +228,7 @@ export function InstanceDetailClient({ instanceId }: { instanceId: string }) {
       await loadSecrets();
     } catch (err) {
       setSecretsStatus("error");
-      setSecretsError(err instanceof Error ? err.message : "Failed to save secrets");
+      setSecretsError(toUserMessage(err, "Failed to save secrets"));
     } finally {
       setSecretsSaving(false);
     }
@@ -239,7 +240,7 @@ export function InstanceDetailClient({ instanceId }: { instanceId: string }) {
       await controlInstance(instanceId, action);
       await load();
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : `Failed to ${action} instance`);
+      setActionError(toUserMessage(err, `Failed to ${action} instance`));
     }
   }
 
@@ -250,7 +251,7 @@ export function InstanceDetailClient({ instanceId }: { instanceId: string }) {
       await createSnapshot(instanceId);
       await loadSnapshots();
     } catch (err) {
-      setSnapshotsError(err instanceof Error ? err.message : "Failed to create snapshot");
+      setSnapshotsError(toUserMessage(err, "Failed to create snapshot"));
     } finally {
       setCreating(false);
     }
@@ -264,7 +265,7 @@ export function InstanceDetailClient({ instanceId }: { instanceId: string }) {
       await load();
       await loadSnapshots();
     } catch (err) {
-      setSnapshotsError(err instanceof Error ? err.message : "Failed to restore snapshot");
+      setSnapshotsError(toUserMessage(err, "Failed to restore snapshot"));
       setConfirmRestore(null);
     } finally {
       setRestoring(false);
@@ -279,7 +280,7 @@ export function InstanceDetailClient({ instanceId }: { instanceId: string }) {
       setConfirmDelete(null);
       await loadSnapshots();
     } catch (err) {
-      setSnapshotsError(err instanceof Error ? err.message : "Failed to delete snapshot");
+      setSnapshotsError(toUserMessage(err, "Failed to delete snapshot"));
       setConfirmDelete(null);
     } finally {
       setDeleting(false);
@@ -806,7 +807,7 @@ export function InstanceDetailClient({ instanceId }: { instanceId: string }) {
                   setConfigStatus("saved");
                 } catch (err) {
                   setConfigStatus("error");
-                  setConfigError(err instanceof Error ? err.message : "Failed to save config");
+                  setConfigError(toUserMessage(err, "Failed to save config"));
                 } finally {
                   setSaving(false);
                 }
@@ -1003,7 +1004,7 @@ export function InstanceDetailClient({ instanceId }: { instanceId: string }) {
                   setDestroyOpen(false);
                   router.push("/instances");
                 } catch (err) {
-                  setActionError(err instanceof Error ? err.message : "Failed to destroy instance");
+                  setActionError(toUserMessage(err, "Failed to destroy instance"));
                 } finally {
                   setDestroying(false);
                 }

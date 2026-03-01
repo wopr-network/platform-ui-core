@@ -45,6 +45,7 @@ import {
   updatePluginConfig,
   updateSuperpowerConfig,
 } from "@/lib/bot-settings-data";
+import { toUserMessage } from "@/lib/errors";
 import { formatCreditDetailed, formatCreditStandard } from "@/lib/format-credit";
 import { DEFAULT_STATUS_STYLE, PLUGIN_STATUS_STYLES } from "@/lib/status-colors";
 import { ResourcesTab } from "./resources-tab";
@@ -64,7 +65,7 @@ export function BotSettingsClient({ botId }: { botId: string }) {
       const data = await getBotSettings(botId);
       setSettings(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load bot settings");
+      setError(toUserMessage(err, "Failed to load bot settings"));
     } finally {
       setLoading(false);
     }

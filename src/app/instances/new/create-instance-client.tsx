@@ -17,6 +17,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { usePluginRegistry } from "@/hooks/use-plugin-registry";
 import { createInstance } from "@/lib/api";
+import { toUserMessage } from "@/lib/errors";
 import { cn } from "@/lib/utils";
 
 const PRESET_ACCENT_COLORS: Record<string, string> = {
@@ -104,7 +105,7 @@ export function CreateInstanceClient() {
       });
       setCreated(true);
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : "Failed to create instance");
+      setSubmitError(toUserMessage(err, "Failed to create instance"));
     } finally {
       setSubmitting(false);
     }

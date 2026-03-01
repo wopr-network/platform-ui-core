@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Instance } from "@/lib/api";
 import { listInstances } from "@/lib/api";
+import { toUserMessage } from "@/lib/errors";
 import { type ChannelManifest, getChannelManifests } from "@/lib/mock-manifests";
 
 const staggerContainer = {
@@ -44,7 +45,7 @@ export default function ChannelsPage() {
           setChannelManifests(manifests);
         }
       } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : "Failed to load instances");
+        if (!cancelled) setError(toUserMessage(err, "Failed to load instances"));
       } finally {
         if (!cancelled) setLoading(false);
       }
