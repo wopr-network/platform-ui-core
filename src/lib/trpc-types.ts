@@ -18,14 +18,13 @@ import type {
   AnyTRPCQueryProcedure,
   AnyTRPCRootTypes,
   TRPCBuiltRouter,
-  TRPCRouterRecord,
 } from "@trpc/server";
 
 /**
  * Minimal router record for the procedures this UI consumes.
  * Extend this when adding new tRPC calls. Remove entries when procedures are dropped.
  */
-type AppRouterRecord = TRPCRouterRecord & {
+type AppRouterRecord = {
   pageContext: {
     update: AnyTRPCMutationProcedure;
   };
