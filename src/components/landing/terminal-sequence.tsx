@@ -239,10 +239,11 @@ export function TerminalSequence({ onComplete, onMilestone, onFadeStart }: Termi
         case "final-typing": {
           const currentLine = TERMINAL_LINES[s.lineIndex];
           if (!currentLine) {
-            s.state = "cursor-death";
+            // Skip cursor-death — go straight to perpetual blink on the last hold line
+            setAnimationDone(true);
+            s.state = "blinking";
             s.elapsed = 0;
-            s.blinkCount = 0;
-            s.blinkPhase = "on";
+            onCompleteRef.current?.();
             break;
           }
 
