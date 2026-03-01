@@ -1,5 +1,5 @@
 import { act, render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockPush = vi.fn();
 let mockSearchParams = new URLSearchParams();
@@ -36,6 +36,10 @@ describe("VerifyPage", () => {
     vi.useFakeTimers();
     mockPush.mockClear();
     mockSearchParams = new URLSearchParams();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("renders success state and shows redirect countdown", async () => {

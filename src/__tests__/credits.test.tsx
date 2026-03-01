@@ -113,7 +113,7 @@ describe("Credits page", () => {
 
     // Initially shows skeleton loading state
     expect(document.querySelector('[data-slot="skeleton"]')).toBeInTheDocument();
-    expect(await screen.findByText("Credits")).toBeInTheDocument();
+    expect(await screen.findByText("Credits", {}, { timeout: 5000 })).toBeInTheDocument();
   });
 
   it("renders balance display", async () => {

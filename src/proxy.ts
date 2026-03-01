@@ -7,7 +7,7 @@ const publicPaths = [
   "/reset-password",
   "/auth/callback",
   "/auth/verify",
-  "/api/auth",
+  "/api/auth/",
 ];
 
 /** Paths that are public only when matched exactly (not as a prefix). */
@@ -20,6 +20,8 @@ const publicExactPaths = new Set([
   // Health endpoint must be publicly accessible for infra probes (uptime monitors,
   // Kubernetes liveness/readiness, load balancers) that do not carry session cookies.
   "/api/health",
+  // Better Auth root endpoint — sub-paths matched via publicPaths prefix list (/api/auth/).
+  "/api/auth",
 ]);
 
 const MUTATION_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
@@ -149,8 +151,8 @@ export default async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Allow static files and API routes
-  if (pathname.startsWith("/_next") || pathname.includes(".")) {
+  // Allow static files (but not API paths with dots, e.g. /api/config.json)
+  if (pathname.startsWith("/_next") || (pathname.includes(".") && !pathname.startsWith("/api"))) {
     return NextResponse.next();
   }
 
