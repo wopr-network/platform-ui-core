@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef } from "react";
 
 interface PortfolioChartProps {
   onMilestoneRef: React.RefObject<(() => void) | null>;
+  onFadeStartRef: React.RefObject<(() => void) | null>;
 }
 
 const BUFFER_SIZE = 800;
@@ -67,7 +68,7 @@ interface MilestoneNode {
   color: string; // birth color — retained even when line changes phase
 }
 
-export function PortfolioChart({ onMilestoneRef }: PortfolioChartProps) {
+export function PortfolioChart({ onMilestoneRef, onFadeStartRef }: PortfolioChartProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stateRef = useRef({
     points: new Float64Array(BUFFER_SIZE * 2), // interleaved [t0, v0, t1, v1, ...]
@@ -84,8 +85,10 @@ export function PortfolioChart({ onMilestoneRef }: PortfolioChartProps) {
     anchorX: 1.0,       // fraction of w where current point renders (1.0 = right edge)
     anchorTopFrac: 0.3, // fraction of yRange above current point (0 = current at top edge)
     smoothedSlope: 0,   // EMA of screen-space slope
-    // t-positions of the last 3 milestones (permanent, for fade calculation)
+    // t-positions of the last 4 milestones (permanent, for end-fade clip)
     lastMilestoneTs: [] as number[],
+    // Set when terminal enters final-typing phase — drives the end fade
+    fadeStartTime: -1,
   });
 
   const handleMilestone = useCallback(() => {
@@ -122,6 +125,15 @@ export function PortfolioChart({ onMilestoneRef }: PortfolioChartProps) {
       }
     };
   }, [handleMilestone, onMilestoneRef]);
+
+  // Wire fade-start ref — fires when terminal enters final-typing phase
+  useEffect(() => {
+    const ref = onFadeStartRef as React.MutableRefObject<(() => void) | null>;
+    ref.current = () => {
+      stateRef.current.fadeStartTime = performance.now();
+    };
+    return () => { ref.current = null; };
+  }, [onFadeStartRef]);
 
   useEffect(() => {
     // Reduced motion: skip entirely
@@ -254,14 +266,13 @@ export function PortfolioChart({ onMilestoneRef }: PortfolioChartProps) {
         return g;
       };
 
-      // End-of-sequence fade: everything dissolves at high milestone count.
-      // Gradient already stripped old history — only last 4 segments remain
-      // visible during the fade, making them "all that survives".
-      const FADE_START = 14;
-      const FADE_END   = 24;
-      const lineAlpha = 1 - Math.min(1, Math.max(0,
-        (s.milestoneCount - FADE_START) / (FADE_END - FADE_START)
-      ));
+      // End-of-sequence fade: triggered when terminal enters final-typing.
+      // Fades over 6 seconds. Old history already gone via gradient —
+      // only the last 4 segments are visible as everything dissolves.
+      const FADE_DURATION = 6000; // ms
+      const lineAlpha = s.fadeStartTime < 0
+        ? 1
+        : Math.max(0, 1 - (now - s.fadeStartTime) / FADE_DURATION);
 
       if (lineAlpha > 0.01) {
         // Layer 1: Bloom
