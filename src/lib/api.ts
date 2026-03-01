@@ -1221,19 +1221,6 @@ export interface CapabilityMetaEntry {
 
 // --- Capability settings API ---
 
-// TODO(WOP-915): testCapabilityKey still uses REST. Migrate once server has a
-// capabilities.testKey procedure (already added in WOP-915 backend).
-// Low priority — called only on explicit user action.
-export async function testCapabilityKey(
-  capability: CapabilityName,
-  key?: string,
-): Promise<{ valid: boolean }> {
-  return apiFetch<{ valid: boolean }>(`/settings/capabilities/${capability}/test`, {
-    method: "POST",
-    ...(key ? { body: JSON.stringify({ key }) } : {}),
-  });
-}
-
 // --- Credits types ---
 
 export interface CreditBalance {
@@ -1575,8 +1562,9 @@ export interface KeyValidationResult {
 }
 
 export async function validateDeepgramKey(key: string): Promise<KeyValidationResult> {
+  const { testProviderKey: testProviderKeyViaTrpc } = await import("./settings-api");
   try {
-    const result = await testCapabilityKey("transcription", key);
+    const result = await testProviderKeyViaTrpc("transcription", key);
     return result.valid
       ? { valid: true }
       : { valid: false, message: "Invalid API key. Please check and try again." };

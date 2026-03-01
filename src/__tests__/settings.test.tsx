@@ -192,7 +192,6 @@ vi.mock("@/lib/api", async (importOriginal) => {
     removeProviderKey: vi.fn().mockResolvedValue(undefined),
     saveProviderKey: vi.fn().mockResolvedValue({ ok: true, id: "test-id", provider: "openai" }),
     updateProviderModel: vi.fn().mockResolvedValue(undefined),
-    testCapabilityKey: vi.fn().mockResolvedValue({ valid: true }),
     listApiKeys: vi.fn().mockResolvedValue(MOCK_API_KEYS),
     createApiKey: vi.fn().mockResolvedValue({ key: MOCK_API_KEYS[0], secret: "wopr_test_secret" }),
     revokeApiKey: vi.fn().mockResolvedValue(undefined),
@@ -235,6 +234,7 @@ vi.mock("@/lib/settings-api", () => ({
   getNotificationPreferences: vi.fn(),
   updateNotificationPreferences: vi.fn(),
   saveProviderKey: vi.fn(),
+  testProviderKey: vi.fn().mockResolvedValue({ valid: true }),
   listCapabilities: vi.fn().mockResolvedValue(MOCK_CAPABILITIES),
   updateCapability: vi.fn().mockResolvedValue(MOCK_CAPABILITIES[0]),
 }));

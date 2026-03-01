@@ -42,11 +42,14 @@ import {
   listProviderKeys,
   removeProviderKey,
   saveProviderKey,
-  testCapabilityKey,
   testProviderKey,
   updateProviderModel,
 } from "@/lib/api";
-import { listCapabilities, updateCapability } from "@/lib/settings-api";
+import {
+  listCapabilities,
+  testProviderKey as testCapabilityViaTrpc,
+  updateCapability,
+} from "@/lib/settings-api";
 import { cn } from "@/lib/utils";
 
 // --- Helpers ---
@@ -176,7 +179,7 @@ export default function ProvidersPage() {
     setTestingCap(capability);
     setTestCapResult((prev) => ({ ...prev, [capability]: null }));
     try {
-      await testCapabilityKey(capability as CapabilityName);
+      await testCapabilityViaTrpc(capability as CapabilityName, "");
       const caps = await listCapabilities();
       setCapabilities(caps);
       const updatedCap = caps.find((c) => c.capability === capability);
