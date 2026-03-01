@@ -84,6 +84,8 @@ export function PortfolioChart({ onMilestoneRef }: PortfolioChartProps) {
     anchorX: 1.0,       // fraction of w where current point renders (1.0 = right edge)
     anchorTopFrac: 0.3, // fraction of yRange above current point (0 = current at top edge)
     smoothedSlope: 0,   // EMA of screen-space slope
+    // t-positions of the last 3 milestones (permanent, for fade calculation)
+    lastMilestoneTs: [] as number[],
   });
 
   const handleMilestone = useCallback(() => {
@@ -103,6 +105,10 @@ export function PortfolioChart({ onMilestoneRef }: PortfolioChartProps) {
       lifetime,
       color, // freeze birth color
     });
+
+    // Track last 3 milestone t-positions for the history fade
+    s.lastMilestoneTs.push(s.t);
+    if (s.lastMilestoneTs.length > 3) s.lastMilestoneTs.shift();
   }, []);
 
   // Wire milestone ref
@@ -225,6 +231,29 @@ export function PortfolioChart({ onMilestoneRef }: PortfolioChartProps) {
 
       const color = getLineColor(s.milestoneCount, now);
 
+      // History fade gradient: as chart accelerates (slopeFactor→1), old history
+      // fades out. At slopeFactor=1 only the trail from the oldest of the last 3
+      // milestones is visible. At slopeFactor=0 the full line is shown.
+      const anchorScreenX = w * s.anchorX;
+      const fadeOriginT = s.lastMilestoneTs.length > 0 ? s.lastMilestoneTs[0] : xLeft;
+      // Blend: at slopeFactor=0 gradient starts at x=0 (full history visible)
+      //        at slopeFactor=1 gradient starts at toScreenX(fadeOriginT)
+      const fadeX = toScreenX(fadeOriginT) * slopeFactor;
+
+      const makeGrad = (opaque: string) => {
+        const g = ctx.createLinearGradient(0, 0, anchorScreenX, 0);
+        if (fadeX > 1) {
+          g.addColorStop(0, "transparent");
+          // Hard fade-in over a short stretch so the cut looks intentional
+          g.addColorStop(Math.min(0.999, (fadeX - 2) / anchorScreenX), "transparent");
+          g.addColorStop(Math.min(0.999, (fadeX + 40) / anchorScreenX), opaque);
+        } else {
+          g.addColorStop(0, opaque);
+        }
+        g.addColorStop(1, opaque);
+        return g;
+      };
+
       // Base opacity for entire chart — background texture
       ctx.save();
       ctx.globalAlpha = 0.25;
@@ -236,7 +265,7 @@ export function PortfolioChart({ onMilestoneRef }: PortfolioChartProps) {
       for (let i = 1; i < screenPoints.length; i++) {
         ctx.lineTo(screenPoints[i][0], screenPoints[i][1]);
       }
-      ctx.strokeStyle = color;
+      ctx.strokeStyle = makeGrad(color);
       ctx.lineWidth = 6;
       ctx.shadowColor = color;
       ctx.shadowBlur = 20;
@@ -253,7 +282,7 @@ export function PortfolioChart({ onMilestoneRef }: PortfolioChartProps) {
       for (let i = 1; i < screenPoints.length; i++) {
         ctx.lineTo(screenPoints[i][0], screenPoints[i][1]);
       }
-      ctx.strokeStyle = color;
+      ctx.strokeStyle = makeGrad(color);
       ctx.lineWidth = 1.5;
       ctx.globalAlpha = 0.85;
       ctx.lineCap = "round";
