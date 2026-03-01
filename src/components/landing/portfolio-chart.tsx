@@ -75,7 +75,7 @@ export function PortfolioChart({ onMilestoneRef }: PortfolioChartProps) {
     count: 0,
     t: 0,
     value: 0,
-    bias: 0.15,
+    bias: 0.04,
     milestoneCount: 0,
     milestones: [] as MilestoneNode[],
     lastTime: 0,
@@ -92,7 +92,7 @@ export function PortfolioChart({ onMilestoneRef }: PortfolioChartProps) {
     const color = getLineColor(s.milestoneCount, now);
 
     s.milestoneCount++;
-    s.bias *= 1.25;
+    s.bias *= 1.18;
 
     const lifetime = Math.max(400, 3000 - s.milestoneCount * 45);
 
@@ -191,7 +191,8 @@ export function PortfolioChart({ onMilestoneRef }: PortfolioChartProps) {
       s.smoothedSlope = s.smoothedSlope * 0.95 + rawSlope * 0.05;
 
       // slopeFactor: 0 = flat/horizontal, 1 = clearly vertical
-      const slopeFactor = Math.min(1, Math.max(0, (s.smoothedSlope - 0.3) / 1.7));
+      // Threshold raised to 0.8 so anchor doesn't shift until chart is clearly climbing
+      const slopeFactor = Math.min(1, Math.max(0, (s.smoothedSlope - 0.8) / 2.2));
 
       // One-way ratchets — can only move toward the vertical/top anchor, never back
       const targetAnchorX    = 1.0 - slopeFactor * 0.5; // 1.0 (right edge) → 0.5 (center)
