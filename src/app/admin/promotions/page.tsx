@@ -27,6 +27,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { toUserMessage } from "@/lib/errors";
 import type { Promotion, PromotionStatus, PromotionType } from "@/lib/promotions-types";
 import { trpcVanilla } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
@@ -121,7 +122,7 @@ export default function PromotionsListPage() {
       await client.promotions[action].mutate({ id });
       await load();
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : `Failed to ${action} promotion`);
+      setActionError(toUserMessage(err, `Failed to ${action} promotion`));
     }
   }
 

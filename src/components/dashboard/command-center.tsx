@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { ActivityEvent, DividendWalletStats, FleetInstance, FleetResources } from "@/lib/api";
 import { getActivityFeed, getDividendStats, getFleetHealth, getFleetResources } from "@/lib/api";
+import { toUserMessage } from "@/lib/errors";
 import { formatRelativeTime } from "@/lib/format";
 import { formatCreditStandard } from "@/lib/format-credit";
 import { cn } from "@/lib/utils";
@@ -144,7 +145,7 @@ export function CommandCenter() {
     // Fleet health is load-bearing — failure blocks the dashboard
     if (fleetResult.status === "rejected") {
       const err = fleetResult.reason;
-      setError(err instanceof Error ? err.message : "Failed to load fleet data");
+      setError(toUserMessage(err, "Failed to load fleet data"));
       setLoading(false);
       return;
     }
@@ -155,7 +156,7 @@ export function CommandCenter() {
     } else {
       setActivity([]);
       const err = activityResult.reason;
-      setActivityError(err instanceof Error ? err.message : "Failed to load activity");
+      setActivityError(toUserMessage(err, "Failed to load activity"));
     }
     // Resources are supplementary — silent null degradation
     setResources(resourcesResult.status === "fulfilled" ? resourcesResult.value : null);

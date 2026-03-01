@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { toUserMessage } from "@/lib/errors";
 import { trpcVanilla } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 
@@ -41,7 +42,7 @@ export function CouponInput() {
       setMessage(result.message);
       setState("success");
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Invalid coupon code");
+      setMessage(toUserMessage(err, "Invalid coupon code"));
       setState("error");
     }
   }

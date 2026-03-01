@@ -32,6 +32,7 @@ import {
   updateAutoAcceptConfig,
   updateFriendCapabilities,
 } from "@/lib/api";
+import { toUserMessage } from "@/lib/errors";
 
 const cardVariants = {
   hidden: { opacity: 0, y: 8 },
@@ -77,7 +78,7 @@ export function FriendsTab({ instanceId }: { instanceId: string }) {
         setMaxFriendsInput(String(a.rules.maxFriends));
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load friends data");
+      setError(toUserMessage(err, "Failed to load friends data"));
     } finally {
       setLoading(false);
     }
@@ -97,7 +98,7 @@ export function FriendsTab({ instanceId }: { instanceId: string }) {
       await sendFriendRequest(instanceId, targetBotId);
       await loadAll();
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Failed to send request");
+      setActionError(toUserMessage(err, "Failed to send request"));
     } finally {
       setSendingTo(null);
     }
@@ -109,7 +110,7 @@ export function FriendsTab({ instanceId }: { instanceId: string }) {
       await acceptFriendRequest(instanceId, requestId);
       await loadAll();
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Failed to accept request");
+      setActionError(toUserMessage(err, "Failed to accept request"));
     }
   }
 
@@ -121,7 +122,7 @@ export function FriendsTab({ instanceId }: { instanceId: string }) {
       await rejectFriendRequest(instanceId, requestId);
       await loadAll();
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Failed to reject request");
+      setActionError(toUserMessage(err, "Failed to reject request"));
     }
   }
 
@@ -132,7 +133,7 @@ export function FriendsTab({ instanceId }: { instanceId: string }) {
       await removeFriend(instanceId, friendId);
       setFriends((prev) => prev.filter((f) => f.id !== friendId));
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Failed to remove friend");
+      setActionError(toUserMessage(err, "Failed to remove friend"));
     } finally {
       setRemovingFriend(null);
     }
@@ -152,7 +153,7 @@ export function FriendsTab({ instanceId }: { instanceId: string }) {
       setFriends((prev) =>
         prev.map((f) => (f.id === friendId ? { ...f, sharedCapabilities: current } : f)),
       );
-      setActionError(err instanceof Error ? err.message : "Failed to update capabilities");
+      setActionError(toUserMessage(err, "Failed to update capabilities"));
     }
   }
 
@@ -164,7 +165,7 @@ export function FriendsTab({ instanceId }: { instanceId: string }) {
       await updateAutoAcceptConfig(instanceId, updated);
       setAutoAccept(updated);
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Failed to update auto-accept");
+      setActionError(toUserMessage(err, "Failed to update auto-accept"));
     }
   }
 
@@ -187,7 +188,7 @@ export function FriendsTab({ instanceId }: { instanceId: string }) {
       await updateAutoAcceptConfig(instanceId, updated);
       setAutoAccept(updated);
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Failed to save auto-accept rules");
+      setActionError(toUserMessage(err, "Failed to save auto-accept rules"));
     }
   }
 

@@ -7,6 +7,7 @@ import { Wizard } from "@/components/channel-wizard";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { connectChannel } from "@/lib/api";
+import { toUserMessage } from "@/lib/errors";
 import { type ChannelManifest, getManifest } from "@/lib/mock-manifests";
 
 export default function ChannelSetupPage({ params }: { params: Promise<{ plugin: string }> }) {
@@ -76,7 +77,7 @@ export default function ChannelSetupPage({ params }: { params: Promise<{ plugin:
       await connectChannel(botId as string, plugin, values);
       router.push(`/instances/${botId}?tab=channels`);
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : "Failed to connect channel");
+      setSubmitError(toUserMessage(err, "Failed to connect channel"));
     } finally {
       setSubmitting(false);
     }

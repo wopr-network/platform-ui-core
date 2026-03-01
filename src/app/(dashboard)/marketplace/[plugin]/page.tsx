@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toUserMessage } from "@/lib/errors";
 import {
   formatInstallCount,
   getCapabilityColor,
@@ -130,7 +131,7 @@ export default function PluginDetailPage() {
       const contentData = await getPluginContent(pluginId);
       setContent(contentData);
     } catch (err) {
-      setLoadError(err instanceof Error ? err.message : "Failed to load plugin");
+      setLoadError(toUserMessage(err, "Failed to load plugin"));
     } finally {
       setLoading(false);
     }
@@ -153,7 +154,7 @@ export default function PluginDetailPage() {
       setShowTerminalLog(true);
     } catch (err) {
       setInstalling(false);
-      setInstallError(err instanceof Error ? err.message : "Installation failed");
+      setInstallError(toUserMessage(err, "Installation failed"));
     }
   }
 

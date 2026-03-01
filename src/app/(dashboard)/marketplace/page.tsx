@@ -12,6 +12,7 @@ import { SuperpowerCard } from "@/components/marketplace/superpower-card";
 import { TerminalSearch } from "@/components/marketplace/terminal-search";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toUserMessage } from "@/lib/errors";
 import {
   listMarketplacePlugins,
   type MarketplaceTab,
@@ -37,7 +38,7 @@ export default function MarketplacePage() {
       const data = await listMarketplacePlugins();
       setPlugins(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load marketplace plugins");
+      setError(toUserMessage(err, "Failed to load marketplace plugins"));
     } finally {
       setLoading(false);
     }

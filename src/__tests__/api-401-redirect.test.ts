@@ -62,6 +62,7 @@ describe("401 redirect handling", () => {
       ok: false,
       status: 500,
       statusText: "Internal Server Error",
+      json: () => Promise.resolve({}),
     });
     const { getProfile } = await import("@/lib/api");
     await expect(getProfile()).rejects.toThrow("API error: 500 Internal Server Error");

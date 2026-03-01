@@ -152,6 +152,7 @@ describe("apiFetch (via getProfile)", () => {
       ok: false,
       status: 403,
       statusText: "Forbidden",
+      json: () => Promise.resolve({}),
     });
 
     const { getProfile } = await import("@/lib/api");
@@ -163,6 +164,7 @@ describe("apiFetch (via getProfile)", () => {
       ok: false,
       status: 404,
       statusText: "Not Found",
+      json: () => Promise.resolve({}),
     });
 
     const { getProfile } = await import("@/lib/api");
@@ -174,6 +176,7 @@ describe("apiFetch (via getProfile)", () => {
       ok: false,
       status: 500,
       statusText: "Internal Server Error",
+      json: () => Promise.resolve({}),
     });
 
     const { getProfile } = await import("@/lib/api");

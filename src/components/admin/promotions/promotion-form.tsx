@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { toUserMessage } from "@/lib/errors";
 import type { Promotion, PromotionType, UserSegment, ValueType } from "@/lib/promotions-types";
 import { trpcVanilla } from "@/lib/trpc";
 
@@ -138,7 +139,7 @@ export function PromotionForm({ initialData }: PromotionFormProps) {
       }
       router.push("/admin/promotions");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save promotion");
+      setError(toUserMessage(err, "Failed to save promotion"));
     } finally {
       setSaving(false);
     }

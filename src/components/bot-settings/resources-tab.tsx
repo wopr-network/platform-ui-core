@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { getResourceTier, setResourceTier } from "@/lib/bot-settings-data";
+import { toUserMessage } from "@/lib/errors";
 
 const TIERS = [
   {
@@ -78,7 +79,7 @@ export function ResourcesTab({ botId }: { botId: string }) {
       setCurrentTier(result.tier);
       setConfirmTier(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to change tier");
+      setError(toUserMessage(err, "Failed to change tier"));
     } finally {
       setApplying(false);
     }

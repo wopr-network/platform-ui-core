@@ -39,6 +39,7 @@ import {
 import { useImageStatus } from "@/hooks/use-image-status";
 import type { Instance, InstanceStatus } from "@/lib/api";
 import { controlInstance, listInstances, pullImageUpdate } from "@/lib/api";
+import { toUserMessage } from "@/lib/errors";
 import { cn } from "@/lib/utils";
 
 export function InstanceListClient() {
@@ -82,7 +83,7 @@ export function InstanceListClient() {
       await controlInstance(id, action);
       await loadInstances();
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : `Failed to ${action} instance`);
+      setActionError(toUserMessage(err, `Failed to ${action} instance`));
     }
   }
 
@@ -307,7 +308,7 @@ export function InstanceListClient() {
                   setDestroyConfirmText("");
                   await loadInstances();
                 } catch (err) {
-                  setActionError(err instanceof Error ? err.message : "Failed to destroy instance");
+                  setActionError(toUserMessage(err, "Failed to destroy instance"));
                 } finally {
                   setDestroying(false);
                 }

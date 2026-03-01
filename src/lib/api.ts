@@ -1,9 +1,11 @@
 import { API_BASE_URL, PLATFORM_BASE_URL } from "./api-config";
+import { ApiError } from "./errors";
 import { handleUnauthorized } from "./fetch-utils";
 import type { ApiPricingResponse, DividendStats } from "./pricing-data";
 import { getActiveTenantId } from "./tenant-context";
 import { trpcVanilla } from "./trpc";
 
+export { ApiError, NetworkError, toUserMessage, ValidationError } from "./errors";
 export { UnauthorizedError } from "./fetch-utils";
 
 // --- Public pricing API (no auth required) ---
@@ -104,7 +106,8 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
     handleUnauthorized();
   }
   if (!res.ok) {
-    throw new Error(`API error: ${res.status} ${res.statusText}`);
+    const body = await res.json().catch(() => ({}));
+    throw new ApiError(res.status, res.statusText, (body as { error?: string }).error ?? undefined);
   }
   return res.json() as Promise<T>;
 }
@@ -125,9 +128,7 @@ export async function fleetFetch<T>(path: string, init?: RequestInit): Promise<T
   }
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(
-      (body as { error?: string }).error ?? `API error: ${res.status} ${res.statusText}`,
-    );
+    throw new ApiError(res.status, res.statusText, (body as { error?: string }).error ?? undefined);
   }
   return res.json() as Promise<T>;
 }
