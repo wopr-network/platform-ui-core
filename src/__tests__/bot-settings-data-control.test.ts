@@ -9,6 +9,7 @@ vi.stubGlobal("fetch", mockFetch);
 
 vi.mock("@/lib/api-config", () => ({
   API_BASE_URL: "https://api.test",
+  PLATFORM_BASE_URL: "https://api.test",
 }));
 
 describe("controlBot HTTP behavior", () => {
