@@ -255,6 +255,7 @@ export async function installPlugin(
   botId: string,
   config: Record<string, unknown>,
   providerChoices: Record<string, string>,
+  primaryProviderOverrides?: Record<string, string>,
 ): Promise<{
   success: boolean;
   botId: string;
@@ -265,7 +266,7 @@ export async function installPlugin(
 }> {
   return fleetFetch(`/bots/${botId}/plugins/${pluginId}`, {
     method: "POST",
-    body: JSON.stringify({ config, providerChoices }),
+    body: JSON.stringify({ config, providerChoices, primaryProviderOverrides }),
   });
 }
 
@@ -296,4 +297,49 @@ export function formatInstallCount(count: number): string {
   if (count >= 10000) return `${(count / 1000).toFixed(1)}k`;
   if (count >= 1000) return `${(count / 1000).toFixed(1)}k`;
   return String(count);
+}
+
+// --- Client-side capability conflict detection (UI complement to WOP-1516) ---
+
+export interface CapabilityConflict {
+  capability: string;
+  existingPluginId: string;
+  existingPluginName: string;
+  newPluginId: string;
+}
+
+/**
+ * Detect capability conflicts between a plugin being installed and already-installed plugins.
+ * Mirrors platform-side detectCapabilityConflicts from WOP-1516.
+ */
+export function detectCapabilityConflictsClient(
+  newPlugin: PluginManifest,
+  installedPluginIds: string[],
+  allPlugins: PluginManifest[],
+): CapabilityConflict[] {
+  if (newPlugin.capabilities.length === 0) return [];
+
+  const capToPlugin = new Map<string, PluginManifest>();
+  for (const p of allPlugins) {
+    if (!installedPluginIds.includes(p.id)) continue;
+    for (const cap of p.capabilities) {
+      if (!capToPlugin.has(cap)) {
+        capToPlugin.set(cap, p);
+      }
+    }
+  }
+
+  const conflicts: CapabilityConflict[] = [];
+  for (const cap of newPlugin.capabilities) {
+    const existing = capToPlugin.get(cap);
+    if (existing) {
+      conflicts.push({
+        capability: cap,
+        existingPluginId: existing.id,
+        existingPluginName: existing.name,
+        newPluginId: newPlugin.id,
+      });
+    }
+  }
+  return conflicts;
 }

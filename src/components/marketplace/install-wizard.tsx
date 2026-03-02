@@ -28,16 +28,24 @@ import { Switch } from "@/components/ui/switch";
 import { toUserMessage } from "@/lib/errors";
 import type {
   BotSummary,
+  CapabilityConflict,
   ConfigSchemaField,
   HostedAdapter,
   PluginManifest,
   SetupStep,
 } from "@/lib/marketplace-data";
-import { getHostedAdaptersForCapabilities, listBots } from "@/lib/marketplace-data";
+import {
+  detectCapabilityConflictsClient,
+  getCapabilityColor,
+  getHostedAdaptersForCapabilities,
+  listBots,
+  listInstalledPlugins,
+  listMarketplacePlugins,
+} from "@/lib/marketplace-data";
 import { cn } from "@/lib/utils";
 
 // --- Step types for the wizard flow ---
-type WizardPhase = "bot-select" | "requirements" | "providers" | "setup" | "complete";
+type WizardPhase = "bot-select" | "requirements" | "conflicts" | "providers" | "setup" | "complete";
 
 interface InstallWizardProps {
   plugin: PluginManifest;
@@ -51,8 +59,10 @@ export function InstallWizard({ plugin, onComplete, onCancel }: InstallWizardPro
   const hasHosted = hostedAdapters.length > 0;
 
   // Determine phases — bot-select is always first
+  // conflicts phase is always included; it auto-skips if no conflicts detected
   const phases: WizardPhase[] = ["bot-select"];
   if (hasRequirements) phases.push("requirements");
+  phases.push("conflicts");
   if (hasHosted) phases.push("providers");
   phases.push("setup");
   phases.push("complete");
@@ -66,6 +76,10 @@ export function InstallWizard({ plugin, onComplete, onCancel }: InstallWizardPro
   const [bots, setBots] = useState<BotSummary[]>([]);
   const [botsLoading, setBotsLoading] = useState(true);
   const [botsError, setBotsError] = useState<string | null>(null);
+  const [conflicts, setConflicts] = useState<CapabilityConflict[]>([]);
+  const [conflictsLoading, setConflictsLoading] = useState(false);
+  const [conflictsError, setConflictsError] = useState<string | null>(null);
+  const [primaryOverrides, setPrimaryOverrides] = useState<Record<string, string>>({});
 
   useEffect(() => {
     listBots()
@@ -79,7 +93,40 @@ export function InstallWizard({ plugin, onComplete, onCancel }: InstallWizardPro
       });
   }, []);
 
+  useEffect(() => {
+    if (!selectedBotId || plugin.capabilities.length === 0) {
+      setConflicts([]);
+      return;
+    }
+    setConflictsLoading(true);
+    setConflictsError(null);
+
+    Promise.all([listInstalledPlugins(selectedBotId), listMarketplacePlugins()])
+      .then(([installed, allPlugins]) => {
+        const installedIds = installed.map((p) => p.pluginId);
+        const detected = detectCapabilityConflictsClient(plugin, installedIds, allPlugins);
+        setConflicts(detected);
+        setConflictsLoading(false);
+      })
+      .catch((err: unknown) => {
+        setConflictsError(toUserMessage(err, "Failed to check for conflicts"));
+        setConflictsLoading(false);
+      });
+  }, [selectedBotId, plugin]);
+
   const currentPhase = phases[currentPhaseIndex];
+
+  // Auto-skip conflicts phase if no conflicts and not loading
+  useEffect(() => {
+    if (
+      currentPhase === "conflicts" &&
+      conflicts.length === 0 &&
+      !conflictsLoading &&
+      !conflictsError
+    ) {
+      setCurrentPhaseIndex((i) => i + 1);
+    }
+  }, [currentPhase, conflicts, conflictsLoading, conflictsError]);
   const setupSteps = plugin.setup;
   const currentSetupStep = setupSteps[setupStepIndex] as SetupStep | undefined;
 
@@ -165,9 +212,26 @@ export function InstallWizard({ plugin, onComplete, onCancel }: InstallWizardPro
       }
     }
 
+    if (currentPhase === "conflicts") {
+      const unresolved = conflicts.filter((c) => !primaryOverrides[c.capability]);
+      if (unresolved.length > 0) {
+        setErrors({
+          _conflicts: "Please choose a primary provider for each conflicting capability",
+        });
+        return;
+      }
+      setCurrentPhaseIndex((i) => i + 1);
+      setErrors({});
+      return;
+    }
+
     if (currentPhase === "complete") {
       if (selectedBotId) {
-        onComplete(selectedBotId, { ...values, _providerChoices: providerChoices });
+        onComplete(selectedBotId, {
+          ...values,
+          _providerChoices: providerChoices,
+          _primaryProviderOverrides: primaryOverrides,
+        });
       }
       return;
     }
@@ -189,7 +253,10 @@ export function InstallWizard({ plugin, onComplete, onCancel }: InstallWizardPro
   }
 
   const isFirstStep = currentPhaseIndex === 0 && (currentPhase !== "setup" || setupStepIndex === 0);
-  const isContinueDisabled = currentPhase === "bot-select" && !selectedBotId;
+  const allConflictsResolved = conflicts.every((c) => primaryOverrides[c.capability]);
+  const isContinueDisabled =
+    (currentPhase === "bot-select" && !selectedBotId) ||
+    (currentPhase === "conflicts" && conflicts.length > 0 && !allConflictsResolved);
 
   return (
     <Card className="w-full">
@@ -206,6 +273,7 @@ export function InstallWizard({ plugin, onComplete, onCancel }: InstallWizardPro
             <CardDescription>
               {currentPhase === "bot-select" && "Select which bot to install this plugin on"}
               {currentPhase === "requirements" && "Check plugin requirements"}
+              {currentPhase === "conflicts" && "Resolve capability conflicts"}
               {currentPhase === "providers" && "Choose provider for each capability"}
               {currentPhase === "setup" && currentSetupStep?.description}
               {currentPhase === "complete" && "Installation complete"}
@@ -235,6 +303,18 @@ export function InstallWizard({ plugin, onComplete, onCancel }: InstallWizardPro
           />
         )}
         {currentPhase === "requirements" && <RequirementsCheck plugin={plugin} />}
+        {currentPhase === "conflicts" && conflicts.length > 0 && (
+          <CapabilityConflicts
+            conflicts={conflicts}
+            loading={conflictsLoading}
+            error={conflictsError}
+            plugin={plugin}
+            overrides={primaryOverrides}
+            onChoose={(capability, pluginId) =>
+              setPrimaryOverrides((prev) => ({ ...prev, [capability]: pluginId }))
+            }
+          />
+        )}
         {currentPhase === "providers" && (
           <ProviderSelector
             adapters={hostedAdapters}
@@ -510,6 +590,88 @@ function SetupStepForm({
           onChange={(v) => onChange(field.key, v)}
         />
       ))}
+    </div>
+  );
+}
+
+function CapabilityConflicts({
+  conflicts,
+  loading,
+  error,
+  plugin,
+  overrides,
+  onChoose,
+}: {
+  conflicts: CapabilityConflict[];
+  loading: boolean;
+  error: string | null;
+  plugin: PluginManifest;
+  overrides: Record<string, string>;
+  onChoose: (capability: string, pluginId: string) => void;
+}) {
+  if (loading) {
+    return (
+      <div className="space-y-3">
+        <Skeleton className="h-16 w-full" />
+        <Skeleton className="h-16 w-full" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="py-4 text-center">
+        <p className="text-sm text-destructive">{error}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-sm border border-amber-500/25 bg-amber-500/5 p-3">
+        <p className="text-sm font-medium text-amber-500">Capability Conflict Detected</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          {plugin.name} provides capabilities already provided by installed plugins. Choose which
+          plugin should be the primary provider for each.
+        </p>
+      </div>
+      {conflicts.map((conflict) => {
+        const capColor = getCapabilityColor(conflict.capability);
+        const selected = overrides[conflict.capability];
+        return (
+          <div key={conflict.capability} className="rounded-sm border p-4">
+            <div className="mb-3 flex items-center gap-2">
+              <Badge
+                variant="outline"
+                className={cn("text-[10px]", capColor.bg, capColor.text, capColor.border)}
+              >
+                {conflict.capability}
+              </Badge>
+              <span className="text-sm text-muted-foreground">provided by both plugins</span>
+            </div>
+            <div className="space-y-2">
+              <Button
+                type="button"
+                variant={selected === conflict.existingPluginId ? "default" : "outline"}
+                size="sm"
+                className="w-full justify-start"
+                onClick={() => onChoose(conflict.capability, conflict.existingPluginId)}
+              >
+                Keep {conflict.existingPluginName} as primary
+              </Button>
+              <Button
+                type="button"
+                variant={selected === conflict.newPluginId ? "default" : "outline"}
+                size="sm"
+                className="w-full justify-start"
+                onClick={() => onChoose(conflict.capability, conflict.newPluginId)}
+              >
+                Use {plugin.name} as primary
+              </Button>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
