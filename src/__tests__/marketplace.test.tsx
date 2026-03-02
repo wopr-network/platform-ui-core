@@ -52,6 +52,7 @@ vi.mock("../lib/marketplace-data", async () => {
       return TEST_PLUGINS.find((p) => p.id === id) ?? null;
     }),
     getPluginContent: vi.fn().mockResolvedValue(null),
+    listInstalledPlugins: vi.fn().mockResolvedValue([]),
   };
 });
 
