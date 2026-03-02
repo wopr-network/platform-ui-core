@@ -3,6 +3,7 @@
 import { AnimatePresence } from "framer-motion";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { CategoryFilter } from "@/components/marketplace/category-filter";
 import { MarketplaceEmptyState } from "@/components/marketplace/empty-state";
 import { FeaturedHeroes } from "@/components/marketplace/featured-heroes";
 import { FirstVisitHero } from "@/components/marketplace/first-visit-hero";
@@ -16,6 +17,7 @@ import { toUserMessage } from "@/lib/errors";
 import {
   listMarketplacePlugins,
   type MarketplaceTab,
+  type PluginCategory,
   type PluginManifest,
 } from "@/lib/marketplace-data";
 
@@ -28,6 +30,7 @@ export default function MarketplacePage() {
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<MarketplaceTab>("superpower");
   const [showFirstVisit, setShowFirstVisit] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<PluginCategory | null>(null);
 
   const searchParams = useSearchParams();
 
@@ -88,6 +91,16 @@ export default function MarketplacePage() {
     [plugins],
   );
 
+  // Category counts for current tab
+  const categoryCounts = useMemo(() => {
+    const tabPlugins = plugins.filter((p) => (p.marketplaceTab ?? "utility") === activeTab);
+    const counts: Record<string, number> = {};
+    for (const p of tabPlugins) {
+      counts[p.category] = (counts[p.category] ?? 0) + 1;
+    }
+    return counts;
+  }, [plugins, activeTab]);
+
   // Tab counts
   const tabCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -98,9 +111,12 @@ export default function MarketplacePage() {
     return counts;
   }, [plugins]);
 
-  // Filtered plugins by tab + search
+  // Filtered plugins by tab + category + search
   const filtered = useMemo(() => {
     let result = plugins.filter((p) => (p.marketplaceTab ?? "utility") === activeTab);
+    if (selectedCategory) {
+      result = result.filter((p) => p.category === selectedCategory);
+    }
     if (search.trim()) {
       const term = search.toLowerCase();
       result = result.filter(
@@ -113,7 +129,7 @@ export default function MarketplacePage() {
       );
     }
     return result;
-  }, [plugins, activeTab, search]);
+  }, [plugins, activeTab, selectedCategory, search]);
 
   // Loading skeleton
   if (loading) {
@@ -187,7 +203,22 @@ export default function MarketplacePage() {
           <TerminalSearch value={search} onChange={setSearch} placeholder="Search superpowers..." />
         </div>
 
-        <MarketplaceTabs selected={activeTab} onSelect={setActiveTab} counts={tabCounts} />
+        <MarketplaceTabs
+          selected={activeTab}
+          onSelect={(tab) => {
+            setActiveTab(tab);
+            setSelectedCategory(null);
+          }}
+          counts={tabCounts}
+        />
+
+        {activeTab !== "superpower" && (
+          <CategoryFilter
+            selected={selectedCategory}
+            onSelect={setSelectedCategory}
+            counts={categoryCounts}
+          />
+        )}
 
         {/* Plugin grid */}
         {filtered.length === 0 ? (
