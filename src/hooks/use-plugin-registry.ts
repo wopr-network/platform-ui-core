@@ -6,9 +6,9 @@ import {
   byokProviders,
   channelPlugins,
   collectConfigFields,
-  getAllPlugins,
   getChannelPlugins,
-  getPluginById,
+  getOptionalPlugins,
+  getProviderPlugins,
   heroModels,
   MODEL_COUNT,
   type ModelOption,
@@ -114,6 +114,8 @@ export interface PluginRegistry {
 export function usePluginRegistry(): PluginRegistry {
   const [channels, setChannels] = useState<PluginOption[]>(channelPlugins);
   const [channelsLoaded, setChannelsLoaded] = useState(false);
+  const [providers, setProviders] = useState<PluginOption[]>(providerPlugins);
+  const [categories, setCategories] = useState<PluginCategory[]>(pluginCategories);
 
   useEffect(() => {
     let cancelled = false;
@@ -134,9 +136,37 @@ export function usePluginRegistry(): PluginRegistry {
     };
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    getProviderPlugins()
+      .then((result) => {
+        if (!cancelled) setProviders(result);
+      })
+      .catch(() => {
+        // fall back to static providerPlugins on API failure
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    getOptionalPlugins()
+      .then((result) => {
+        if (!cancelled) setCategories(result);
+      })
+      .catch(() => {
+        // fall back to static pluginCategories on API failure
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const providerOptions = useMemo<SimpleOption[]>(
-    () => providerPlugins.map((p) => ({ value: p.id, label: p.name })),
-    [],
+    () => providers.map((p) => ({ value: p.id, label: p.name })),
+    [providers],
   );
 
   const channelOptions = useMemo<SimpleOption[]>(
@@ -145,16 +175,15 @@ export function usePluginRegistry(): PluginRegistry {
   );
 
   const pluginOptions = useMemo<SimpleOption[]>(
-    () =>
-      pluginCategories.flatMap((cat) => cat.plugins.map((p) => ({ value: p.id, label: p.name }))),
-    [],
+    () => categories.flatMap((cat) => cat.plugins.map((p) => ({ value: p.id, label: p.name }))),
+    [categories],
   );
 
   return useMemo<PluginRegistry>(
     () => ({
       channels,
-      providers: providerPlugins,
-      categories: pluginCategories,
+      providers,
+      categories,
       superpowers,
       personalities,
       presets,
@@ -167,12 +196,23 @@ export function usePluginRegistry(): PluginRegistry {
       providerOptions,
       channelOptions,
       pluginOptions,
-      getAllPlugins,
-      getPluginById,
+      getAllPlugins: () => [...channels, ...providers, ...categories.flatMap((c) => c.plugins)],
+      getPluginById: (id: string) =>
+        [...channels, ...providers, ...categories.flatMap((c) => c.plugins)].find(
+          (p) => p.id === id,
+        ),
       collectConfigFields,
       resolveDependencies,
       validateField,
     }),
-    [channels, channelsLoaded, providerOptions, channelOptions, pluginOptions],
+    [
+      channels,
+      channelsLoaded,
+      providers,
+      categories,
+      providerOptions,
+      channelOptions,
+      pluginOptions,
+    ],
   );
 }

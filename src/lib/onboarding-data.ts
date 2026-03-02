@@ -452,6 +452,108 @@ export async function getChannelPlugins(): Promise<PluginOption[]> {
 
 // --- Providers ---
 
+// Onboarding-specific overlay per marketplace provider plugin.
+// configFields use OnboardingConfigField (with helpUrl, helpText) which differs from
+// marketplace configSchema fields.
+const PROVIDER_OVERLAY: Record<string, { configFields: OnboardingConfigField[] }> = {
+  anthropic: {
+    configFields: [
+      {
+        key: "anthropic_api_key",
+        label: "Anthropic API Key",
+        secret: true,
+        placeholder: "sk-ant-...",
+        helpUrl: PROVIDER_DOC_URLS.anthropic,
+        helpText: "Get an API key from the Anthropic Console.",
+        validation: { pattern: "^sk-ant-", message: "Must start with sk-ant-" },
+      },
+    ],
+  },
+  openai: {
+    configFields: [
+      {
+        key: "openai_api_key",
+        label: "OpenAI API Key",
+        secret: true,
+        placeholder: "sk-...",
+        helpUrl: PROVIDER_DOC_URLS.openai,
+        helpText: "Get an API key from the OpenAI dashboard.",
+        validation: { pattern: "^sk-", message: "Must start with sk-" },
+      },
+    ],
+  },
+  kimi: {
+    configFields: [
+      {
+        key: "kimi_api_key",
+        label: "Kimi API Key",
+        secret: true,
+        placeholder: "Paste your Kimi API key",
+        helpUrl: PROVIDER_DOC_URLS.moonshot,
+        helpText: "Get an API key from the Moonshot Platform.",
+      },
+    ],
+  },
+  opencode: {
+    configFields: [
+      {
+        key: "opencode_endpoint",
+        label: "OpenCode Endpoint URL",
+        secret: false,
+        placeholder: "https://your-endpoint.example.com/v1",
+        helpText: "Your OpenAI-compatible inference endpoint.",
+      },
+      {
+        key: "opencode_api_key",
+        label: "OpenCode API Key",
+        secret: true,
+        placeholder: "Paste your API key",
+      },
+    ],
+  },
+};
+
+// Onboarding-specific overlay per marketplace optional plugin.
+const PLUGIN_OVERLAY: Record<string, { configFields: OnboardingConfigField[] }> = {
+  "elevenlabs-tts": {
+    configFields: [
+      {
+        key: "elevenlabs_api_key",
+        label: "ElevenLabs API Key",
+        secret: true,
+        placeholder: "Paste your ElevenLabs API key",
+        helpUrl: PROVIDER_DOC_URLS.elevenlabsHome,
+        helpText: "Get an API key from ElevenLabs.",
+      },
+    ],
+  },
+  "deepgram-stt": {
+    configFields: [
+      {
+        key: "deepgram_api_key",
+        label: "Deepgram API Key",
+        secret: true,
+        placeholder: "Paste your Deepgram API key",
+        helpUrl: PROVIDER_DOC_URLS.deepgram,
+        helpText: "Get an API key from Deepgram Console.",
+      },
+    ],
+  },
+  github: {
+    configFields: [
+      {
+        key: "github_token",
+        label: "GitHub Personal Access Token",
+        secret: true,
+        placeholder: "ghp_...",
+        helpUrl: PROVIDER_DOC_URLS.github,
+        helpText: "Create a fine-grained personal access token on GitHub.",
+        validation: { pattern: "^gh[ps]_", message: "Must start with ghp_ or ghs_" },
+      },
+    ],
+  },
+};
+
 export const providerPlugins: PluginOption[] = [
   {
     id: "anthropic",
@@ -670,6 +772,80 @@ export const pluginCategories: PluginCategory[] = [
     ],
   },
 ];
+
+export async function getProviderPlugins(): Promise<PluginOption[]> {
+  const plugins = await listMarketplacePlugins();
+  const marketplaceProviders: PluginOption[] = plugins
+    .filter((m) => m.category === "provider")
+    .map((m) => ({
+      id: m.id,
+      name: m.name,
+      description: m.description,
+      icon: m.icon,
+      color: m.color,
+      capabilities: m.capabilities,
+      configFields: PROVIDER_OVERLAY[m.id]?.configFields ?? [],
+    }));
+  const marketplaceIds = new Set(marketplaceProviders.map((p) => p.id));
+  const staticOnly = providerPlugins.filter((p) => !marketplaceIds.has(p.id));
+  return [...marketplaceProviders, ...staticOnly];
+}
+
+export async function getOptionalPlugins(): Promise<PluginCategory[]> {
+  const plugins = await listMarketplacePlugins();
+  const optionalCategories = ["memory", "voice", "integration", "ui"] as const;
+  const result: PluginCategory[] = [];
+  for (const catId of optionalCategories) {
+    const marketplaceInCat = plugins
+      .filter((m) => m.category === catId)
+      .map((m) => ({
+        id: m.id,
+        name: m.name,
+        description: m.description,
+        icon: m.icon,
+        color: m.color,
+        capabilities: m.capabilities,
+        configFields: PLUGIN_OVERLAY[m.id]?.configFields ?? [],
+      }));
+    const staticCat = pluginCategories.find((c) => c.id === catId);
+    const marketplaceIds = new Set(marketplaceInCat.map((p) => p.id));
+    const staticOnly = (staticCat?.plugins ?? []).filter((p) => !marketplaceIds.has(p.id));
+    const merged = [...marketplaceInCat, ...staticOnly];
+    if (merged.length > 0) {
+      result.push({
+        id: catId,
+        name: staticCat?.name ?? catId.charAt(0).toUpperCase() + catId.slice(1),
+        plugins: merged,
+      });
+    }
+  }
+  const knownCats = new Set<string>(optionalCategories);
+  const extraCats = new Set(
+    plugins
+      .filter(
+        (m) => !knownCats.has(m.category) && m.category !== "channel" && m.category !== "provider",
+      )
+      .map((m) => m.category),
+  );
+  for (const catId of extraCats) {
+    result.push({
+      id: catId,
+      name: catId.charAt(0).toUpperCase() + catId.slice(1),
+      plugins: plugins
+        .filter((m) => m.category === catId)
+        .map((m) => ({
+          id: m.id,
+          name: m.name,
+          description: m.description,
+          icon: m.icon,
+          color: m.color,
+          capabilities: m.capabilities,
+          configFields: [],
+        })),
+    });
+  }
+  return result;
+}
 
 // --- Presets ---
 
