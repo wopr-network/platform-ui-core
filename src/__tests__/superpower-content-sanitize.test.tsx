@@ -13,7 +13,7 @@ describe("SuperpowerContent sanitization", () => {
       expect(href === null || !href.includes("javascript:")).toBe(true);
     }
     // The text content should still render
-    expect(screen.getByText("Click me")).toBeTruthy();
+    expect(screen.getByText("Click me")).toBeInTheDocument();
   });
 
   it("strips inline event handlers from raw HTML in markdown", () => {
@@ -51,15 +51,15 @@ describe("SuperpowerContent sanitization", () => {
     const { container } = render(<SuperpowerContent markdown={legitimate} />);
 
     // H1 renders (via custom component)
-    expect(screen.getByText("Welcome")).toBeTruthy();
+    expect(screen.getByText("Welcome")).toBeInTheDocument();
     // Bold text renders
-    expect(container.querySelector("strong")).toBeTruthy();
+    expect(container.querySelector("strong")).toBeInTheDocument();
     // Link has correct href
     const link = container.querySelector("a");
-    expect(link).toBeTruthy();
+    expect(link).toBeInTheDocument();
     expect(link?.getAttribute("href")).toBe("https://example.com");
     // Code block renders
-    expect(container.querySelector("code")).toBeTruthy();
+    expect(container.querySelector("code")).toBeInTheDocument();
   });
 
   it("renders section headings and collapsible content", () => {
@@ -79,9 +79,9 @@ describe("SuperpowerContent sanitization", () => {
 
     const { container } = render(<SuperpowerContent markdown={withSections} />);
 
-    expect(screen.getByText("Features")).toBeTruthy();
-    expect(screen.getByText("What Gets Installed")).toBeTruthy();
+    expect(screen.getByText("Features")).toBeInTheDocument();
+    expect(screen.getByText("What Gets Installed")).toBeInTheDocument();
     // "What Gets Installed" should be in a <details> (collapsed)
-    expect(container.querySelector("details")).toBeTruthy();
+    expect(container.querySelector("details")).toBeInTheDocument();
   });
 });
