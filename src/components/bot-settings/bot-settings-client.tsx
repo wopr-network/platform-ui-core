@@ -114,12 +114,21 @@ export function BotSettingsClient({ botId }: { botId: string }) {
   }, [botId, settingsLoaded]);
 
   // Real-time bot status via SSE — re-fetch on events for this bot
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
   useFleetSSE((event) => {
     if (event.botId !== botId) return;
     Promise.all([getBotStatus(botId), getInstanceHealth(botId)])
       .then(([{ status }, h]) => {
-        setSettings((prev) => (prev ? { ...prev, status } : prev));
-        setHealth(h);
+        if (mountedRef.current) {
+          setSettings((prev) => (prev ? { ...prev, status } : prev));
+          setHealth(h);
+        }
       })
       .catch((_err) => {
         // Silently ignore — same as old polling behavior
