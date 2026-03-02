@@ -88,7 +88,12 @@ describe("onboarding-data", () => {
 
     it("Signal has phone number config field", () => {
       const signal = channelPlugins.find((p) => p.id === "signal");
-      expect(signal).toBeDefined();
+      expect(signal).toMatchObject({
+        id: "signal",
+        name: "Signal",
+        capabilities: ["channel"],
+        configFields: expect.arrayContaining([expect.objectContaining({ key: "signal_phone" })]),
+      });
       const keys = signal?.configFields.map((f) => f.key);
       expect(keys).toContain("signal_phone");
     });
@@ -118,7 +123,11 @@ describe("onboarding-data", () => {
     it("Anthropic key validation requires sk-ant- prefix", () => {
       const anthropic = providerPlugins.find((p) => p.id === "anthropic");
       const keyField = anthropic?.configFields[0];
-      expect(keyField).toBeDefined();
+      expect(keyField).toMatchObject({
+        key: "anthropic_api_key",
+        label: "Anthropic API Key",
+        secret: true,
+      });
       expect(keyField?.validation?.pattern).toBe("^sk-ant-");
     });
   });
@@ -150,7 +159,14 @@ describe("onboarding-data", () => {
 
     it("discord-ai-bot preset selects discord + anthropic + memory", () => {
       const preset = presets.find((p) => p.id === "discord-ai-bot");
-      expect(preset).toBeDefined();
+      expect(preset).toMatchObject({
+        id: "discord-ai-bot",
+        name: "Discord AI Bot",
+        channels: ["discord"],
+        providers: ["anthropic"],
+        plugins: ["semantic-memory"],
+        keyCount: 2,
+      });
       expect(preset?.channels).toEqual(["discord"]);
       expect(preset?.providers).toEqual(["anthropic"]);
       expect(preset?.plugins).toEqual(["semantic-memory"]);
@@ -159,7 +175,13 @@ describe("onboarding-data", () => {
 
     it("custom preset has empty selections", () => {
       const custom = presets.find((p) => p.id === "custom");
-      expect(custom).toBeDefined();
+      expect(custom).toMatchObject({
+        id: "custom",
+        name: "Custom",
+        channels: [],
+        providers: [],
+        plugins: [],
+      });
       expect(custom?.channels).toEqual([]);
       expect(custom?.providers).toEqual([]);
       expect(custom?.plugins).toEqual([]);
@@ -306,7 +328,11 @@ describe("onboarding-data", () => {
     it("applies CHANNEL_OVERLAY config fields to marketplace channels", async () => {
       const channels = await getChannelPlugins();
       const discord = channels.find((c) => c.id === "discord");
-      expect(discord).toBeDefined();
+      expect(discord).toMatchObject({
+        id: "discord",
+        name: "Discord",
+        capabilities: ["channel"],
+      });
       const keys = discord?.configFields.map((f) => f.key);
       expect(keys).toContain("discord_bot_token");
       expect(keys).toContain("discord_guild_id");
@@ -315,14 +341,22 @@ describe("onboarding-data", () => {
     it("applies CHANNEL_OVERLAY diyCostData to marketplace channels", async () => {
       const channels = await getChannelPlugins();
       const discord = channels.find((c) => c.id === "discord");
-      expect(discord?.diyCostData).toBeDefined();
+      expect(discord?.diyCostData).toMatchObject({
+        diyLabel: "Discord bot hosting",
+        diyCostPerMonth: "$5-20/mo",
+        diyCostNumeric: 1200,
+      });
       expect(discord?.diyCostData?.diyLabel).toBe("Discord bot hosting");
     });
 
     it("marketplace channels with overlay get their config fields", async () => {
       const channels = await getChannelPlugins();
       const slack = channels.find((c) => c.id === "slack");
-      expect(slack).toBeDefined();
+      expect(slack).toMatchObject({
+        id: "slack",
+        name: "Slack",
+        capabilities: ["channel"],
+      });
       expect(slack?.configFields.length).toBeGreaterThan(0);
     });
   });
