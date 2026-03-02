@@ -593,10 +593,10 @@ describe("CSP nonce in middleware", () => {
     expect(csp).toContain("object-src 'none'");
   });
 
-  it("sets Cache-Control: no-store on nonce-carrying responses", async () => {
+  it("does not set Cache-Control on nonce-carrying non-admin responses", async () => {
     const req = buildRequest("/login");
     const res = await middleware(req);
-    expect(res.headers.get("cache-control")).toBe("no-store");
+    expect(res.headers.get("cache-control")).toBeNull();
   });
 
   it("sets Vary: * on nonce-carrying responses", async () => {
