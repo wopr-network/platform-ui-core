@@ -28,9 +28,9 @@ describe("saveOnboardingState", () => {
     expect(parsed.currentStep).toBe(2);
     expect(parsed.instanceName).toBe("test-bot");
     expect(parsed.channels).toEqual(["discord"]);
-    expect(parsed.providers[0].key).toBe("");
+    expect(parsed.providers[0].key).toBeUndefined();
     expect(parsed.providers[0].validated).toBe(false);
-    expect(parsed.channelConfigs).toEqual({ discord: {} });
+    expect((parsed as Record<string, unknown>).channelConfigs).toBeUndefined();
   });
 
   it("strips provider API keys before persisting", () => {
@@ -49,10 +49,10 @@ describe("saveOnboardingState", () => {
     saveOnboardingState(state);
     const raw = JSON.parse(localStorage.getItem("wopr-onboarding") ?? "{}");
     for (const p of raw.providers) {
-      expect(p.key).toBe("");
+      expect(p.key).toBeUndefined();
       expect(p.validated).toBe(false);
     }
-    expect(raw.channelConfigs).toEqual({ discord: {} });
+    expect((raw as Record<string, unknown>).channelConfigs).toBeUndefined();
   });
 
   it("does not mutate the original state object", () => {

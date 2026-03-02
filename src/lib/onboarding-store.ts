@@ -79,7 +79,7 @@ export function loadOnboardingState(): OnboardingState {
 function toPersistedState(state: OnboardingState): PersistedOnboardingState {
   return {
     currentStep: state.currentStep,
-    providers: state.providers.map(({ id, name, validated }) => ({ id, name, validated })),
+    providers: state.providers.map(({ id, name }) => ({ id, name, validated: false })),
     channels: state.channels,
     channelsConfigured: state.channelsConfigured,
     plugins: state.plugins,
