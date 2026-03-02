@@ -155,8 +155,16 @@ export default function PluginDetailPage() {
     setInstallError(null);
     try {
       const providerChoices = (config._providerChoices as Record<string, string>) ?? {};
-      const { _providerChoices: _, ...pluginConfig } = config;
-      const result = await installPlugin(plugin.id, botId, pluginConfig, providerChoices);
+      const primaryProviderOverrides =
+        (config._primaryProviderOverrides as Record<string, string>) ?? undefined;
+      const { _providerChoices: _, _primaryProviderOverrides: __, ...pluginConfig } = config;
+      const result = await installPlugin(
+        plugin.id,
+        botId,
+        pluginConfig,
+        providerChoices,
+        primaryProviderOverrides,
+      );
       if (!result.dispatched) {
         if (result.dispatchError === "bot_not_deployed") {
           toast.warning("Bot isn't running — plugin will activate on next start");

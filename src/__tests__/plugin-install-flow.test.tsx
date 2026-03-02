@@ -48,6 +48,7 @@ vi.mock("../lib/marketplace-data", async () => {
     getPluginContent: vi.fn().mockResolvedValue(null),
     installPlugin: mockInstallPlugin,
     listBots: mockListBots,
+    listInstalledPlugins: vi.fn().mockResolvedValue([]),
   };
 });
 
@@ -142,6 +143,7 @@ describe("Plugin Install Flow", () => {
         "bot-001",
         expect.objectContaining({}),
         expect.any(Object),
+        expect.anything(),
       );
     });
   });
@@ -412,7 +414,10 @@ describe("Install Wizard Navigation", () => {
     await user.click(screen.getByText("My Bot"));
     await user.click(screen.getByText("Continue"));
 
-    // Progress should have increased to Step 2
-    expect(screen.getByText(/Step 2 of/)).toBeInTheDocument();
+    // Progress should have advanced past Step 1 (conflicts phase auto-skips to setup)
+    await waitFor(() => {
+      expect(screen.queryByText(/Step 1 of/)).not.toBeInTheDocument();
+    });
+    expect(screen.getByText(/Step \d+ of/)).toBeInTheDocument();
   });
 });
