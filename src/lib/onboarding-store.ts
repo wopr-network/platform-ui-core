@@ -43,10 +43,19 @@ export function loadOnboardingState(): OnboardingState {
   return { ...defaultState };
 }
 
+/** Remove API keys and channel secrets before localStorage persistence. */
+function stripSecrets(state: OnboardingState): OnboardingState {
+  return {
+    ...state,
+    providers: state.providers.map((p) => ({ ...p, key: "", validated: false })),
+    channelConfigs: Object.fromEntries(Object.keys(state.channelConfigs).map((ch) => [ch, {}])),
+  };
+}
+
 export function saveOnboardingState(state: OnboardingState): void {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(stripSecrets(state)));
   } catch {
     // ignore
   }
