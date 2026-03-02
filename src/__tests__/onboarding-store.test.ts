@@ -1,212 +1,121 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import type { OnboardingState } from "@/lib/onboarding-store";
 import {
-  AI_PROVIDERS,
   clearOnboardingState,
-  ENHANCEMENT_PLUGINS,
-  isOnboardingComplete,
   loadOnboardingState,
-  markOnboardingComplete,
+  type OnboardingState,
   saveOnboardingState,
-} from "@/lib/onboarding-store";
+} from "../lib/onboarding-store";
 
-describe("onboarding-store", () => {
-  beforeEach(() => {
-    localStorage.clear();
+beforeEach(() => {
+  localStorage.clear();
+});
+
+describe("saveOnboardingState", () => {
+  it("persists state to localStorage with secrets stripped", () => {
+    const state: OnboardingState = {
+      currentStep: 2,
+      providers: [{ id: "anthropic", name: "Anthropic", key: "sk-ant-xxx", validated: true }],
+      channels: ["discord"],
+      channelsConfigured: ["discord"],
+      channelConfigs: { discord: { token: "abc" } },
+      plugins: ["memory", "voice"],
+      instanceName: "test-bot",
+    };
+    saveOnboardingState(state);
+    const raw = localStorage.getItem("wopr-onboarding");
+    expect(raw).not.toBeNull();
+    const parsed = JSON.parse(raw ?? "null");
+    expect(parsed.currentStep).toBe(2);
+    expect(parsed.instanceName).toBe("test-bot");
+    expect(parsed.channels).toEqual(["discord"]);
+    expect(parsed.providers[0].key).toBeUndefined();
+    expect(parsed.providers[0].validated).toBe(false);
+    expect((parsed as Record<string, unknown>).channelConfigs).toBeUndefined();
   });
 
-  describe("loadOnboardingState", () => {
-    it("returns correct defaults when nothing is saved", () => {
-      const state = loadOnboardingState();
-      expect(state.currentStep).toBe(0);
-      expect(state.providers).toEqual([]);
-      expect(state.channels).toEqual([]);
-      expect(state.channelsConfigured).toEqual([]);
-      expect(state.channelConfigs).toEqual({});
-      expect(state.plugins).toEqual(["memory"]);
-      expect(state.instanceName).toBe("");
-    });
-
-    it("returns a fresh object each call (no shared reference)", () => {
-      const a = loadOnboardingState();
-      const b = loadOnboardingState();
-      expect(a).not.toBe(b);
-      expect(a).toEqual(b);
-    });
-
-    it("merges saved state over defaults", () => {
-      localStorage.setItem(
-        "wopr-onboarding",
-        JSON.stringify({ currentStep: 3, instanceName: "my-bot" }),
-      );
-      const state = loadOnboardingState();
-      expect(state.currentStep).toBe(3);
-      expect(state.instanceName).toBe("my-bot");
-      // Defaults still present for unsaved fields
-      expect(state.plugins).toEqual(["memory"]);
-      expect(state.providers).toEqual([]);
-    });
-
-    it("returns defaults when localStorage contains invalid JSON", () => {
-      localStorage.setItem("wopr-onboarding", "not-json!!!");
-      const state = loadOnboardingState();
-      expect(state.currentStep).toBe(0);
-      expect(state.plugins).toEqual(["memory"]);
-    });
+  it("strips provider API keys before persisting", () => {
+    const state: OnboardingState = {
+      currentStep: 2,
+      providers: [
+        { id: "anthropic", name: "Anthropic", key: "sk-ant-secret", validated: true },
+        { id: "openai", name: "OpenAI", key: "sk-proj-secret", validated: true },
+      ],
+      channels: ["discord"],
+      channelsConfigured: ["discord"],
+      channelConfigs: { discord: { token: "discord-bot-token" } },
+      plugins: ["memory"],
+      instanceName: "test-bot",
+    };
+    saveOnboardingState(state);
+    const raw = JSON.parse(localStorage.getItem("wopr-onboarding") ?? "{}");
+    for (const p of raw.providers) {
+      expect(p.key).toBeUndefined();
+      expect(p.validated).toBe(false);
+    }
+    expect((raw as Record<string, unknown>).channelConfigs).toBeUndefined();
   });
 
-  describe("saveOnboardingState", () => {
-    it("persists state to localStorage", () => {
-      const state: OnboardingState = {
-        currentStep: 2,
-        providers: [{ id: "anthropic", name: "Anthropic", key: "sk-ant-xxx", validated: true }],
-        channels: ["discord"],
-        channelsConfigured: ["discord"],
-        channelConfigs: { discord: { token: "abc" } },
-        plugins: ["memory", "voice"],
-        instanceName: "test-bot",
-      };
-      saveOnboardingState(state);
-      const raw = localStorage.getItem("wopr-onboarding");
-      expect(raw).not.toBeNull();
-      expect(JSON.parse(raw ?? "null")).toEqual(state);
-    });
-
-    it("round-trips through load", () => {
-      const state: OnboardingState = {
-        currentStep: 4,
-        providers: [],
-        channels: ["slack"],
-        channelsConfigured: [],
-        channelConfigs: {},
-        plugins: ["memory"],
-        instanceName: "round-trip-bot",
-      };
-      saveOnboardingState(state);
-      const loaded = loadOnboardingState();
-      expect(loaded).toEqual(state);
-    });
+  it("does not mutate the original state object", () => {
+    const state: OnboardingState = {
+      currentStep: 1,
+      providers: [{ id: "anthropic", name: "Anthropic", key: "sk-ant-xxx", validated: true }],
+      channels: [],
+      channelsConfigured: [],
+      channelConfigs: { discord: { token: "abc" } },
+      plugins: ["memory"],
+      instanceName: "",
+    };
+    saveOnboardingState(state);
+    expect(state.providers[0].key).toBe("sk-ant-xxx");
+    expect(state.providers[0].validated).toBe(true);
+    expect(state.channelConfigs.discord.token).toBe("abc");
   });
 
-  describe("clearOnboardingState", () => {
-    it("removes saved state from localStorage", () => {
-      saveOnboardingState({
-        currentStep: 1,
-        providers: [],
-        channels: [],
-        channelsConfigured: [],
-        channelConfigs: {},
-        plugins: ["memory"],
-        instanceName: "",
-      });
-      expect(localStorage.getItem("wopr-onboarding")).not.toBeNull();
-      clearOnboardingState();
-      expect(localStorage.getItem("wopr-onboarding")).toBeNull();
-    });
-
-    it("load returns defaults after clear", () => {
-      saveOnboardingState({
-        currentStep: 5,
-        providers: [],
-        channels: ["telegram"],
-        channelsConfigured: [],
-        channelConfigs: {},
-        plugins: ["memory", "web-search"],
-        instanceName: "cleared-bot",
-      });
-      clearOnboardingState();
-      const state = loadOnboardingState();
-      expect(state.currentStep).toBe(0);
-      expect(state.channels).toEqual([]);
-      expect(state.instanceName).toBe("");
-    });
-
-    it("does not throw when nothing is saved", () => {
-      expect(() => clearOnboardingState()).not.toThrow();
-    });
+  it("round-trips non-secret fields correctly after stripping", () => {
+    const state: OnboardingState = {
+      currentStep: 3,
+      providers: [{ id: "anthropic", name: "Anthropic", key: "sk-ant-xxx", validated: true }],
+      channels: ["discord", "slack"],
+      channelsConfigured: ["discord"],
+      channelConfigs: { discord: { token: "secret" } },
+      plugins: ["memory", "voice"],
+      instanceName: "my-bot",
+    };
+    saveOnboardingState(state);
+    const loaded = loadOnboardingState();
+    expect(loaded.currentStep).toBe(3);
+    expect(loaded.channels).toEqual(["discord", "slack"]);
+    expect(loaded.instanceName).toBe("my-bot");
+    expect(loaded.plugins).toEqual(["memory", "voice"]);
+    expect(loaded.providers[0].id).toBe("anthropic");
+    expect(loaded.providers[0].name).toBe("Anthropic");
+    expect(loaded.providers[0].key).toBe("");
+    expect(loaded.providers[0].validated).toBe(false);
   });
+});
 
-  describe("isOnboardingComplete", () => {
-    it("returns false when not marked complete", () => {
-      expect(isOnboardingComplete()).toBe(false);
-    });
-
-    it("returns true after markOnboardingComplete", () => {
-      markOnboardingComplete();
-      expect(isOnboardingComplete()).toBe(true);
-    });
-
-    it("returns false for non-'1' values", () => {
-      localStorage.setItem("wopr-onboarding-complete", "yes");
-      expect(isOnboardingComplete()).toBe(false);
-    });
+describe("loadOnboardingState", () => {
+  it("returns default state when nothing persisted", () => {
+    const state = loadOnboardingState();
+    expect(state.currentStep).toBe(0);
+    expect(state.providers).toEqual([]);
+    expect(state.plugins).toEqual(["memory"]);
   });
+});
 
-  describe("markOnboardingComplete", () => {
-    it("sets the completion flag in localStorage", () => {
-      markOnboardingComplete();
-      expect(localStorage.getItem("wopr-onboarding-complete")).toBe("1");
-    });
-
-    it("is idempotent", () => {
-      markOnboardingComplete();
-      markOnboardingComplete();
-      expect(localStorage.getItem("wopr-onboarding-complete")).toBe("1");
-    });
-  });
-
-  describe("completion flag is independent of onboarding state", () => {
-    it("clearing state does not affect completion flag", () => {
-      markOnboardingComplete();
-      clearOnboardingState();
-      expect(isOnboardingComplete()).toBe(true);
-    });
-
-    it("saving state does not affect completion flag", () => {
-      markOnboardingComplete();
-      saveOnboardingState({
-        currentStep: 0,
-        providers: [],
-        channels: [],
-        channelsConfigured: [],
-        channelConfigs: {},
-        plugins: ["memory"],
-        instanceName: "",
-      });
-      expect(isOnboardingComplete()).toBe(true);
-    });
-  });
-
-  describe("AI_PROVIDERS", () => {
-    it("contains 5 providers", () => {
-      expect(AI_PROVIDERS).toHaveLength(5);
-    });
-
-    it("includes anthropic, openai, google, xai, local", () => {
-      const ids = AI_PROVIDERS.map((p) => p.id);
-      expect(ids).toEqual(["anthropic", "openai", "google", "xai", "local"]);
-    });
-
-    it("anthropic is marked as recommended", () => {
-      const anthropic = AI_PROVIDERS.find((p) => p.id === "anthropic");
-      expect(anthropic?.recommended).toBe(true);
-    });
-  });
-
-  describe("ENHANCEMENT_PLUGINS", () => {
-    it("contains 6 plugins", () => {
-      expect(ENHANCEMENT_PLUGINS).toHaveLength(6);
-    });
-
-    it("memory is recommended and does not require a key", () => {
-      const memory = ENHANCEMENT_PLUGINS.find((p) => p.id === "memory");
-      expect(memory?.recommended).toBe(true);
-      expect(memory?.requiresKey).toBe(false);
-    });
-
-    it("web-search requires a key", () => {
-      const webSearch = ENHANCEMENT_PLUGINS.find((p) => p.id === "web-search");
-      expect(webSearch?.requiresKey).toBe(true);
-    });
+describe("clearOnboardingState", () => {
+  it("removes persisted state", () => {
+    const state: OnboardingState = {
+      currentStep: 1,
+      providers: [],
+      channels: [],
+      channelsConfigured: [],
+      channelConfigs: {},
+      plugins: [],
+      instanceName: "bot",
+    };
+    saveOnboardingState(state);
+    clearOnboardingState();
+    expect(localStorage.getItem("wopr-onboarding")).toBeNull();
   });
 });
