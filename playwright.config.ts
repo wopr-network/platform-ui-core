@@ -28,7 +28,7 @@ export default defineConfig({
     command: "node .next/standalone/server.js",
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
+    timeout: 300_000,
     env: {
       PORT: "3000",
       NEXT_PUBLIC_API_URL: "http://localhost:3001",

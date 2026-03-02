@@ -16,12 +16,13 @@ export { UnauthorizedError } from "./fetch-utils";
 /**
  * Fetch live pricing rates from the backend.
  * Returns null if the fetch fails (caller should fall back to static data).
- * Uses no-store to bypass Next.js cache and get fresh rates every request.
+ * Uses ISR (revalidate: 60) so the pricing route can be statically rendered
+ * at build time — avoids Dynamic Server usage that blocks e2e webServer startup.
  */
 export async function fetchPublicPricing(): Promise<ApiPricingResponse | null> {
   try {
     const res = await fetch(`${API_BASE_URL}/v1/pricing`, {
-      cache: "no-store",
+      next: { revalidate: 60 },
     });
     if (!res.ok) return null;
     return (await res.json()) as ApiPricingResponse;
@@ -38,7 +39,7 @@ export async function fetchPublicPricing(): Promise<ApiPricingResponse | null> {
 export async function fetchDividendStats(): Promise<DividendStats | null> {
   try {
     const res = await fetch(`${API_BASE_URL}/v1/billing/dividend/stats`, {
-      cache: "no-store",
+      next: { revalidate: 60 },
     });
     if (!res.ok) return null;
     return (await res.json()) as DividendStats;
