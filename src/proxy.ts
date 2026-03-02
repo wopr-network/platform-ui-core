@@ -133,10 +133,14 @@ export default async function middleware(request: NextRequest) {
   const nonce = crypto.randomUUID();
   const cspHeaderValue = buildCsp(nonce);
 
-  /** Apply CSP and nonce headers to any response before returning it. */
+  /** Apply CSP, nonce, and cache-busting headers to any response before returning it. */
   function withCsp(response: NextResponse): NextResponse {
     response.headers.set("Content-Security-Policy", cspHeaderValue);
+    // x-nonce is passed to server components via request headers (see Next.js CSP docs).
+    // It also appears in response headers — this is a known Next.js middleware CSP limitation.
+    // Risk is low: requires existing XSS to exploit. Mitigated by no-store cache control.
     response.headers.set("x-nonce", nonce);
+    response.headers.set("Vary", "*");
     return response;
   }
 

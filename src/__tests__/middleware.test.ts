@@ -592,6 +592,35 @@ describe("CSP nonce in middleware", () => {
     expect(csp).toContain("frame-ancestors 'none'");
     expect(csp).toContain("object-src 'none'");
   });
+
+  it("does not set Cache-Control on nonce-carrying non-admin responses", async () => {
+    const req = buildRequest("/login");
+    const res = await middleware(req);
+    expect(res.headers.get("cache-control")).toBeNull();
+  });
+
+  it("sets Vary: * on nonce-carrying responses", async () => {
+    const req = buildRequest("/login");
+    const res = await middleware(req);
+    expect(res.headers.get("vary")).toBe("*");
+  });
+
+  it("does not overwrite stricter Cache-Control on admin routes", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValue(
+          new Response(JSON.stringify({ user: { role: "platform_admin" } }), { status: 200 }),
+        ),
+    );
+    const req = buildRequest("/admin/dashboard", {
+      cookies: { "better-auth.session_token": "valid-token" },
+    });
+    const res = await middleware(req);
+    // Admin route sets stricter cache headers; withCsp should not overwrite
+    expect(res.headers.get("cache-control")).toBe("no-store, no-cache, must-revalidate");
+  });
 });
 
 // ---------------------------------------------------------------------------
