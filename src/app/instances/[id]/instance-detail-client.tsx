@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowDownToLine, ArrowLeft, Loader2, Lock, Plus, Trash2 } from "lucide-react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FriendsTab } from "@/components/instances/friends-tab";
@@ -318,7 +319,7 @@ export function InstanceDetailClient({ instanceId }: { instanceId: string }) {
       <div className="flex h-[60vh] flex-col items-center justify-center gap-4">
         <p className="text-muted-foreground">{error ?? "Instance not found"}</p>
         <Button variant="outline" asChild>
-          <a href="/instances">Back to Instances</a>
+          <Link href="/instances">Back to Instances</Link>
         </Button>
       </div>
     );
@@ -331,10 +332,10 @@ export function InstanceDetailClient({ instanceId }: { instanceId: string }) {
         <div className="space-y-1">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="sm" asChild>
-              <a href="/instances" className="inline-flex items-center gap-1">
+              <Link href="/instances" className="inline-flex items-center gap-1">
                 <ArrowLeft className="size-4" />
                 Instances
-              </a>
+              </Link>
             </Button>
           </div>
           <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight">

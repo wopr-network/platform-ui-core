@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { z } from "zod";
 import { Badge } from "@/components/ui/badge";
@@ -335,7 +336,7 @@ function BotSelector({
           No bots found. Create a bot instance first before installing plugins.
         </p>
         <Button variant="outline" className="mt-3" asChild>
-          <a href="/instances/new">Create a Bot</a>
+          <Link href="/instances/new">Create a Bot</Link>
         </Button>
       </div>
     );

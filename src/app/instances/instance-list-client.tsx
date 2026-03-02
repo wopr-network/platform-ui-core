@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowDownToLine, Loader2, MoreHorizontal } from "lucide-react";
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { StatusBadge } from "@/components/status-badge";
@@ -109,7 +110,7 @@ export function InstanceListClient() {
           <p className="text-sm text-muted-foreground">Manage your WOPR instances</p>
         </div>
         <Button variant="terminal" asChild>
-          <a href="/instances/new">New Instance</a>
+          <Link href="/instances/new">New Instance</Link>
         </Button>
       </div>
 
@@ -203,7 +204,7 @@ export function InstanceListClient() {
                 {">"} NO WOPR BOT INSTANCES DEPLOYED. AWAITING LAUNCH ORDERS.
               </p>
               <Button variant="terminal" size="sm" asChild>
-                <a href="/instances/new">Deploy Instance</a>
+                <Link href="/instances/new">Deploy Instance</Link>
               </Button>
             </>
           ) : (
@@ -241,9 +242,9 @@ export function InstanceListClient() {
                   )}
                 >
                   <TableCell>
-                    <a href={`/instances/${inst.id}`} className="font-medium hover:underline">
+                    <Link href={`/instances/${inst.id}`} className="font-medium hover:underline">
                       {inst.name}
-                    </a>
+                    </Link>
                   </TableCell>
                   <TableCell className="text-muted-foreground">{inst.template}</TableCell>
                   <TableCell>
@@ -373,7 +374,7 @@ function InstanceRowActions({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem asChild>
-          <a href={`/instances/${inst.id}`}>View details</a>
+          <Link href={`/instances/${inst.id}`}>View details</Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         {updateAvailable && (

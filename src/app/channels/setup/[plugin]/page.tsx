@@ -1,6 +1,7 @@
 "use client";
 
 import { AlertTriangle } from "lucide-react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { use, useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -90,7 +91,7 @@ export default function ChannelSetupPage({ params }: { params: Promise<{ plugin:
             from the Channels tab.
           </p>
           <Button variant="terminal" asChild>
-            <a href="/instances">VIEW INSTANCES</a>
+            <Link href="/instances">VIEW INSTANCES</Link>
           </Button>
         </div>
       </div>
