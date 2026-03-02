@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Check } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -145,7 +146,7 @@ export function CreateInstanceClient() {
           transition={{ delay: 0.3 }}
         >
           <Button variant="terminal" asChild>
-            <a href="/instances">Back to Instances</a>
+            <Link href="/instances">Back to Instances</Link>
           </Button>
         </motion.div>
       </div>
@@ -351,7 +352,7 @@ export function CreateInstanceClient() {
 
       <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
         <Button variant="outline" asChild>
-          <a href="/instances">Cancel</a>
+          <Link href="/instances">Cancel</Link>
         </Button>
         <Button
           variant="terminal"

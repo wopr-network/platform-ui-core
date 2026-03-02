@@ -1,6 +1,7 @@
 "use client";
 
 import { Loader2, Play, RotateCw, Square } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { LogsViewer } from "@/components/observability/logs-viewer";
@@ -189,7 +190,7 @@ export function BotSettingsClient({ botId }: { botId: string }) {
       <div className="flex h-[60vh] flex-col items-center justify-center gap-4">
         <p className="text-muted-foreground">{error ?? "Bot not found"}</p>
         <Button variant="outline" asChild>
-          <a href="/dashboard">Back to Dashboard</a>
+          <Link href="/dashboard">Back to Dashboard</Link>
         </Button>
       </div>
     );
@@ -200,7 +201,7 @@ export function BotSettingsClient({ botId }: { botId: string }) {
       {/* Header */}
       <div className="flex flex-wrap items-center gap-3">
         <Button variant="ghost" size="sm" asChild>
-          <a href="/dashboard">&larr; Back to Fleet</a>
+          <Link href="/dashboard">&larr; Back to Fleet</Link>
         </Button>
         <div
           className={`transition-all duration-500 ${statusChanged ? "ring-2 ring-terminal/30 rounded-full" : ""}`}
@@ -1155,7 +1156,7 @@ function PluginsTab({
           ))}
         </div>
         <Button variant="outline" asChild>
-          <a href="/marketplace">Browse all plugins</a>
+          <Link href="/marketplace">Browse all plugins</Link>
         </Button>
       </div>
 
@@ -1424,13 +1425,13 @@ function UsageTab({ settings }: { settings: BotSettings }) {
             <span className="text-sm font-medium">Running low on credits?</span>
             <div className="flex gap-2">
               <Button size="sm" variant="outline" asChild>
-                <a href="/billing/credits">Top up -- $10</a>
+                <Link href="/billing/credits">Top up -- $10</Link>
               </Button>
               <Button size="sm" variant="outline" asChild>
-                <a href="/billing/credits">$25</a>
+                <Link href="/billing/credits">$25</Link>
               </Button>
               <Button size="sm" asChild>
-                <a href="/billing/credits">$50</a>
+                <Link href="/billing/credits">$50</Link>
               </Button>
             </div>
           </CardContent>
