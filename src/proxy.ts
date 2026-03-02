@@ -140,11 +140,6 @@ export default async function middleware(request: NextRequest) {
     // It also appears in response headers — this is a known Next.js middleware CSP limitation.
     // Risk is low: requires existing XSS to exploit. Mitigated by no-store cache control.
     response.headers.set("x-nonce", nonce);
-    // Prevent CDN/proxy caching of nonce values. Skip if a stricter policy is already set
-    // (e.g. admin routes set no-store + no-cache + must-revalidate).
-    if (!response.headers.has("Cache-Control")) {
-      response.headers.set("Cache-Control", "no-store");
-    }
     response.headers.set("Vary", "*");
     return response;
   }
