@@ -28,6 +28,15 @@ function ResetPasswordForm() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  function validatePasswordComplexity(pw: string): string | null {
+    if (pw.length < 12) return "Password must be at least 12 characters";
+    if (!/[A-Z]/.test(pw)) return "Password must contain at least one uppercase letter";
+    if (!/[a-z]/.test(pw)) return "Password must contain at least one lowercase letter";
+    if (!/[0-9]/.test(pw)) return "Password must contain at least one digit";
+    if (!/[^A-Za-z0-9]/.test(pw)) return "Password must contain at least one special character";
+    return null;
+  }
+
   if (!token) {
     return (
       <AuthShell>
@@ -54,6 +63,12 @@ function ResetPasswordForm() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+
+    const complexityError = validatePasswordComplexity(password);
+    if (complexityError) {
+      setError(complexityError);
+      return;
+    }
 
     if (password !== confirmPassword) {
       setError("Passwords do not match");
@@ -100,7 +115,7 @@ function ResetPasswordForm() {
                 placeholder="••••••••••••"
                 autoComplete="new-password"
                 required
-                minLength={8}
+                minLength={12}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="placeholder:text-muted-foreground/50"
