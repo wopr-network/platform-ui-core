@@ -24,8 +24,9 @@ export default defineConfig({
     // sets this env var on the Build step. Locally, set it before running `pnpm build`.
     //
     // next.config.ts uses `output: "standalone"` so `next start` is not supported.
-    // The standalone server is started with `node .next/standalone/server.js` instead.
-    command: "node .next/standalone/server.js",
+    // Next.js 16 nests the standalone output under the package name:
+    // .next/standalone/<package-name>/server.js
+    command: "node .next/standalone/wopr-platform-ui/server.js",
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
     timeout: 300_000,
