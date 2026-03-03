@@ -153,6 +153,24 @@ describe("middleware", () => {
       const res = await middleware(req);
       expect(isPassThrough(res)).toBe(true);
     });
+
+    it("forwards x-nonce request header on authenticated non-admin routes", async () => {
+      const req = buildRequest("/dashboard", {
+        cookies: { "better-auth.session_token": "valid-token" },
+      });
+      const res = await middleware(req);
+      expect(isPassThrough(res)).toBe(true);
+      // CSP header must contain a nonce
+      const csp = res.headers.get("content-security-policy") ?? "";
+      const nonceMatch = csp.match(/'nonce-([^']+)'/);
+      expect(nonceMatch).toBeTruthy();
+      // The nonce must NOT be in the response headers (security)
+      expect(res.headers.get("x-nonce")).toBeNull();
+      // Verify the response was created via nextWithNonce() — it sets x-middleware-request-x-nonce
+      // NextResponse.next({ request: { headers } }) propagates custom headers with this prefix
+      const requestNonce = res.headers.get("x-middleware-request-x-nonce");
+      expect(requestNonce).toBe(nonceMatch![1]);
+    });
   });
 
   // ---------------------------------------------------------------------------

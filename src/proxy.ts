@@ -243,7 +243,7 @@ export default async function middleware(request: NextRequest) {
     return withCsp(NextResponse.redirect(loginUrl));
   }
 
-  return withCsp(NextResponse.next());
+  return withCsp(nextWithNonce());
 }
 
 export const config = {
