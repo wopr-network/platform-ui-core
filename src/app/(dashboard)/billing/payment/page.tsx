@@ -83,7 +83,7 @@ export default function PaymentPage() {
       isDefault: boolean;
     }>
   >([]);
-  const [_orgInvoices, setOrgInvoices] = useState<
+  const [orgInvoices, setOrgInvoices] = useState<
     Array<{ id: string; date: string; amount: number; status: string; downloadUrl: string }>
   >([]);
   const [orgChecked, setOrgChecked] = useState(false);
@@ -411,6 +411,77 @@ export default function PaymentPage() {
               </div>
             )}
             {orgContext.isAdmin && <Button variant="outline">Add org payment method</Button>}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Org Billing History */}
+      {orgChecked && orgContext && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Org Billing History</CardTitle>
+            <CardDescription>Past invoices for {orgContext.orgName}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {orgLoading ? (
+              <div className="space-y-3">
+                {["sk-oinv-a", "sk-oinv-b"].map((skId) => (
+                  <div
+                    key={skId}
+                    className="flex items-center justify-between rounded-md border p-3"
+                  >
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-4 w-20" />
+                  </div>
+                ))}
+              </div>
+            ) : orgInvoices.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No org invoices yet.</p>
+            ) : (
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="w-[100px]" />
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {orgInvoices.map((invoice, index) => (
+                      <motion.tr
+                        key={invoice.id}
+                        variants={staggerItem}
+                        initial="hidden"
+                        animate="visible"
+                        custom={index}
+                        className="border-b transition-colors hover:bg-muted/50"
+                      >
+                        <TableCell className="font-medium">
+                          {new Date(invoice.date).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          })}
+                        </TableCell>
+                        <TableCell>{formatCreditStandard(invoice.amount)}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className={statusStyles[invoice.status]}>
+                            {invoice.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Button variant="ghost" size="sm" asChild>
+                            <a href={invoice.downloadUrl}>Download</a>
+                          </Button>
+                        </TableCell>
+                      </motion.tr>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
