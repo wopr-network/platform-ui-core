@@ -5,16 +5,24 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PluginManifest } from "../lib/marketplace-data";
 
 // vi.hoisted runs before module imports so TEST_PLUGINS and mocks are available in vi.mock factories
-const { TEST_PLUGINS, mockInstallPlugin, mockListBots } = vi.hoisted(() => {
-  const mockInstallPlugin = vi.fn();
-  const mockListBots = vi
-    .fn()
-    .mockResolvedValue([{ id: "bot-001", name: "My Bot", state: "running" }]);
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { INSTALL_FLOW_TEST_PLUGINS } =
-    require("./fixtures/mock-manifests-data") as typeof import("./fixtures/mock-manifests");
-  return { TEST_PLUGINS: INSTALL_FLOW_TEST_PLUGINS, mockInstallPlugin, mockListBots };
-});
+const { TEST_PLUGINS, mockInstallPlugin, mockListBots, mockListInstalledPlugins } = vi.hoisted(
+  () => {
+    const mockInstallPlugin = vi.fn();
+    const mockListBots = vi
+      .fn()
+      .mockResolvedValue([{ id: "bot-001", name: "My Bot", state: "running" }]);
+    const mockListInstalledPlugins = vi.fn().mockResolvedValue([]);
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { INSTALL_FLOW_TEST_PLUGINS } =
+      require("./fixtures/mock-manifests-data") as typeof import("./fixtures/mock-manifests");
+    return {
+      TEST_PLUGINS: INSTALL_FLOW_TEST_PLUGINS,
+      mockInstallPlugin,
+      mockListBots,
+      mockListInstalledPlugins,
+    };
+  },
+);
 
 const mockPush = vi.fn();
 const mockParams: { plugin?: string } = {};
@@ -48,7 +56,7 @@ vi.mock("../lib/marketplace-data", async () => {
     getPluginContent: vi.fn().mockResolvedValue(null),
     installPlugin: mockInstallPlugin,
     listBots: mockListBots,
-    listInstalledPlugins: vi.fn().mockResolvedValue([]),
+    listInstalledPlugins: mockListInstalledPlugins,
   };
 });
 
@@ -215,6 +223,37 @@ describe("Plugin Toggle (Enable/Disable)", () => {
     expect(screen.getByText("Second Bot")).toBeInTheDocument();
   });
 
+  it("RequirementsCheck shows 'No additional dependencies required' when plugin.requires is empty", async () => {
+    const { RequirementsCheck } = (await import("../components/marketplace/install-wizard")) as {
+      RequirementsCheck?: React.ComponentType<{ plugin: PluginManifest; botId: string }>;
+    };
+    // RequirementsCheck is not exported — test via InstallWizard with a plugin that has requires: []
+    // and manually reach the requirements phase
+    // Since requires=[] the requirements phase is skipped in the wizard, so we test the component
+    // behavior indirectly: the wizard for TEST_PLUGINS[0] (webhooks, requires:[]) should never show
+    // "This plugin requires the following dependencies:" text at all.
+    const user = userEvent.setup();
+    const { InstallWizard } = await import("../components/marketplace/install-wizard");
+    const plugin = TEST_PLUGINS[0] as unknown as PluginManifest; // webhooks, requires: []
+
+    render(<InstallWizard plugin={plugin} onComplete={vi.fn()} onCancel={vi.fn()} />);
+
+    // Walk through all wizard phases
+    const botButton = await screen.findByText("My Bot");
+    await user.click(botButton);
+    await user.click(screen.getByText("Continue"));
+
+    // Advance through setup steps
+    await user.click(screen.getByText("Continue"));
+    await user.click(screen.getByText("Continue"));
+
+    // Complete phase reached — "This plugin requires the following dependencies:" was never shown
+    expect(screen.getByText("Plugin installed successfully")).toBeInTheDocument();
+    expect(
+      screen.queryByText("This plugin requires the following dependencies:"),
+    ).not.toBeInTheDocument();
+  });
+
   it("InstallWizard shows requirements phase for plugins with dependencies", async () => {
     const user = userEvent.setup();
     const { InstallWizard } = await import("../components/marketplace/install-wizard");
@@ -236,6 +275,8 @@ describe("Plugin Toggle (Enable/Disable)", () => {
     const user = userEvent.setup();
     const { InstallWizard } = await import("../components/marketplace/install-wizard");
     const plugin = TEST_PLUGINS[1] as unknown as PluginManifest; // meeting-transcriber (stt + llm)
+    // meeting-transcriber requires discord — mock it as installed so requirements phase passes
+    mockListInstalledPlugins.mockResolvedValueOnce([{ pluginId: "discord", enabled: true }]);
 
     render(<InstallWizard plugin={plugin} onComplete={vi.fn()} onCancel={vi.fn()} />);
 

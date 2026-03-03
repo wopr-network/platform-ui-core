@@ -9,6 +9,7 @@ import {
   getHostedAdaptersForCapabilities,
   HOSTED_ADAPTERS,
   hasHostedOption,
+  listInstalledPlugins,
 } from "../lib/marketplace-data";
 import { findManifest as findManifestFixture } from "./fixtures/mock-manifests";
 
@@ -376,6 +377,8 @@ describe("InstallWizard", () => {
     const { InstallWizard } = await import("../components/marketplace/install-wizard");
     // meeting-transcriber has stt and llm capabilities
     const plugin = findManifest("meeting-transcriber");
+    // meeting-transcriber requires discord — mock it as installed so requirements phase passes
+    vi.mocked(listInstalledPlugins).mockResolvedValueOnce([{ pluginId: "discord", enabled: true }]);
 
     render(<InstallWizard plugin={plugin} onComplete={vi.fn()} onCancel={vi.fn()} />);
 
