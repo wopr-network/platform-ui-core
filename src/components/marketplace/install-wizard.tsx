@@ -326,8 +326,8 @@ export function InstallWizard({ plugin, onComplete, onCancel }: InstallWizardPro
             error={errors._botId}
           />
         )}
-        {currentPhase === "requirements" && (
-          <RequirementsCheck plugin={plugin} botId={selectedBotId!} />
+        {currentPhase === "requirements" && selectedBotId && (
+          <RequirementsCheck plugin={plugin} botId={selectedBotId} />
         )}
         {currentPhase === "conflicts" && conflicts.length > 0 && (
           <CapabilityConflicts

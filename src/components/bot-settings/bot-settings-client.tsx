@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2, Play, RotateCw, Square } from "lucide-react";
+import { Loader2, Play, RotateCw, Square, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -50,6 +50,7 @@ import {
   installPlugin,
   PERSONALITY_TEMPLATES,
   togglePlugin,
+  uninstallPlugin,
   updateBotBrain,
   updateBotIdentity,
   updateChannelConfig,
@@ -690,9 +691,7 @@ function ChannelsTab({
               <Button
                 key={ch.type}
                 variant="outline"
-                onClick={() =>
-                  router.push(`/onboarding/channels?bot=${botId}&channel=${ch.type.toLowerCase()}`)
-                }
+                onClick={() => router.push(`/channels/setup/${ch.type.toLowerCase()}?bot=${botId}`)}
               >
                 + Add {ch.label}
               </Button>
@@ -1108,6 +1107,22 @@ function PluginsTab({
   const [installingPlugin, setInstallingPlugin] = useState<string | null>(null);
   const [pluginError, setPluginError] = useState<string | null>(null);
   const [configuringPlugin, setConfiguringPlugin] = useState<InstalledPlugin | null>(null);
+  const [uninstallingPlugin, setUninstallingPlugin] = useState<string | null>(null);
+  const [confirmUninstall, setConfirmUninstall] = useState<InstalledPlugin | null>(null);
+
+  async function handleUninstall(pluginId: string) {
+    setUninstallingPlugin(pluginId);
+    setPluginError(null);
+    try {
+      await uninstallPlugin(botId, pluginId);
+      onUpdate();
+    } catch (err) {
+      setPluginError(toUserMessage(err, "Failed to uninstall plugin -- please try again."));
+    } finally {
+      setUninstallingPlugin(null);
+      setConfirmUninstall(null);
+    }
+  }
 
   async function handleToggle(pluginId: string, enabled: boolean) {
     setTogglingPlugin(pluginId);
@@ -1154,6 +1169,7 @@ function PluginsTab({
             onToggle={handleToggle}
             toggling={togglingPlugin === plugin.id}
             onConfigure={() => setConfiguringPlugin(plugin)}
+            onUninstall={() => setConfirmUninstall(plugin)}
           />
         ))}
       </div>
@@ -1181,6 +1197,43 @@ function PluginsTab({
       </div>
 
       {pluginError && <p className="text-sm text-destructive">{pluginError}</p>}
+
+      {confirmUninstall && (
+        <Dialog
+          open={confirmUninstall !== null}
+          onOpenChange={(open) => {
+            if (!open) setConfirmUninstall(null);
+          }}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Uninstall {confirmUninstall.name}?</DialogTitle>
+              <DialogDescription>
+                This will remove the plugin and its configuration from your bot. This action cannot
+                be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setConfirmUninstall(null)}>
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => handleUninstall(confirmUninstall.id)}
+                disabled={uninstallingPlugin === confirmUninstall.id}
+              >
+                {uninstallingPlugin === confirmUninstall.id ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Uninstalling...
+                  </>
+                ) : (
+                  "Uninstall"
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {configuringPlugin && (
         <ConfigurePluginDialog
@@ -1290,11 +1343,13 @@ function InstalledPluginCard({
   onToggle,
   toggling,
   onConfigure,
+  onUninstall,
 }: {
   plugin: InstalledPlugin;
   onToggle: (pluginId: string, enabled: boolean) => void;
   toggling: boolean;
   onConfigure: () => void;
+  onUninstall: () => void;
 }) {
   return (
     <Card>
@@ -1315,6 +1370,15 @@ function InstalledPluginCard({
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={onConfigure}>
             Configure
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onUninstall}
+            title="Uninstall plugin"
+            aria-label="Uninstall plugin"
+          >
+            <Trash2 className="h-4 w-4 text-destructive" />
           </Button>
           <Button
             variant="ghost"
