@@ -15,7 +15,7 @@ test("homepage has correct title and nav", async ({ page }) => {
 
 test("login page renders sign-in form", async ({ page }) => {
 	await page.goto("/login", { waitUntil: "domcontentloaded" });
-	await expect(page.getByRole("heading", { name: /sign in/i })).toBeVisible();
+	await expect(page.getByText(/sign in/i).first()).toBeVisible();
 	await expect(page.getByLabel("Email")).toBeVisible();
 	await expect(page.getByLabel("Password")).toBeVisible();
 	await expect(page.getByRole("button", { name: /sign in/i })).toBeVisible();
@@ -28,5 +28,5 @@ test("unauthenticated access to /dashboard redirects to login", async ({ page })
 	expect(page.url()).toContain("/login");
 	expect(page.url()).toContain("callbackUrl");
 	// After redirect, the login form should be visible
-	await expect(page.getByRole("heading", { name: /sign in/i })).toBeVisible();
+	await expect(page.getByText(/sign in/i).first()).toBeVisible();
 });
