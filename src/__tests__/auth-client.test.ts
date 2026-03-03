@@ -47,7 +47,7 @@ describe("auth-client", () => {
 
   it("exports authClient object", async () => {
     const mod = await import("@/lib/auth-client");
-    expect(mod.authClient).toBeDefined();
+    expect(mod.authClient).toBe(mockAuthClient);
   });
 
   it("exports useSession from authClient", async () => {

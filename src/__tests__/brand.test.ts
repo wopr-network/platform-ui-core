@@ -321,9 +321,13 @@ describe("Brand Bible", () => {
     });
 
     it("landing page has a complete example", () => {
-      expect(copyFrameworks.landing.example).toBeDefined();
-      expect(copyFrameworks.landing.example.headline).toContain("WOPR Bot");
-      expect(copyFrameworks.landing.example.reveal).toContain("$5");
+      expect(copyFrameworks.landing.example).toEqual(
+        expect.objectContaining({
+          headline: expect.stringContaining("WOPR Bot"),
+          reveal: expect.stringContaining("$5"),
+          scenarios: expect.any(Array),
+        }),
+      );
     });
   });
 });

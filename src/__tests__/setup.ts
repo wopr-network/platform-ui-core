@@ -63,9 +63,6 @@ if (typeof globalThis.ResizeObserver === "undefined") {
 // Polyfill EventSource for SSE hooks (e.g. use-fleet-sse) in test env.
 // jsdom does not provide EventSource natively.
 class MockEventSource {
-  constructor(_url: string, _opts?: { withCredentials?: boolean }) {
-    /* no-op stub */
-  }
   addEventListener() {
     /* no-op stub */
   }

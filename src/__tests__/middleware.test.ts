@@ -169,7 +169,7 @@ describe("middleware", () => {
       // Verify the response was created via nextWithNonce() — it sets x-middleware-request-x-nonce
       // NextResponse.next({ request: { headers } }) propagates custom headers with this prefix
       const requestNonce = res.headers.get("x-middleware-request-x-nonce");
-      expect(requestNonce).toBe(nonceMatch![1]);
+      expect(requestNonce).toBe(nonceMatch?.[1]);
     });
   });
 
