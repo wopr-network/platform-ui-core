@@ -140,6 +140,7 @@ For tRPC endpoints, use the `trpc` client in `src/lib/trpc.ts` — it shares the
 - **401 handling:** `src/lib/fetch-utils.ts` exports `handleUnauthorized()` — redirects to `/login?reason=expired&callbackUrl=...` and throws `UnauthorizedError`.
 - **CapabilityResolver:** Never build per-capability bespoke UI. Plugins declare abstract capabilities and the platform resolves them generically. See `src/__tests__/capability-resolver.test.tsx` for the pattern.
 - **Error boundaries:** Use React error boundaries for route-level crash isolation. See `src/__tests__/error-boundaries.test.ts` for existing coverage.
+- **Compile-time type assertions:** `src/__tests__/trpc-types.test.ts` uses `Assert<T extends true>` types so that `tsc --noEmit` catches missing router namespaces/procedures at compile time. The `expect(true).toBe(true)` calls are intentionally trivial — the real gate is the type checker, not the runtime assertion. Do not remove or "fix" these.
 
 ## Gotchas
 

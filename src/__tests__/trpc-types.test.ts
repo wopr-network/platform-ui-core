@@ -28,6 +28,8 @@ describe("trpc-types AppRouter contract", () => {
     type _CheckSettings = Assert<"settings" extends keyof Router ? true : false>;
     type _CheckCapabilities = Assert<"capabilities" extends keyof Router ? true : false>;
     type _CheckAuthSocial = Assert<"authSocial" extends keyof Router ? true : false>;
+    // Runtime assertion is intentionally trivial — the real gate is tsc --noEmit
+    // which fails if any Assert<...> type above resolves to `false`.
     expect(true).toBe(true);
   });
 
@@ -40,6 +42,8 @@ describe("trpc-types AppRouter contract", () => {
     type _CheckPortalSession = Assert<"portalSession" extends keyof Billing ? true : false>;
     type _CheckAutoTopupSettings = Assert<"autoTopupSettings" extends keyof Billing ? true : false>;
     type _CheckAccountStatus = Assert<"accountStatus" extends keyof Billing ? true : false>;
+    // Runtime assertion is intentionally trivial — the real gate is tsc --noEmit
+    // which fails if any Assert<...> type above resolves to `false`.
     expect(true).toBe(true);
   });
 
@@ -53,6 +57,8 @@ describe("trpc-types AppRouter contract", () => {
     type _CheckGetInstanceLogs = Assert<"getInstanceLogs" extends keyof Fleet ? true : false>;
     type _CheckGetInstanceMetrics = Assert<"getInstanceMetrics" extends keyof Fleet ? true : false>;
     type _CheckListTemplates = Assert<"listTemplates" extends keyof Fleet ? true : false>;
+    // Runtime assertion is intentionally trivial — the real gate is tsc --noEmit
+    // which fails if any Assert<...> type above resolves to `false`.
     expect(true).toBe(true);
   });
 
@@ -67,6 +73,8 @@ describe("trpc-types AppRouter contract", () => {
     type _CheckGenerateCouponBatch = Assert<
       "generateCouponBatch" extends keyof Promos ? true : false
     >;
+    // Runtime assertion is intentionally trivial — the real gate is tsc --noEmit
+    // which fails if any Assert<...> type above resolves to `false`.
     expect(true).toBe(true);
   });
 
@@ -78,6 +86,8 @@ describe("trpc-types AppRouter contract", () => {
       "listCapabilitySettings" extends keyof Caps ? true : false
     >;
     type _CheckListCapabilityMeta = Assert<"listCapabilityMeta" extends keyof Caps ? true : false>;
+    // Runtime assertion is intentionally trivial — the real gate is tsc --noEmit
+    // which fails if any Assert<...> type above resolves to `false`.
     expect(true).toBe(true);
   });
 
@@ -85,6 +95,8 @@ describe("trpc-types AppRouter contract", () => {
     type Admin = AppRouter["_def"]["record"]["admin"];
     type _CheckInference = Assert<"inference" extends keyof Admin ? true : false>;
     type _CheckBillingHealth = Assert<"billingHealth" extends keyof Admin ? true : false>;
+    // Runtime assertion is intentionally trivial — the real gate is tsc --noEmit
+    // which fails if any Assert<...> type above resolves to `false`.
     expect(true).toBe(true);
   });
 });
