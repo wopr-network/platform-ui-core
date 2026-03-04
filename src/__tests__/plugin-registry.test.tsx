@@ -315,4 +315,161 @@ describe("usePluginRegistry", () => {
       expect(result.current.channelsLoaded).toBe(true);
     });
   });
+
+  it("falls back to static providers when marketplace API fails", async () => {
+    mockListMarketplacePlugins.mockRejectedValue(new Error("Network error"));
+    const { result } = renderHook(() => usePluginRegistry());
+
+    await waitFor(() => {
+      expect(result.current.providersLoaded).toBe(true);
+    });
+
+    const ids = result.current.providers.map((p) => p.id);
+    expect(ids).toContain("anthropic");
+    expect(ids).toContain("openai");
+  });
+
+  it("falls back to static categories when marketplace API fails", async () => {
+    mockListMarketplacePlugins.mockRejectedValue(new Error("Network error"));
+    const { result } = renderHook(() => usePluginRegistry());
+
+    await waitFor(() => {
+      expect(result.current.categoriesLoaded).toBe(true);
+    });
+
+    const catIds = result.current.categories.map((c) => c.id);
+    expect(catIds).toEqual(["memory", "voice", "integration", "ui"]);
+  });
+
+  it("loading transitions to false even when all API calls fail", async () => {
+    mockListMarketplacePlugins.mockRejectedValue(new Error("Network error"));
+    const { result } = renderHook(() => usePluginRegistry());
+
+    expect(result.current.loading).toBe(true);
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+    expect(result.current.channelsLoaded).toBe(true);
+    expect(result.current.providersLoaded).toBe(true);
+    expect(result.current.categoriesLoaded).toBe(true);
+  });
+
+  it("does not update state after unmount (cancelled flag)", async () => {
+    const resolvers: Array<(value: typeof MOCK_MARKETPLACE_PLUGINS) => void> = [];
+    mockListMarketplacePlugins.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolvers.push(resolve);
+        }),
+    );
+
+    const { result, unmount } = renderHook(() => usePluginRegistry());
+
+    expect(result.current.loading).toBe(true);
+    expect(result.current.channelsLoaded).toBe(false);
+
+    unmount();
+
+    for (const r of resolvers) r(MOCK_MARKETPLACE_PLUGINS);
+
+    await waitFor(() => {
+      expect(result.current.channelsLoaded).toBe(false);
+      expect(result.current.providersLoaded).toBe(false);
+      expect(result.current.categoriesLoaded).toBe(false);
+    });
+  });
+
+  it("does not update state on error after unmount (cancelled flag)", async () => {
+    const rejecters: Array<(err: Error) => void> = [];
+    mockListMarketplacePlugins.mockImplementation(
+      () =>
+        new Promise((_, reject) => {
+          rejecters.push(reject);
+        }),
+    );
+
+    const { result, unmount } = renderHook(() => usePluginRegistry());
+
+    expect(result.current.loading).toBe(true);
+
+    unmount();
+
+    for (const r of rejecters) r(new Error("Network error"));
+
+    await waitFor(() => {
+      expect(result.current.channelsLoaded).toBe(false);
+      expect(result.current.providersLoaded).toBe(false);
+      expect(result.current.categoriesLoaded).toBe(false);
+    });
+  });
+
+  it("getPluginById returns undefined for empty string", async () => {
+    const { result } = renderHook(() => usePluginRegistry());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.getPluginById("")).toBeUndefined();
+  });
+
+  it("getAllPlugins count equals channels + providers + category plugins", async () => {
+    const { result } = renderHook(() => usePluginRegistry());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    const all = result.current.getAllPlugins();
+    const categoryPluginCount = result.current.categories.reduce(
+      (sum, cat) => sum + cat.plugins.length,
+      0,
+    );
+    expect(all.length).toBe(
+      result.current.channels.length + result.current.providers.length + categoryPluginCount,
+    );
+  });
+
+  it("collectConfigFields returns config fields for selected channels", async () => {
+    const { result } = renderHook(() => usePluginRegistry());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    const fields = result.current.collectConfigFields(["signal"], [], []);
+    expect(Array.isArray(fields)).toBe(true);
+    expect(fields.length).toBeGreaterThan(0);
+    for (const field of fields) {
+      expect(field).toHaveProperty("key");
+      expect(field).toHaveProperty("label");
+    }
+  });
+
+  it("collectConfigFields returns empty array for empty selections", () => {
+    const { result } = renderHook(() => usePluginRegistry());
+    const fields = result.current.collectConfigFields([], [], []);
+    expect(fields).toEqual([]);
+  });
+
+  it("resolveDependencies returns array for given selections", async () => {
+    const { result } = renderHook(() => usePluginRegistry());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    const deps = result.current.resolveDependencies(["discord"], ["anthropic"], []);
+    expect(Array.isArray(deps)).toBe(true);
+  });
+
+  it("validateField returns null for non-empty value", () => {
+    const { result } = renderHook(() => usePluginRegistry());
+    const field = { key: "optional", label: "Optional Field", secret: false };
+    expect(result.current.validateField(field, "some-value")).toBeNull();
+  });
+
+  it("partial API failure: channels fail but providers and categories succeed", async () => {
+    mockListMarketplacePlugins
+      .mockRejectedValueOnce(new Error("Channel API down"))
+      .mockResolvedValueOnce(MOCK_MARKETPLACE_PLUGINS)
+      .mockResolvedValueOnce(MOCK_MARKETPLACE_PLUGINS);
+
+    const { result } = renderHook(() => usePluginRegistry());
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    expect(result.current.channelsLoaded).toBe(true);
+    expect(result.current.providersLoaded).toBe(true);
+    expect(result.current.categoriesLoaded).toBe(true);
+  });
 });
