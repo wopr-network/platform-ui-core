@@ -473,6 +473,24 @@ describe("middleware", () => {
       expect(res.status).not.toBe(403);
     });
 
+    it("blocks DELETE to /api/auth routes (only POST is exempt)", async () => {
+      const req = buildRequest("/api/auth/callback", {
+        method: "DELETE",
+        host: "localhost",
+      });
+      const res = await middleware(req);
+      expect(res.status).toBe(403);
+    });
+
+    it("blocks PUT to /api/auth routes (only POST is exempt)", async () => {
+      const req = buildRequest("/api/auth/callback", {
+        method: "PUT",
+        host: "localhost",
+      });
+      const res = await middleware(req);
+      expect(res.status).toBe(403);
+    });
+
     it("allows GET to /api/foo without Origin (GET is not a mutation)", async () => {
       const req = buildRequest("/api/foo", {
         method: "GET",

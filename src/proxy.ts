@@ -171,10 +171,10 @@ export default async function middleware(request: NextRequest) {
 
   // CSRF protection: validate Origin/Referer on state-changing API requests.
   if (pathname.startsWith("/api") && MUTATION_METHODS.has(request.method)) {
-    // OAuth callback endpoints receive cross-origin POSTs from identity providers
-    const isCsrfExempt = CSRF_EXEMPT_AUTH_PATHS.some(
-      (p) => pathname === p || pathname.startsWith(`${p}/`),
-    );
+    // OAuth callback endpoints receive cross-origin POSTs from identity providers (POST only)
+    const isCsrfExempt =
+      CSRF_EXEMPT_AUTH_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`)) &&
+      request.method === "POST";
     if (!isCsrfExempt && !validateCsrfOrigin(request)) {
       return NextResponse.json({ error: "CSRF validation failed" }, { status: 403 });
     }
