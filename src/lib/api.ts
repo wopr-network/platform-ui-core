@@ -1624,17 +1624,12 @@ export async function restoreSnapshot(instanceId: string, snapshotId: string): P
 
 /** Delete a snapshot. Backend returns 204 no content. */
 export async function deleteSnapshot(instanceId: string, snapshotId: string): Promise<void> {
-  const res = await fetch(`${API_BASE_URL}/bots/${instanceId}/snapshots/${snapshotId}`, {
+  const res = await apiFetchRaw(`/bots/${instanceId}/snapshots/${snapshotId}`, {
     method: "DELETE",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
   });
-  if (res.status === 401) {
-    handleUnauthorized();
-  }
   if (!res.ok && res.status !== 204) {
     const body = await res.json().catch(() => ({}));
-    throw new Error((body as { error?: string }).error ?? `API error: ${res.status}`);
+    throw new ApiError(res.status, res.statusText, (body as { error?: string }).error ?? undefined);
   }
 }
 

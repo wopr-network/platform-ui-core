@@ -60,6 +60,7 @@ import {
 import { toUserMessage } from "@/lib/errors";
 import { formatCreditDetailed, formatCreditStandard } from "@/lib/format-credit";
 import { DEFAULT_STATUS_STYLE, PLUGIN_STATUS_STYLES } from "@/lib/status-colors";
+import { BackupsTab } from "./backups-tab";
 import { ResourcesTab } from "./resources-tab";
 import { StorageTab } from "./storage-tab";
 import { VpsInfoPanel } from "./vps-info-panel";
@@ -308,6 +309,7 @@ export function BotSettingsClient({ botId }: { botId: string }) {
           <TabsTrigger value="superpowers">Superpowers</TabsTrigger>
           <TabsTrigger value="plugins">Plugins</TabsTrigger>
           <TabsTrigger value="storage">Storage</TabsTrigger>
+          <TabsTrigger value="backups">Backups</TabsTrigger>
           <TabsTrigger value="usage">Usage</TabsTrigger>
           <TabsTrigger value="resources">Resources</TabsTrigger>
           <TabsTrigger value="logs">Logs</TabsTrigger>
@@ -337,6 +339,10 @@ export function BotSettingsClient({ botId }: { botId: string }) {
 
         <TabsContent value="storage" className="mt-4">
           <StorageTab botId={botId} />
+        </TabsContent>
+
+        <TabsContent value="backups" className="mt-4">
+          <BackupsTab botId={botId} onRestore={load} />
         </TabsContent>
 
         <TabsContent value="usage" className="mt-4">
