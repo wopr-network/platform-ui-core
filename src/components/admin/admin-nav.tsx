@@ -12,6 +12,7 @@ const adminNavItems = [
   { label: "Accounting", href: "/admin/accounting" },
   { label: "Billing Health", href: "/admin/billing-health" },
   { label: "Audit Log", href: "/admin/audit" },
+  { label: "Compliance", href: "/admin/compliance" },
   { label: "Marketplace", href: "/admin/marketplace" },
   { label: "Inference", href: "/admin/inference" },
   { label: "Promotions", href: "/admin/promotions" },

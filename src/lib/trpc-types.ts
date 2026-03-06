@@ -57,6 +57,11 @@ type AppRouterRecord = {
     affiliateVelocity: AnyTRPCQueryProcedure;
     affiliateFingerprintClusters: AnyTRPCQueryProcedure;
     affiliateBlockFingerprint: AnyTRPCMutationProcedure;
+    complianceDeletionRequests: AnyTRPCQueryProcedure;
+    complianceTriggerDeletion: AnyTRPCMutationProcedure;
+    complianceCancelDeletion: AnyTRPCMutationProcedure;
+    complianceExportRequests: AnyTRPCQueryProcedure;
+    complianceTriggerExport: AnyTRPCMutationProcedure;
   };
   promotions: {
     list: AnyTRPCQueryProcedure;
