@@ -22,6 +22,8 @@ import {
   saveOnboardingState,
 } from "@/lib/onboarding-store";
 
+const MAX_STEP = 2;
+
 export default function OnboardingPage() {
   const router = useRouter();
   const [step, setStep] = useState(0);
@@ -31,16 +33,43 @@ export default function OnboardingPage() {
   useEffect(() => {
     if (isOnboardingComplete()) {
       router.push("/marketplace");
+      return;
     }
-  }, [router]);
+    const saved = loadOnboardingState();
+    const restoredStep = saved.currentStep;
+    if (!Number.isNaN(restoredStep) && restoredStep >= 0 && restoredStep <= MAX_STEP) {
+      setStep(restoredStep);
+    }
+    if (saved.instanceName) {
+      setBotName(saved.instanceName);
+    }
+    try {
+      const savedPreset = localStorage.getItem("wopr-onboarding-preset");
+      if (savedPreset) setSelectedPreset(savedPreset);
+    } catch {
+      // ignore — storage may be blocked
+    }
+  }, [router.push]);
+
+  useEffect(() => {
+    try {
+      if (selectedPreset) {
+        localStorage.setItem("wopr-onboarding-preset", selectedPreset);
+      }
+    } catch {
+      // ignore
+    }
+  }, [selectedPreset]);
 
   function handleNameNext() {
     if (!botName.trim()) return;
+    saveOnboardingState({ ...loadOnboardingState(), instanceName: botName.trim(), currentStep: 1 });
     setStep(1);
   }
 
   function handlePresetNext() {
     if (!selectedPreset) return;
+    saveOnboardingState({ ...loadOnboardingState(), currentStep: 2 });
     setStep(2);
   }
 
