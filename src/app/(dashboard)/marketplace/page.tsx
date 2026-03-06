@@ -211,8 +211,8 @@ export default function MarketplacePage() {
           </p>
         </div>
 
-        {/* Featured hero section */}
-        <FeaturedHeroes superpowers={superpowers} />
+        {/* Featured hero section — hidden during search */}
+        {!search.trim() && <FeaturedHeroes superpowers={superpowers} />}
 
         {/* Search + tabs */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center">

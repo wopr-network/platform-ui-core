@@ -31,7 +31,7 @@ export function createFleetMockState(): FleetMockState {
   };
 }
 
-const DISCORD_MANIFEST = {
+export const DISCORD_MANIFEST = {
   id: "discord",
   name: "Discord",
   description: "Connect your WOPR instance to Discord servers.",
@@ -48,11 +48,57 @@ const DISCORD_MANIFEST = {
   setup: [{ id: "done", title: "Connection Complete", description: "Ready.", fields: [] }],
   installCount: 12400,
   changelog: [],
+  marketplaceTab: "superpower",
+  superpowerHeadline: "Discord Integration",
+  superpowerTagline: "Connect to Discord servers",
+};
+
+export const SLACK_MANIFEST = {
+  id: "slack",
+  name: "Slack",
+  description: "Connect your WOPR instance to Slack workspaces.",
+  version: "2.1.0",
+  author: "WOPR Team",
+  icon: "Hash",
+  color: "#4A154B",
+  category: "channel",
+  tags: ["channel", "chat", "workspace"],
+  capabilities: ["channel"],
+  requires: [],
+  install: [],
+  configSchema: [],
+  setup: [{ id: "done", title: "Connection Complete", description: "Ready.", fields: [] }],
+  installCount: 8200,
+  changelog: [],
+  marketplaceTab: "superpower",
+  superpowerHeadline: "Slack Integration",
+  superpowerTagline: "Connect to Slack workspaces",
 };
 
 let _botCounter = 0;
 
+/** Helper to create a full bot object with defaults for the expanded type. */
+function makeBotEntry(partial: { id: string; name: string; state: string }) {
+  return {
+    id: partial.id,
+    name: partial.name,
+    state: partial.state,
+    env: {} as Record<string, string>,
+    uptime: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
+    stats: { cpuPercent: 12, memoryUsageMb: 128, memoryLimitMb: 512, memoryPercent: 25 },
+  };
+}
+
 export async function mockFleetAPI(page: Page, state: FleetMockState) {
+  // Backfill any bots that were added with the short shape (e.g. from tests)
+  for (let i = 0; i < state.bots.length; i++) {
+    const b = state.bots[i];
+    if (!("env" in b)) {
+      state.bots[i] = makeBotEntry(b as { id: string; name: string; state: string });
+    }
+  }
+
   // tRPC fleet.createInstance (POST) — must be registered before batch routes
   await page.route(`${PLATFORM_BASE_URL}/trpc/fleet.createInstance**`, async (route) => {
     if (route.request().method() !== "POST") {
@@ -64,15 +110,7 @@ export async function mockFleetAPI(page: Page, state: FleetMockState) {
     const input = body?.["0"];
     const botName = input?.name ?? "e2e-test-bot";
     const botId = `e2e-bot-${++_botCounter}`;
-    const newBot = {
-      id: botId,
-      name: botName,
-      state: "running",
-      env: {},
-      uptime: new Date().toISOString(),
-      createdAt: new Date().toISOString(),
-      stats: { cpuPercent: 12, memoryUsageMb: 128, memoryLimitMb: 512, memoryPercent: 25 },
-    };
+    const newBot = makeBotEntry({ id: botId, name: botName, state: "running" });
     state.bots.push(newBot);
     state.installedPlugins.set(botId, []);
     await route.fulfill({
@@ -288,7 +326,22 @@ export async function mockFleetAPI(page: Page, state: FleetMockState) {
     });
   });
 
-  // Fleet REST: GET /fleet/bots (used by marketplace listBots)
+  // Fleet REST: GET /api/fleet/bots (used by marketplace page via apiFetch)
+  await page.route(`${API_BASE_URL}/fleet/bots`, async (route) => {
+    if (route.request().method() !== "GET") {
+      await route.continue();
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(
+        state.bots.map((b) => ({ id: b.id, name: b.name, state: b.state })),
+      ),
+    });
+  });
+
+  // Fleet REST: GET /fleet/bots (used by marketplace listBots via fleetFetch)
   await page.route(`${PLATFORM_BASE_URL}/fleet/bots`, async (route) => {
     if (route.request().method() !== "GET") {
       await route.continue();
@@ -303,10 +356,10 @@ export async function mockFleetAPI(page: Page, state: FleetMockState) {
     });
   });
 
-  // Fleet REST: POST /fleet/bots/:id/plugins/:pluginId (install plugin)
-  // Register BEFORE the GET route since both match similar patterns
+  // Fleet REST: POST/DELETE /fleet/bots/:id/plugins/:pluginId
   await page.route(`${PLATFORM_BASE_URL}/fleet/bots/*/plugins/*`, async (route) => {
-    if (route.request().method() !== "POST") {
+    const method = route.request().method();
+    if (method !== "POST" && method !== "DELETE") {
       await route.continue();
       return;
     }
@@ -315,6 +368,21 @@ export async function mockFleetAPI(page: Page, state: FleetMockState) {
     const botId = match?.[1] ?? "";
     const pluginId = match?.[2] ?? "";
 
+    if (method === "DELETE") {
+      const plugins = state.installedPlugins.get(botId) ?? [];
+      state.installedPlugins.set(
+        botId,
+        plugins.filter((p) => p.pluginId !== pluginId),
+      );
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ success: true }),
+      });
+      return;
+    }
+
+    // POST (install)
     const plugins = state.installedPlugins.get(botId) ?? [];
     plugins.push({ pluginId, enabled: true });
     state.installedPlugins.set(botId, plugins);
@@ -326,8 +394,32 @@ export async function mockFleetAPI(page: Page, state: FleetMockState) {
         success: true,
         botId,
         pluginId,
+        dispatched: true,
         installedPlugins: plugins.map((p) => p.pluginId),
       }),
+    });
+  });
+
+  // Fleet REST: DELETE /api/fleet/bots/:id/plugins/:pluginId (used by uninstallPlugin via apiFetchRaw)
+  await page.route(`${API_BASE_URL}/fleet/bots/*/plugins/*`, async (route) => {
+    const method = route.request().method();
+    if (method !== "DELETE") {
+      await route.continue();
+      return;
+    }
+    const url = route.request().url();
+    const match = url.match(/\/fleet\/bots\/([^/]+)\/plugins\/([^/?]+)/);
+    const botId = match?.[1] ?? "";
+    const pluginId = match?.[2] ?? "";
+    const plugins = state.installedPlugins.get(botId) ?? [];
+    state.installedPlugins.set(
+      botId,
+      plugins.filter((p) => p.pluginId !== pluginId),
+    );
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ success: true }),
     });
   });
 
@@ -359,7 +451,20 @@ export async function mockFleetAPI(page: Page, state: FleetMockState) {
     await route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify([DISCORD_MANIFEST]),
+      body: JSON.stringify([DISCORD_MANIFEST, SLACK_MANIFEST]),
+    });
+  });
+
+  // API: GET /api/marketplace/plugins/*/content
+  await page.route(`${API_BASE_URL}/marketplace/plugins/*/content`, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        markdown: "Plugin content placeholder.",
+        source: "manifest_description",
+        version: "1.0.0",
+      }),
     });
   });
 
@@ -369,6 +474,124 @@ export async function mockFleetAPI(page: Page, state: FleetMockState) {
       status: 200,
       contentType: "application/json",
       body: JSON.stringify(DISCORD_MANIFEST),
+    });
+  });
+
+  // API: GET /api/marketplace/plugins/slack (detail)
+  await page.route(`${API_BASE_URL}/marketplace/plugins/slack`, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(SLACK_MANIFEST),
+    });
+  });
+
+  // tRPC: capabilityMeta (used by install wizard's useCapabilityMeta hook)
+  await page.route(
+    (url) =>
+      url.href.includes(PLATFORM_BASE_URL) &&
+      url.pathname.startsWith("/trpc/") &&
+      url.pathname.includes("capabilit"),
+    async (route) => {
+      const procs = route.request().url().split("?")[0].split("/trpc/")[1]?.split(",") ?? [];
+      const results = procs.map(() => ({ result: { data: [] } }));
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(results),
+      });
+    },
+  );
+
+  // Fleet REST: GET /fleet/bots/:id/settings (used by bot-settings page)
+  await page.route(`${API_BASE_URL}/fleet/bots/*/settings`, async (route) => {
+    if (route.request().method() !== "GET") {
+      await route.continue();
+      return;
+    }
+    const url = route.request().url();
+    const match = url.match(/\/fleet\/bots\/([^/]+)\/settings/);
+    const botId = match?.[1] ?? "";
+    const bot = state.bots.find((b) => b.id === botId);
+    const installed = state.installedPlugins.get(botId) ?? [];
+    const allManifests = [DISCORD_MANIFEST, SLACK_MANIFEST];
+
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        id: botId,
+        name: bot?.name ?? "unknown",
+        state: bot?.state ?? "stopped",
+        status: bot?.state ?? "stopped",
+        identity: { name: bot?.name ?? "unknown", personality: "default" },
+        brain: { provider: "openai", model: "gpt-4" },
+        channels: [],
+        installedPlugins: installed.map((p) => {
+          const manifest = allManifests.find((m) => m.id === p.pluginId);
+          return {
+            id: p.pluginId,
+            name: manifest?.name ?? p.pluginId,
+            description: manifest?.description ?? "",
+            icon: manifest?.icon ?? "Package",
+            status: p.enabled ? "active" : "disabled",
+            capabilities: manifest?.capabilities ?? [],
+          };
+        }),
+        discoverPlugins: [],
+      }),
+    });
+  });
+
+  // Fleet REST: GET /fleet/bots/:id/status (used by bot-settings)
+  await page.route(`${PLATFORM_BASE_URL}/fleet/bots/*/status`, async (route) => {
+    if (route.request().method() !== "GET") {
+      await route.continue();
+      return;
+    }
+    const url = route.request().url();
+    const match = url.match(/\/fleet\/bots\/([^/]+)\/status/);
+    const botId = match?.[1] ?? "";
+    const bot = state.bots.find((b) => b.id === botId);
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ status: bot?.state ?? "stopped" }),
+    });
+  });
+
+  // Fleet REST: GET /fleet/bots/:id/health (used by bot-settings)
+  await page.route(`${PLATFORM_BASE_URL}/fleet/bots/*/health`, async (route) => {
+    if (route.request().method() !== "GET") {
+      await route.continue();
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ healthy: true, checks: [] }),
+    });
+  });
+
+  // Fleet REST: GET /fleet/bots/:id/image-status (used by bot-settings page)
+  await page.route(`${PLATFORM_BASE_URL}/fleet/bots/*/image-status`, async (route) => {
+    if (route.request().method() !== "GET") {
+      await route.continue();
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ status: "ready", progress: 100 }),
+    });
+  });
+
+  // Fleet SSE endpoint — return empty event stream
+  await page.route(`${PLATFORM_BASE_URL}/fleet/events**`, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "text/event-stream",
+      body: "data: {}\n\n",
     });
   });
 }

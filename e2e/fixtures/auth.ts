@@ -185,6 +185,10 @@ export async function mockAuthAPI(page: Page) {
 		"org.listMyOrganizations": [mockOrg],
 		"pageContext.update": null,
 		"authSocial.enabledSocialProviders": ["github", "google", "discord"],
+		"billing.creditsBalance": { balance: 1000, currency: "USD" },
+		"billing.usageSummary": { used: 0, limit: 1000 },
+		"billing.accountStatus": { status: "active", plan: "pro" },
+		"fleet.getInstanceHealth": { state: "running", health: "healthy" },
 	};
 	await page.route(
 		(url) =>

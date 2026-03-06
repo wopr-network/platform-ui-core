@@ -4,6 +4,44 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PluginManifest } from "../lib/marketplace-data";
 
+// Mock framer-motion to prevent rAF animation loops hanging jsdom tests
+vi.mock("framer-motion", () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const React = require("react");
+  return {
+    motion: new Proxy(
+      {},
+      {
+        get:
+          (_target: Record<string, unknown>, tag: string) =>
+          ({ children, ...props }: { children?: unknown; [key: string]: unknown }) =>
+            React.createElement(tag, props, children),
+      },
+    ),
+    AnimatePresence: ({ children }: { children?: unknown }) => children,
+    useMotionValue: (v: number) => ({
+      get: () => v,
+      on: () => () => {
+        /* no-op */
+      },
+      set: () => {
+        /* no-op */
+      },
+    }),
+    useTransform: () => ({
+      on: () => () => {
+        /* no-op */
+      },
+      get: () => 0,
+    }),
+    animate: () => ({
+      stop: () => {
+        /* no-op */
+      },
+    }),
+  };
+});
+
 // vi.hoisted runs before module imports so TEST_PLUGINS and mocks are available in vi.mock factories
 const { TEST_PLUGINS, mockInstallPlugin, mockListBots, mockListInstalledPlugins } = vi.hoisted(
   () => {
