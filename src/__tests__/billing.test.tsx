@@ -275,7 +275,7 @@ describe("Usage page", () => {
     render(<UsagePage />);
 
     expect(await screen.findByText("Platform Usage")).toBeInTheDocument();
-    expect(screen.getByText("Instances")).toBeInTheDocument();
+    expect(screen.getAllByText("Instances")[0]).toBeInTheDocument();
     expect(screen.getByText("Storage")).toBeInTheDocument();
     expect(screen.getByText("API calls")).toBeInTheDocument();
   });

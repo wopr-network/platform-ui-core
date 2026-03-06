@@ -1,7 +1,8 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "./fixtures/auth";
 
-const PLATFORM_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+const PLATFORM_BASE_URL =
+  process.env.BASE_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
 const MOCK_CREDIT_OPTIONS = [
   {
@@ -78,9 +79,7 @@ const BILLING_TRPC_MOCKS: Record<string, unknown> = {
  */
 async function mockBillingAPI(page: Page) {
   await page.route(
-    (url) =>
-      url.href.includes(PLATFORM_BASE_URL) &&
-      url.pathname.startsWith("/trpc/"),
+    (url) => url.href.includes(PLATFORM_BASE_URL) && url.pathname.startsWith("/trpc/"),
     async (route) => {
       const procs = route.request().url().split("?")[0].split("/trpc/")[1]?.split(",") ?? [];
       const results = procs.map((proc) => ({
@@ -184,10 +183,7 @@ test.describe("Billing: Credit Checkout", () => {
     await expect.poll(() => capturedCheckoutBody, { timeout: 5000 }).not.toBeNull();
 
     // Extract priceId from tRPC batch body: { "0": { "priceId": "..." } }
-    const batchInput = capturedCheckoutBody as unknown as Record<
-      string,
-      { priceId: string }
-    >;
+    const batchInput = capturedCheckoutBody as unknown as Record<string, { priceId: string }>;
     const priceId = batchInput["0"]?.priceId;
 
     expect(priceId).toBeDefined();
@@ -208,7 +204,7 @@ test.describe("Billing: Credit Checkout", () => {
     // Select the first available tier
     const firstTier = page
       .locator("button")
-      .filter({ hasText: /^\$\d+$/ })
+      .filter({ hasText: /^\$[\d,.]+$/ })
       .first();
     await firstTier.click();
 
