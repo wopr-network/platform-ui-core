@@ -11,6 +11,8 @@ on:
 jobs:
   build-lint-test:
     runs-on: [self-hosted, Linux, X64]
+    permissions:
+      pull-requests: write
 
     steps:
       - uses: actions/checkout@v4
@@ -42,6 +44,12 @@ jobs:
 
       - name: Test
         run: pnpm test
+
+      - name: Coverage Report
+        if: github.event_name == 'pull_request'
+        uses: davelosert/vitest-coverage-report-action@v2
+        with:
+          json-summary-path: coverage/coverage-summary.json
 
   e2e:
     runs-on: [self-hosted, Linux, X64]

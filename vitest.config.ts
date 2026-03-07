@@ -15,5 +15,12 @@ export default defineConfig({
     setupFiles: ["./src/__tests__/setup.ts"],
     exclude: ["node_modules", "e2e/**"],
     testTimeout: 15000,
+    coverage: {
+      enabled: true,
+      provider: "v8",
+      include: ["src/**"],
+      reporter: ["text", "json-summary"],
+      reportOnFailure: true,
+    },
   },
 });
