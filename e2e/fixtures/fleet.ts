@@ -20,6 +20,7 @@ export interface FleetMockState {
     } | null;
   }>;
   installedPlugins: Map<string, Array<{ pluginId: string; enabled: boolean }>>;
+  connectedChannels: Map<string, Array<{ id: string; name: string; type: string; status: string }>>;
   secrets: Record<string, Record<string, string>>;
 }
 
@@ -27,6 +28,7 @@ export function createFleetMockState(): FleetMockState {
   return {
     bots: [],
     installedPlugins: new Map(),
+    connectedChannels: new Map(),
     secrets: {},
   };
 }
@@ -73,6 +75,64 @@ export const SLACK_MANIFEST = {
   marketplaceTab: "superpower",
   superpowerHeadline: "Slack Integration",
   superpowerTagline: "Connect to Slack workspaces",
+};
+
+export const TELEGRAM_MANIFEST = {
+  id: "telegram",
+  name: "Telegram",
+  description: "Connect your WOPR instance to Telegram.",
+  version: "1.5.0",
+  author: "WOPR Team",
+  icon: "Send",
+  color: "#0088CC",
+  category: "channel",
+  tags: ["channel"],
+  capabilities: ["channel"],
+  requires: [],
+  install: [],
+  configSchema: [],
+  setup: [
+    {
+      id: "create-bot",
+      title: "Create a Telegram Bot",
+      description: "Use BotFather to create your bot.",
+      fields: [],
+    },
+    {
+      id: "paste-token",
+      title: "Enter Bot Token",
+      description: "Paste the token from BotFather.",
+      fields: [
+        {
+          key: "botToken",
+          label: "Bot Token",
+          type: "string",
+          required: true,
+          secret: true,
+          setupFlow: "paste",
+          placeholder: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11",
+          description: "Issued by BotFather.",
+          validation: {
+            pattern: "^\\d+:[A-Za-z0-9_-]{35,}$",
+            message: "Invalid Telegram bot token format",
+          },
+        },
+      ],
+    },
+    {
+      id: "done",
+      title: "Connection Complete",
+      description: "Your Telegram bot is ready.",
+      fields: [],
+    },
+  ],
+  connectionTest: {
+    label: "Test Telegram Connection",
+    endpoint: "/api/channels/telegram/test",
+  },
+  installCount: 5100,
+  changelog: [],
+  marketplaceTab: "channel",
 };
 
 let _botCounter = 0;
@@ -451,7 +511,7 @@ export async function mockFleetAPI(page: Page, state: FleetMockState) {
     await route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify([DISCORD_MANIFEST, SLACK_MANIFEST]),
+      body: JSON.stringify([DISCORD_MANIFEST, SLACK_MANIFEST, TELEGRAM_MANIFEST]),
     });
   });
 
@@ -486,6 +546,24 @@ export async function mockFleetAPI(page: Page, state: FleetMockState) {
     });
   });
 
+  // API: GET /api/marketplace/plugins/telegram (detail)
+  await page.route(`${API_BASE_URL}/marketplace/plugins/telegram`, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(TELEGRAM_MANIFEST),
+    });
+  });
+
+  // API: POST /api/channels/telegram/test (connectionTest endpoint declared in TELEGRAM_MANIFEST)
+  await page.route(`${API_BASE_URL}/channels/telegram/test`, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ success: true, message: "Telegram connection test successful." }),
+    });
+  });
+
   // tRPC: capabilityMeta (used by install wizard's useCapabilityMeta hook)
   await page.route(
     (url) =>
@@ -514,7 +592,7 @@ export async function mockFleetAPI(page: Page, state: FleetMockState) {
     const botId = match?.[1] ?? "";
     const bot = state.bots.find((b) => b.id === botId);
     const installed = state.installedPlugins.get(botId) ?? [];
-    const allManifests = [DISCORD_MANIFEST, SLACK_MANIFEST];
+    const allManifests = [DISCORD_MANIFEST, SLACK_MANIFEST, TELEGRAM_MANIFEST];
 
     await route.fulfill({
       status: 200,
@@ -526,7 +604,7 @@ export async function mockFleetAPI(page: Page, state: FleetMockState) {
         status: bot?.state ?? "stopped",
         identity: { name: bot?.name ?? "unknown", personality: "default" },
         brain: { provider: "openai", model: "gpt-4" },
-        channels: [],
+        channels: state.connectedChannels.get(botId) ?? [],
         installedPlugins: installed.map((p) => {
           const manifest = allManifests.find((m) => m.id === p.pluginId);
           return {
@@ -583,6 +661,30 @@ export async function mockFleetAPI(page: Page, state: FleetMockState) {
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({ status: "ready", progress: 100 }),
+    });
+  });
+
+  // Fleet REST: POST /fleet/bots/:id/channels/:pluginId (connectChannel)
+  await page.route(`${PLATFORM_BASE_URL}/fleet/bots/*/channels/*`, async (route) => {
+    const method = route.request().method();
+    if (method !== "POST") {
+      await route.continue();
+      return;
+    }
+    const url = route.request().url();
+    const match = url.match(/\/fleet\/bots\/([^/]+)\/channels\/([^/?]+)/);
+    const botId = match?.[1] ?? "";
+    const pluginId = match?.[2] ?? "";
+    const channel = { id: `ch-${pluginId}`, name: pluginId, type: pluginId, status: "connected" };
+    const channels = state.connectedChannels.get(botId) ?? [];
+    if (!channels.some((c) => c.type === pluginId)) {
+      channels.push(channel);
+    }
+    state.connectedChannels.set(botId, channels);
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(channel),
     });
   });
 
