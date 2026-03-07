@@ -447,16 +447,36 @@ test.describe("Billing: Dashboard Display", () => {
     // Usage heading visible
     await expect(page.getByRole("heading", { name: "Usage" })).toBeVisible({ timeout: 10000 });
 
-    // Billing Summary card shows the amount due
+    // Billing Summary card shows the amount due — scoped to avoid matching Hosted AI Usage totals
+    // Navigate up to the Card root (text → CardTitle → CardHeader → Card)
+    const billingSummary = page.locator("text=Billing Summary").first().locator("../../..");
+    await expect(billingSummary).toBeVisible();
     await expect(page.getByText("Billing Summary").first()).toBeVisible();
-    await expect(page.getByText("$32.00").first()).toBeVisible();
     await expect(page.getByText("amount due").first()).toBeVisible();
+    await expect(billingSummary.getByText("$32.00").first()).toBeVisible();
 
     // Total spend line
     await expect(page.getByText("Total spend this period").first()).toBeVisible();
     await expect(page.getByText("$42.00").first()).toBeVisible();
 
+    // Included credit line
+    await expect(page.getByText("Included credit").first()).toBeVisible();
+
     // Platform Usage card
     await expect(page.getByText("Platform Usage").first()).toBeVisible();
+    await expect(page.getByText("Instances").first()).toBeVisible();
+    await expect(page.getByText("Storage").first()).toBeVisible();
+    await expect(page.getByText("API calls").first()).toBeVisible();
+
+    // Hosted AI Usage card (visible because mode is hosted)
+    await expect(page.getByText("Hosted AI Usage").first()).toBeVisible();
+    await expect(page.getByText("Text Generation").first()).toBeVisible();
+    await expect(page.getByText("Image Generation").first()).toBeVisible();
+
+    // "View detailed breakdown" link to /billing/usage/hosted
+    await expect(page.getByRole("link", { name: "View detailed breakdown" }).first()).toBeVisible();
+
+    // Usage Over Time card (always rendered)
+    await expect(page.getByText("Usage Over Time").first()).toBeVisible();
   });
 });
