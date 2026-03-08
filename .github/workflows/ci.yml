@@ -52,7 +52,7 @@ jobs:
           json-summary-path: coverage/coverage-summary.json
 
   e2e:
-    runs-on: [self-hosted, Linux, X64]
+    runs-on: [self-hosted, Linux, X64, test-runner]
     needs: build-lint-test
 
     steps:
