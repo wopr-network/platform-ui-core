@@ -43,6 +43,10 @@ export function usePluginSetupChat(
   const abortRef = useRef<AbortController | null>(null);
   const botIdRef = useRef<string | null>(null);
   const sessionIdRef = useRef<string | null>(null);
+  const pluginIdRef = useRef(state.pluginId);
+  useEffect(() => {
+    pluginIdRef.current = state.pluginId;
+  }, [state.pluginId]);
 
   // Abort on unmount
   useEffect(() => {
@@ -56,6 +60,7 @@ export function usePluginSetupChat(
       abortRef.current?.abort();
 
       botIdRef.current = botId;
+      pluginIdRef.current = pluginId;
       setState({
         isOpen: true,
         pluginId,
@@ -167,42 +172,40 @@ export function usePluginSetupChat(
     abortRef.current?.abort();
     abortRef.current = null;
     botIdRef.current = null;
+    pluginIdRef.current = null;
     setState(initialState);
   }, []);
 
-  const sendMessage = useCallback(
-    (text: string) => {
-      const currentPluginId = state.pluginId;
-      const currentBotId = botIdRef.current;
-      if (!currentPluginId || !currentBotId) return;
+  const sendMessage = useCallback((text: string) => {
+    const currentPluginId = pluginIdRef.current;
+    const currentBotId = botIdRef.current;
+    if (!currentPluginId || !currentBotId) return;
 
-      setState((s) => ({
-        ...s,
-        messages: [
-          ...s.messages,
-          {
-            id: crypto.randomUUID(),
-            role: "user" as const,
-            content: text,
-            timestamp: Date.now(),
-          },
-        ],
-      }));
+    setState((s) => ({
+      ...s,
+      messages: [
+        ...s.messages,
+        {
+          id: crypto.randomUUID(),
+          role: "user" as const,
+          content: text,
+          timestamp: Date.now(),
+        },
+      ],
+    }));
 
-      apiFetch<void>("/chat/setup/message", {
-        method: "POST",
-        body: JSON.stringify({
-          pluginId: currentPluginId,
-          botId: currentBotId,
-          sessionId: sessionIdRef.current,
-          text,
-        }),
-      }).catch(() => {
-        // Message send failure — bot will not respond, user can retry
-      });
-    },
-    [state.pluginId],
-  );
+    apiFetch<void>("/chat/setup/message", {
+      method: "POST",
+      body: JSON.stringify({
+        pluginId: currentPluginId,
+        botId: currentBotId,
+        sessionId: sessionIdRef.current,
+        text,
+      }),
+    }).catch(() => {
+      // Message send failure — bot will not respond, user can retry
+    });
+  }, []);
 
   return { state, openSetup, closeSetup, sendMessage };
 }
