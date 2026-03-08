@@ -62,6 +62,18 @@ type AppRouterRecord = {
     complianceCancelDeletion: AnyTRPCMutationProcedure;
     complianceExportRequests: AnyTRPCQueryProcedure;
     complianceTriggerExport: AnyTRPCMutationProcedure;
+    onboardingFunnelStats: AnyTRPCQueryProcedure;
+    onboardingScriptList: AnyTRPCQueryProcedure;
+    onboardingScriptSave: AnyTRPCMutationProcedure;
+    rolesList: AnyTRPCQueryProcedure;
+    rolesAssign: AnyTRPCMutationProcedure;
+    rolesRevoke: AnyTRPCMutationProcedure;
+    migrationList: AnyTRPCQueryProcedure;
+    migrationSnapshotList: AnyTRPCQueryProcedure;
+    migrationRestore: AnyTRPCMutationProcedure;
+    migrationRestoreHistory: AnyTRPCQueryProcedure;
+    retentionPolicies: AnyTRPCQueryProcedure;
+    retentionPoliciesUpdate: AnyTRPCMutationProcedure;
   };
   promotions: {
     list: AnyTRPCQueryProcedure;

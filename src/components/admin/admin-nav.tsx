@@ -18,6 +18,9 @@ const adminNavItems = [
   { label: "Promotions", href: "/admin/promotions" },
   { label: "Rate Overrides", href: "/admin/rate-overrides" },
   { label: "Affiliates", href: "/admin/affiliates" },
+  { label: "Onboarding", href: "/admin/onboarding" },
+  { label: "Roles", href: "/admin/roles" },
+  { label: "Migrations", href: "/admin/migrations" },
 ];
 
 export function AdminNav() {

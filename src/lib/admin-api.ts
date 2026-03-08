@@ -187,3 +187,139 @@ export async function bulkSuspendTenants(tenantIds: string[], reason: string): P
 export async function bulkReactivateTenants(tenantIds: string[]): Promise<void> {
   await trpcVanilla.admin.bulkReactivate.mutate({ tenantIds });
 }
+
+// ---- Onboarding ----
+
+export interface OnboardingFunnelStep {
+  step: string;
+  label: string;
+  started: number;
+  completed: number;
+  dropped: number;
+  completion_rate: number;
+  avg_duration_ms: number | null;
+}
+
+export interface OnboardingFunnelStats {
+  steps: OnboardingFunnelStep[];
+  total_started: number;
+  total_completed: number;
+  overall_completion_rate: number;
+  time_to_first_bot_ms: number | null;
+}
+
+export interface OnboardingScript {
+  id: string;
+  name: string;
+  content: string;
+  version: number;
+  active: boolean;
+  created_at: number;
+  updated_at: number;
+}
+
+export async function getOnboardingFunnelStats(days = 30): Promise<OnboardingFunnelStats> {
+  return trpcVanilla.admin.onboardingFunnelStats.query({ days });
+}
+
+export async function getOnboardingScripts(): Promise<OnboardingScript[]> {
+  const result = await trpcVanilla.admin.onboardingScriptList.query({});
+  return result.scripts;
+}
+
+export async function saveOnboardingScript(
+  id: string | null,
+  name: string,
+  content: string,
+): Promise<OnboardingScript> {
+  return trpcVanilla.admin.onboardingScriptSave.mutate({ id, name, content });
+}
+
+// ---- Roles ----
+
+export interface AdminRole {
+  id: string;
+  name: string;
+  description: string | null;
+  is_system: boolean;
+  created_at: number;
+}
+
+export interface UserRoleAssignment {
+  user_id: string;
+  tenant_id: string;
+  email: string;
+  name: string | null;
+  role: string;
+  assigned_at: number | null;
+  assigned_by: string | null;
+}
+
+export async function getRolesList(): Promise<{
+  roles: AdminRole[];
+  assignments: UserRoleAssignment[];
+}> {
+  return trpcVanilla.admin.rolesList.query({});
+}
+
+export async function assignRole(userId: string, tenantId: string, role: string): Promise<void> {
+  await trpcVanilla.admin.rolesAssign.mutate({ userId, tenantId, role });
+}
+
+export async function revokeRole(userId: string, tenantId: string, role: string): Promise<void> {
+  await trpcVanilla.admin.rolesRevoke.mutate({ userId, tenantId, role });
+}
+
+// ---- Migrations ----
+
+export interface MigrationRecord {
+  id: string;
+  name: string;
+  status: "pending" | "running" | "completed" | "failed";
+  applied_at: number | null;
+  duration_ms: number | null;
+  error: string | null;
+}
+
+export interface MigrationSnapshot {
+  id: string;
+  tenant_id: string;
+  name: string;
+  size_bytes: number;
+  created_at: number;
+}
+
+export interface MigrationRestoreRecord {
+  id: string;
+  tenant_id: string;
+  snapshot_id: string;
+  snapshot_name: string;
+  restored_by: string;
+  restored_at: number;
+  status: "pending" | "completed" | "failed";
+  error: string | null;
+}
+
+export async function getMigrations(): Promise<MigrationRecord[]> {
+  const result = await trpcVanilla.admin.migrationList.query({});
+  return result.migrations;
+}
+
+export async function getMigrationSnapshots(tenantId: string): Promise<MigrationSnapshot[]> {
+  const result = await trpcVanilla.admin.migrationSnapshotList.query({ tenantId });
+  return result.snapshots;
+}
+
+export async function restoreMigrationSnapshot(
+  tenantId: string,
+  snapshotId: string,
+): Promise<void> {
+  await trpcVanilla.admin.migrationRestore.mutate({ tenantId, snapshotId });
+}
+
+export async function getMigrationRestoreHistory(
+  tenantId: string,
+): Promise<MigrationRestoreRecord[]> {
+  const result = await trpcVanilla.admin.migrationRestoreHistory.query({ tenantId });
+  return result.history;
+}
