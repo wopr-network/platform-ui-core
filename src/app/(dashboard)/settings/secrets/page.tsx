@@ -332,7 +332,12 @@ function SecretRow({
           <div className="flex items-center gap-1">
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon-sm" onClick={onToggleAudit}>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Access log"
+                  onClick={onToggleAudit}
+                >
                   <HistoryIcon className="size-4" />
                 </Button>
               </TooltipTrigger>
@@ -367,11 +372,13 @@ function AuditPanel({ secretId }: { secretId: string }) {
   const [entries, setEntries] = useState<SecretAuditEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [unavailable, setUnavailable] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(10);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setUnavailable(false);
+    setVisibleCount(10);
     fetchSecretAudit(secretId)
       .then((data) => {
         if (!cancelled) setEntries(data);
@@ -386,6 +393,9 @@ function AuditPanel({ secretId }: { secretId: string }) {
       cancelled = true;
     };
   }, [secretId]);
+
+  const visibleEntries = entries.slice(0, visibleCount);
+  const remaining = entries.length - visibleCount;
 
   return (
     <div className="px-4 py-3 space-y-2">
@@ -405,22 +415,36 @@ function AuditPanel({ secretId }: { secretId: string }) {
       ) : entries.length === 0 ? (
         <p className="py-4 text-center text-xs text-muted-foreground">No access recorded yet.</p>
       ) : (
-        entries.slice(0, 10).map((entry) => (
-          <div key={entry.id} className="flex items-center gap-3 py-1.5 text-xs">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="w-24 shrink-0 text-muted-foreground cursor-default">
-                  {formatRelativeTime(entry.timestamp)}
-                </span>
-              </TooltipTrigger>
-              <TooltipContent>{new Date(entry.timestamp).toLocaleString()}</TooltipContent>
-            </Tooltip>
-            <span className="font-medium">{entry.actorName}</span>
-            <Badge variant="secondary" className="text-xs">
-              {entry.action}
-            </Badge>
-          </div>
-        ))
+        <>
+          {visibleEntries.map((entry) => (
+            <div key={entry.id} className="flex items-center gap-3 py-1.5 text-xs">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="w-24 shrink-0 text-muted-foreground cursor-default">
+                    {formatRelativeTime(entry.timestamp)}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>{new Date(entry.timestamp).toLocaleString()}</TooltipContent>
+              </Tooltip>
+              <span className="font-medium">{entry.actorName}</span>
+              <Badge variant="secondary" className="text-xs">
+                {entry.action}
+              </Badge>
+            </div>
+          ))}
+          {remaining > 0 && (
+            <div className="pt-1 text-center">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs text-muted-foreground"
+                onClick={() => setVisibleCount((c) => Math.min(c + 10, entries.length))}
+              >
+                Load {Math.min(remaining, 10)} more
+              </Button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
