@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { ResourcesTab } from "@/components/bot-settings/resources-tab";
 
@@ -71,5 +72,48 @@ describe("ResourcesTab", () => {
     await waitFor(() => {
       expect(screen.getAllByRole("button", { name: "Upgrade" })).toHaveLength(3);
     });
+  });
+});
+
+describe("ResourcesTab error state", () => {
+  it("shows error message when getResourceTier fails", async () => {
+    const { getResourceTier } = await import("@/lib/bot-settings-data");
+    vi.mocked(getResourceTier).mockRejectedValueOnce(new Error("Network error"));
+
+    render(<ResourcesTab botId="bot-1" />);
+    await waitFor(() => {
+      expect(screen.getByText(/failed to load resource tier/i)).toBeInTheDocument();
+    });
+  });
+
+  it("does not show Current badge when tier load fails", async () => {
+    const { getResourceTier } = await import("@/lib/bot-settings-data");
+    vi.mocked(getResourceTier).mockRejectedValueOnce(new Error("fail"));
+
+    render(<ResourcesTab botId="bot-1" />);
+    await waitFor(() => {
+      expect(screen.getByText(/failed to load/i)).toBeInTheDocument();
+    });
+    expect(screen.queryByText("Current")).not.toBeInTheDocument();
+  });
+
+  it("retries loading when Retry button is clicked", async () => {
+    const { getResourceTier } = await import("@/lib/bot-settings-data");
+    vi.mocked(getResourceTier)
+      .mockRejectedValueOnce(new Error("fail"))
+      .mockResolvedValueOnce({ tier: "pro" });
+
+    render(<ResourcesTab botId="bot-1" />);
+    await waitFor(() => {
+      expect(screen.getByText(/failed to load/i)).toBeInTheDocument();
+    });
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: /retry/i }));
+
+    await waitFor(() => {
+      expect(screen.queryByText(/failed to load/i)).not.toBeInTheDocument();
+    });
+    expect(screen.getByText("Current")).toBeInTheDocument();
   });
 });
