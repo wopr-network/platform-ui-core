@@ -21,7 +21,7 @@ const adminNavItems = [
   { label: "Onboarding", href: "/admin/onboarding" },
   { label: "Roles", href: "/admin/roles" },
   { label: "Migrations", href: "/admin/migrations" },
-  { label: "Incidents", href: "/admin/incidents" },
+  { label: "GPU", href: "/admin/gpu" },
 ];
 
 export function AdminNav() {
