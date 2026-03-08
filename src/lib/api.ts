@@ -54,7 +54,6 @@ export type InstanceStatus = "running" | "stopped" | "degraded" | "error";
 export interface Instance {
   id: string;
   name: string;
-  template: string;
   status: InstanceStatus;
   provider: string;
   channels: string[];
@@ -248,6 +247,12 @@ export function parsePluginsFromEnv(env: Record<string, string> | undefined): Pl
   return [...ids].map((id) => ({ id, name: id, version: "", enabled: true }));
 }
 
+/** Extract the LLM provider from bot env vars. */
+export function getProviderFromEnv(env?: Record<string, string>): string {
+  const val = env?.WOPR_LLM_PROVIDER;
+  return typeof val === "string" ? val : "";
+}
+
 export function mapBotState(state: string): InstanceStatus {
   if (state === "running") return "running";
   if (state === "error" || state === "dead") return "error";
@@ -292,9 +297,8 @@ export async function listInstances(): Promise<Instance[]> {
   return bots.map((bot) => ({
     id: bot.id,
     name: bot.name,
-    template: "",
     status: mapBotState(bot.state),
-    provider: "",
+    provider: getProviderFromEnv(bot.env as Record<string, string> | undefined),
     channels: parseChannelsFromEnv(bot.env),
     plugins: parsePluginsFromEnv(bot.env),
     uptime: (() => {
@@ -313,11 +317,10 @@ export async function getInstance(id: string): Promise<InstanceDetail> {
   return {
     id: bot.id,
     name: bot.name,
-    template: "",
     status: mapBotState(bot.state),
-    provider: "",
-    channels: [],
-    plugins: [],
+    provider: getProviderFromEnv(bot.env as Record<string, string> | undefined),
+    channels: parseChannelsFromEnv(bot.env as Record<string, string> | undefined),
+    plugins: parsePluginsFromEnv(bot.env as Record<string, string> | undefined),
     uptime: Number.isNaN(uptimeMs) ? null : Math.floor((Date.now() - uptimeMs) / 1000),
     createdAt: (bot.createdAt as string | undefined) ?? new Date().toISOString(),
     config: bot.env ?? {},
@@ -332,7 +335,7 @@ export async function getInstance(id: string): Promise<InstanceDetail> {
 
 export async function createInstance(data: {
   name: string;
-  template: string;
+  template?: string;
   provider: string;
   channels: string[];
   plugins: string[];
@@ -342,7 +345,6 @@ export async function createInstance(data: {
   return {
     id: (profile.id as string) ?? "",
     name: (profile.name as string) ?? data.name,
-    template: data.template,
     status: "stopped",
     provider: data.provider,
     channels: data.channels,
@@ -375,11 +377,10 @@ export async function deployInstance(payload: DeployBotPayload): Promise<Instanc
   return {
     id: (profile.id as string) ?? "",
     name: (profile.name as string) ?? payload.name,
-    template: "",
     status: "stopped",
-    provider: "",
-    channels: [],
-    plugins: [],
+    provider: getProviderFromEnv(payload.env),
+    channels: parseChannelsFromEnv(payload.env),
+    plugins: parsePluginsFromEnv(payload.env),
     uptime: null,
     createdAt: new Date().toISOString(),
   };

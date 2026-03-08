@@ -463,7 +463,6 @@ export function InstanceDetailClient({ instanceId }: { instanceId: string }) {
                 </span>
               </Badge>
             )}
-            <span>{instance.template}</span>
             <span>{instance.provider}</span>
           </div>
         </div>

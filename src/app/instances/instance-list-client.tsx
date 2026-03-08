@@ -52,6 +52,7 @@ import { useImageStatus } from "@/hooks/use-image-status";
 import type { BotStatusResponse, Instance, InstanceStatus } from "@/lib/api";
 import {
   controlInstance,
+  getProviderFromEnv,
   mapBotState,
   parseChannelsFromEnv,
   parsePluginsFromEnv,
@@ -86,9 +87,8 @@ export function InstanceListClient() {
     return bots.map((bot) => ({
       id: bot.id,
       name: bot.name,
-      template: "",
       status: mapBotState(bot.state),
-      provider: "",
+      provider: getProviderFromEnv(bot.env as Record<string, string> | undefined),
       channels: parseChannelsFromEnv(bot.env),
       plugins: parsePluginsFromEnv(bot.env),
       uptime: (() => {
@@ -103,10 +103,7 @@ export function InstanceListClient() {
 
   const filtered = useMemo(() => {
     return instances.filter((inst) => {
-      const matchesSearch =
-        !search ||
-        inst.name.toLowerCase().includes(search.toLowerCase()) ||
-        inst.template.toLowerCase().includes(search.toLowerCase());
+      const matchesSearch = !search || inst.name.toLowerCase().includes(search.toLowerCase());
       const matchesStatus = statusFilter === "all" || inst.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
@@ -161,7 +158,7 @@ export function InstanceListClient() {
 
       <div className="flex items-center gap-3">
         <Input
-          placeholder="Search by name or template..."
+          placeholder="Search by name..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="max-w-sm"
@@ -204,7 +201,6 @@ export function InstanceListClient() {
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
-                <TableHead>Template</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Provider</TableHead>
                 <TableHead>Uptime</TableHead>
@@ -217,9 +213,6 @@ export function InstanceListClient() {
                 <TableRow key={skId}>
                   <TableCell>
                     <Skeleton className="h-4 w-28" />
-                  </TableCell>
-                  <TableCell>
-                    <Skeleton className="h-4 w-20" />
                   </TableCell>
                   <TableCell>
                     <Skeleton className="h-5 w-16" />
@@ -262,7 +255,6 @@ export function InstanceListClient() {
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
-                <TableHead>Template</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Provider</TableHead>
                 <TableHead>Uptime</TableHead>
@@ -291,7 +283,6 @@ export function InstanceListClient() {
                       {inst.name}
                     </Link>
                   </TableCell>
-                  <TableCell className="text-muted-foreground">{inst.template}</TableCell>
                   <TableCell>
                     <StatusBadge status={inst.status} />
                   </TableCell>

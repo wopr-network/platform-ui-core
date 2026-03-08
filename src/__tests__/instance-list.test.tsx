@@ -17,7 +17,11 @@ vi.mock("@/lib/trpc", () => ({
                 health: "healthy",
                 uptime: null,
                 stats: null,
-                env: { WOPR_PLUGINS_CHANNELS: "discord", WOPR_PLUGINS_OTHER: "p1" },
+                env: {
+                  WOPR_PLUGINS_CHANNELS: "discord",
+                  WOPR_PLUGINS_OTHER: "p1",
+                  WOPR_LLM_PROVIDER: "anthropic",
+                },
                 createdAt: "2026-01-01T00:00:00Z",
               },
               {
@@ -46,6 +50,7 @@ vi.mock("@/lib/api", () => ({
     if (state === "error" || state === "dead") return "error";
     return "stopped";
   }),
+  getProviderFromEnv: vi.fn((env?: Record<string, string>) => env?.WOPR_LLM_PROVIDER ?? ""),
   parseChannelsFromEnv: vi.fn((env?: Record<string, string>) => {
     const raw = env?.WOPR_PLUGINS_CHANNELS;
     if (!raw) return [];
@@ -70,6 +75,7 @@ vi.mock("@/lib/api", () => ({
     }
     return [...ids].map((id) => ({ id, name: id, version: "", enabled: true }));
   }),
+  apiFetch: vi.fn(),
   controlInstance: vi.fn().mockResolvedValue(undefined),
   getImageStatus: vi.fn().mockResolvedValue({
     currentDigest: "sha256:aaa",
@@ -115,7 +121,7 @@ describe("InstanceListClient", () => {
       expect(screen.getByText("test-instance")).toBeInTheDocument();
     });
 
-    const searchInput = screen.getByPlaceholderText("Search by name or template...");
+    const searchInput = screen.getByPlaceholderText("Search by name...");
     await user.type(searchInput, "stopped");
 
     expect(screen.queryByText("test-instance")).not.toBeInTheDocument();
@@ -146,7 +152,7 @@ describe("InstanceListClient", () => {
     });
 
     // Filter by text that matches nothing
-    const searchInput = screen.getByPlaceholderText("Search by name or template...");
+    const searchInput = screen.getByPlaceholderText("Search by name...");
     await user.type(searchInput, "nonexistent-bot-xyz");
 
     // Empty state should appear
