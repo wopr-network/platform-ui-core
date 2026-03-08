@@ -130,6 +130,15 @@ export function BotSettingsClient({ botId }: { botId: string }) {
         if (mountedRef.current) {
           setSettings((prev) => (prev ? { ...prev, status } : prev));
           setHealth(h);
+          if (status === "running") {
+            setPendingAction((prev) => {
+              if (prev === "restart") {
+                setActionPending(false);
+                return null;
+              }
+              return prev;
+            });
+          }
         }
       })
       .catch((_err) => {
@@ -173,8 +182,10 @@ export function BotSettingsClient({ botId }: { botId: string }) {
     } catch {
       setActionError(`Failed to ${action} bot`);
     } finally {
-      setActionPending(false);
-      setPendingAction(null);
+      if (action !== "restart") {
+        setActionPending(false);
+        setPendingAction(null);
+      }
     }
   }
 
@@ -228,7 +239,17 @@ export function BotSettingsClient({ botId }: { botId: string }) {
         <div
           className={`transition-all duration-500 ${statusChanged ? "ring-2 ring-terminal/30 rounded-full" : ""}`}
         >
-          <StatusBadge status={settings.status === "archived" ? "stopped" : settings.status} />
+          {actionPending && pendingAction === "restart" ? (
+            <Badge
+              variant="outline"
+              className="gap-1.5 bg-yellow-500/15 text-yellow-500 border-yellow-500/25"
+            >
+              <Loader2 className="size-3 animate-spin" />
+              Restarting
+            </Badge>
+          ) : (
+            <StatusBadge status={settings.status === "archived" ? "stopped" : settings.status} />
+          )}
         </div>
         <h1 className="text-2xl font-bold tracking-tight">{settings.identity.name}</h1>
         <div className="flex gap-2 ml-auto">
@@ -247,7 +268,7 @@ export function BotSettingsClient({ botId }: { botId: string }) {
               Start
             </Button>
           )}
-          {settings.status === "running" && (
+          {settings.status === "running" && !(actionPending && pendingAction === "restart") && (
             <>
               <Button
                 size="sm"
@@ -386,6 +407,15 @@ function IdentityTab({
   const [name, setName] = useState(settings.identity.name);
   const [personality, setPersonality] = useState(settings.identity.personality);
   const [saved, setSaved] = useState(false);
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (savedTimerRef.current !== null) {
+        clearTimeout(savedTimerRef.current);
+      }
+    };
+  }, []);
 
   const saveFn = useCallback(
     async (payload: { name: string; avatar: string; personality: string }) => {
@@ -393,7 +423,8 @@ function IdentityTab({
         const updated = await updateBotIdentity(botId, payload);
         onUpdate({ ...settings, identity: updated });
         setSaved(true);
-        setTimeout(() => setSaved(false), 2000);
+        clearTimeout(savedTimerRef.current ?? undefined);
+        savedTimerRef.current = setTimeout(() => setSaved(false), 2000);
       } catch {
         throw new Error("Failed to save \u2014 please try again.");
       }
