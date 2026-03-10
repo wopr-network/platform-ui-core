@@ -163,7 +163,7 @@ describe("middleware", () => {
       // CSP header must contain a nonce
       const csp = res.headers.get("content-security-policy") ?? "";
       const nonceMatch = csp.match(/'nonce-([^']+)'/);
-      expect(nonceMatch).toBeTruthy();
+      expect(nonceMatch).not.toBeNull();
       // The nonce must NOT be in the response headers (security)
       expect(res.headers.get("x-nonce")).toBeNull();
       // Verify the response was created via nextWithNonce() — it sets x-middleware-request-x-nonce
@@ -575,7 +575,7 @@ describe("CSP nonce in middleware", () => {
     const req = buildRequest("/login");
     const res = await middleware(req);
     const csp = res.headers.get("content-security-policy");
-    expect(csp).toBeTruthy();
+    expect(csp).not.toBeNull();
     expect(csp).toMatch(/script-src [^;]*'nonce-[A-Za-z0-9+/=_-]+'[^;]*/);
     // script-src must not use 'unsafe-inline' (nonce replaces it)
     const scriptSrc = csp?.split(";").find((d) => d.trim().startsWith("script-src"));
@@ -589,8 +589,8 @@ describe("CSP nonce in middleware", () => {
     const csp2 = res2.headers.get("content-security-policy") ?? "";
     const nonce1 = csp1.match(/'nonce-([^']+)'/)?.[1];
     const nonce2 = csp2.match(/'nonce-([^']+)'/)?.[1];
-    expect(nonce1).toBeTruthy();
-    expect(nonce2).toBeTruthy();
+    expect(nonce1).toMatch(/^[A-Za-z0-9+/=_-]+$/);
+    expect(nonce2).toMatch(/^[A-Za-z0-9+/=_-]+$/);
     expect(nonce1).not.toBe(nonce2);
   });
 

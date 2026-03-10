@@ -126,6 +126,8 @@ For tRPC endpoints, use the `trpc` client in `src/lib/trpc.ts` — it shares the
   npx vitest run src/__tests__/specific-file.test.ts
   ```
 - **Mocking fetch:** Tests stub `fetch` via `vi.stubGlobal("fetch", vi.fn(...))`. The setup file rejects all fetches by default so components fall back to mock data.
+- **Assertion semantics:** Use type-specific matchers, not generic `toBeTruthy()`. E.g., `Headers.get()` returns `string | null`, so assert `not.toBeNull()` not `toBeTruthy()`. This produces clearer failure messages and aligns with actual return types.
+- **Regex assertions in tests:** When validating string format via regex (e.g., nonce character set), use `.toMatch(/pattern/)`. For values that may be `undefined`, either split into `.toBeDefined()` + `.toMatch()` for clarity, or accept that `toMatch` will throw "expected undefined to match" on undefined values — both approaches correctly fail the test.
 
 ## Security Rules
 
