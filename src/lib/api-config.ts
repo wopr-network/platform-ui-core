@@ -20,7 +20,7 @@ function validateProductionApiUrl(url: string | undefined): void {
     process.env.NODE_ENV === "production" &&
     process.env.NEXT_RUNTIME === "nodejs" &&
     process.env.NEXT_PHASE !== "phase-production-build" &&
-    !process.env.PLAYWRIGHT_TESTING;
+    !process.env.E2E_MOCK_API;
 
   if (!isProductionRuntime) return;
 

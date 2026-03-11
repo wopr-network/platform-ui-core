@@ -7,6 +7,8 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   workers: process.env.CI ? 4 : undefined,
   reporter: process.env.CI ? [["html", { open: "never" }], ["github"]] : "html",
+  globalSetup: "./e2e/global-setup.ts",
+  globalTeardown: "./e2e/global-teardown.ts",
   use: {
     baseURL: "http://localhost:3000",
     trace: "on-first-retry",
@@ -31,7 +33,7 @@ export default defineConfig({
       PORT: "3000",
       NEXT_PUBLIC_API_URL: "http://localhost:3001",
       // Skip production URL validation — localhost is intentional in e2e.
-      PLAYWRIGHT_TESTING: "true",
+      E2E_MOCK_API: "true",
     },
   },
 });

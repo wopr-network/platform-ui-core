@@ -289,20 +289,19 @@ test.describe("Admin: Inference", () => {
 // ---------------------------------------------------------------
 
 test.describe("Admin: Route Protection", () => {
-	test("non-admin user sees ACCESS DENIED on admin routes", async ({
+	test("non-admin user is redirected away from admin routes", async ({
 		authedPage: page,
 	}) => {
-		// authedPage does NOT have platform_admin role.
-		// We still need to mock admin tRPC endpoints so AdminNav does not 503.
+		// authedPage has a regular user session (not platform_admin).
+		// The server-side middleware calls getSessionRole() which hits the mock
+		// API server on port 3001. The mock returns role "user" for the default
+		// session token, so middleware redirects to /marketplace.
 		const state = createAdminMockState();
 		await mockAdminAPI(page, state);
 
 		await page.goto("/admin/tenants");
 
-		// AdminGuard renders "ACCESS DENIED" for non-admin users
-		await expect(page.getByText("ACCESS DENIED").first()).toBeVisible();
-		await expect(
-			page.getByText("You do not have permission to view this page.").first(),
-		).toBeVisible();
+		// Middleware redirects non-admin to /marketplace
+		await page.waitForURL("**/marketplace");
 	});
 });

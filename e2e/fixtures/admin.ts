@@ -1,4 +1,5 @@
 import type { Page } from "@playwright/test";
+import { E2E_ADMIN_TOKEN } from "../mock-api-server";
 
 const PLATFORM_BASE_URL =
 	process.env.NEXT_PUBLIC_API_URL ?? process.env.BASE_URL ?? "http://localhost:3001";
@@ -257,8 +258,28 @@ export function createAdminMockState(): AdminMockState {
 /**
  * Override get-session to include `role: "platform_admin"` on the user.
  * Must be called AFTER mockAuthAPI() so this route takes LIFO priority.
+ *
+ * Two layers of mocking:
+ * 1. page.route() — intercepts browser-side get-session (for useSession hook / AdminGuard)
+ * 2. addCookies() — sets a deterministic session token that the mock API server
+ *    on port 3001 recognises as admin, so the server-side middleware role check passes.
  */
 export async function mockAdminSession(page: Page) {
+	// Set deterministic admin session cookie for server-side middleware auth
+	await page.context().addCookies([
+		{
+			name: "better-auth.session_token",
+			value: E2E_ADMIN_TOKEN,
+			domain: "localhost",
+			path: "/",
+			httpOnly: true,
+			sameSite: "Lax",
+			secure: false,
+			expires: Math.floor(Date.now() / 1000) + 86400,
+		},
+	]);
+
+	// Browser-side mock for useSession() / AdminGuard client component
 	await page.route(`${PLATFORM_BASE_URL}/api/auth/get-session`, async (route) => {
 		const cookieHeader = route.request().headers()["cookie"] ?? "";
 		const hasSession = cookieHeader.includes("better-auth.session_token");
@@ -281,7 +302,7 @@ export async function mockAdminSession(page: Page) {
 							session: {
 								id: "e2e-session-id",
 								userId: "e2e-user-id",
-								token: "e2e-token",
+								token: E2E_ADMIN_TOKEN,
 								expiresAt: new Date(Date.now() + 86400000).toISOString(),
 							},
 						}
