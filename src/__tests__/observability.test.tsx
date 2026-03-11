@@ -153,7 +153,7 @@ vi.mock("framer-motion", () => ({
 }));
 
 vi.mock("@/hooks/use-image-status", () => ({
-  useImageStatus: vi.fn().mockReturnValue({ updateAvailable: false }),
+  useImageStatus: vi.fn().mockReturnValue({ updateAvailable: false, error: null }),
 }));
 
 import { FleetHealth } from "../components/observability/fleet-health";

@@ -98,7 +98,7 @@ export function InstanceDetailClient({ instanceId }: { instanceId: string }) {
   const [destroyOpen, setDestroyOpen] = useState(false);
   const [destroyConfirmText, setDestroyConfirmText] = useState("");
   const [destroying, setDestroying] = useState(false);
-  const { updateAvailable } = useImageStatus(instanceId);
+  const { updateAvailable, error: imageStatusError } = useImageStatus(instanceId);
   const [pulling, setPulling] = useState(false);
   const [confirmPull, setConfirmPull] = useState(false);
   const [togglingPlugin, setTogglingPlugin] = useState<string | null>(null);
@@ -457,6 +457,9 @@ export function InstanceDetailClient({ instanceId }: { instanceId: string }) {
           )}
           <div className="flex items-center gap-3 text-sm text-muted-foreground">
             <StatusBadge status={instance.status} />
+            {imageStatusError && (
+              <span className="text-xs text-destructive">{imageStatusError}</span>
+            )}
             {updateAvailable && (
               <Badge
                 variant="outline"
