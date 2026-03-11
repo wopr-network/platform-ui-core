@@ -24,8 +24,13 @@ vi.mock("@/lib/api", () => ({
   createSetupIntent: vi.fn(),
 }));
 
+vi.mock("@/lib/org-billing-api", () => ({
+  createOrgSetupIntent: vi.fn(),
+}));
+
 import { AddPaymentMethodDialog } from "@/components/billing/add-payment-method-dialog";
 import { createSetupIntent } from "@/lib/api";
+import { createOrgSetupIntent } from "@/lib/org-billing-api";
 
 describe("AddPaymentMethodDialog", () => {
   const onOpenChange = vi.fn();
@@ -130,5 +135,26 @@ describe("AddPaymentMethodDialog", () => {
     await userEvent.click(cancelButton);
 
     expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  it("calls createOrgSetupIntent and shows org dialog title when orgId is provided", async () => {
+    (createOrgSetupIntent as ReturnType<typeof vi.fn>).mockResolvedValue({
+      clientSecret: "seti_org_test_secret_456",
+    });
+
+    render(
+      <AddPaymentMethodDialog
+        open={true}
+        onOpenChange={onOpenChange}
+        onSuccess={onSuccess}
+        orgId="org-123"
+      />,
+    );
+
+    await waitFor(() => {
+      expect(createOrgSetupIntent).toHaveBeenCalledWith("org-123");
+      expect(createSetupIntent).not.toHaveBeenCalled();
+      expect(screen.getByText("Add org payment method")).toBeInTheDocument();
+    });
   });
 });

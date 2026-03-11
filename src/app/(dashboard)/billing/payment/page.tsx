@@ -66,6 +66,7 @@ export default function PaymentPage() {
   const [showAddPayment, setShowAddPayment] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [removeError, setRemoveError] = useState<string | null>(null);
+  const [showOrgAddPayment, setShowOrgAddPayment] = useState(false);
 
   // Org context detection
   const [orgContext, setOrgContext] = useState<{
@@ -410,7 +411,30 @@ export default function PaymentPage() {
                 ))}
               </div>
             )}
-            {orgContext.isAdmin && <Button variant="outline">Add org payment method</Button>}
+            {orgContext.isAdmin && (
+              <>
+                <Button variant="outline" onClick={() => setShowOrgAddPayment(true)}>
+                  Add org payment method
+                </Button>
+                <AddPaymentMethodDialog
+                  open={showOrgAddPayment}
+                  onOpenChange={setShowOrgAddPayment}
+                  onSuccess={() => {
+                    setOrgLoading(true);
+                    getOrgBillingInfo(orgContext.orgId)
+                      .then((data) => {
+                        setOrgPaymentMethods(data.paymentMethods);
+                        setOrgInvoices(data.invoices);
+                      })
+                      .catch(() => {
+                        /* refresh failed — stale data is acceptable */
+                      })
+                      .finally(() => setOrgLoading(false));
+                  }}
+                  orgId={orgContext.orgId}
+                />
+              </>
+            )}
           </CardContent>
         </Card>
       )}

@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { Building2, Download } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { AddPaymentMethodDialog } from "@/components/billing/add-payment-method-dialog";
 import { BuyCreditsPanel } from "@/components/billing/buy-credits-panel";
 import { CreditBalance } from "@/components/billing/credit-balance";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +22,8 @@ import {
 import { formatCreditStandard } from "@/lib/format-credit";
 import type { OrgCreditBalance, OrgMemberUsageRow } from "@/lib/org-billing-api";
 import { getOrgBillingInfo, getOrgCreditBalance, getOrgMemberUsage } from "@/lib/org-billing-api";
+
+const stripeBackendReady = Boolean(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
 
 interface OrgPaymentMethod {
   id: string;
@@ -58,6 +61,7 @@ export function OrgBillingPage({ orgId, orgName, isAdmin }: OrgBillingPageProps)
   const [invoices, setInvoices] = useState<OrgInvoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showAddPayment, setShowAddPayment] = useState(false);
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -269,12 +273,20 @@ export function OrgBillingPage({ orgId, orgName, isAdmin }: OrgBillingPageProps)
                 ))}
               </div>
             )}
-            {/* Wire to org.orgSetupIntent + AddPaymentMethodDialog when backend adds org-scoped setup intent
-            {isAdmin && (
-              <Button variant="outline" className="mt-4" onClick={handleAddPaymentMethod}>
-                Add payment method
-              </Button>
-            )} */}
+            {isAdmin && stripeBackendReady && (
+              <>
+                <Button variant="outline" className="mt-4" onClick={() => setShowAddPayment(true)}>
+                  Add org payment method
+                </Button>
+                <AddPaymentMethodDialog
+                  open={showAddPayment}
+                  onOpenChange={setShowAddPayment}
+                  onSuccess={load}
+                  orgId={orgId}
+                  returnUrl="/billing/credits"
+                />
+              </>
+            )}
           </CardContent>
         </Card>
       </motion.div>

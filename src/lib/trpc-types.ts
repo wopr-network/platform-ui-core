@@ -161,6 +161,7 @@ type AppRouterRecord = {
     orgMemberUsage: AnyTRPCQueryProcedure;
     orgBillingInfo: AnyTRPCQueryProcedure;
     orgTopupCheckout: AnyTRPCMutationProcedure;
+    orgSetupIntent: AnyTRPCMutationProcedure;
   };
   adminMarketplace: {
     listPlugins: AnyTRPCQueryProcedure;

@@ -265,6 +265,12 @@ export function createAdminMockState(): AdminMockState {
  *    on port 3001 recognises as admin, so the server-side middleware role check passes.
  */
 export async function mockAdminSession(page: Page) {
+	// Clear any existing session cookie so the regular-user token from authedPage
+	// does not shadow the admin token when the middleware checks the cookie.
+	// addCookies() does not reliably replace an existing httpOnly cookie of the
+	// same name — clearing first guarantees the admin token is the only one present.
+	await page.context().clearCookies({ name: "better-auth.session_token" });
+
 	// Set deterministic admin session cookie for server-side middleware auth
 	await page.context().addCookies([
 		{
