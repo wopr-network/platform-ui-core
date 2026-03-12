@@ -1,3 +1,4 @@
+import { getBrandConfig } from "./brand-config";
 import type { DiyCostData } from "./onboarding-data";
 import { channelPlugins, superpowers } from "./onboarding-data";
 
@@ -8,7 +9,7 @@ export interface DiyCostItem extends DiyCostData {
 export interface CostComparisonSummary {
   items: DiyCostItem[];
   totalDiyMonthly: string;
-  totalWoprMonthly: string;
+  totalPlatformMonthly: string;
   accountsRequired: number;
   apiKeysRequired: number;
 }
@@ -46,7 +47,7 @@ export function buildCostComparison(
   return {
     items,
     totalDiyMonthly: totalDiy > 0 ? `$${totalDiy}+` : "$0",
-    totalWoprMonthly: "$5",
+    totalPlatformMonthly: getBrandConfig().price || "$5",
     accountsRequired: allAccounts.size,
     apiKeysRequired: allApiKeys.size,
   };

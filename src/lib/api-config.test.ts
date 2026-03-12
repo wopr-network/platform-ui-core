@@ -34,7 +34,7 @@ describe("api-config", () => {
     it("throws when NEXT_PUBLIC_API_URL uses http (not https) in production runtime", async () => {
       vi.stubEnv("NODE_ENV", "production");
       vi.stubEnv("NEXT_RUNTIME", "nodejs");
-      vi.stubEnv("NEXT_PUBLIC_API_URL", "http://api.wopr.bot");
+      vi.stubEnv("NEXT_PUBLIC_API_URL", "http://api.example.com");
       vi.resetModules();
       await expect(import("./api-config")).rejects.toThrow(/https/i);
     });
@@ -42,10 +42,10 @@ describe("api-config", () => {
     it("allows https public URL in production runtime", async () => {
       vi.stubEnv("NODE_ENV", "production");
       vi.stubEnv("NEXT_RUNTIME", "nodejs");
-      vi.stubEnv("NEXT_PUBLIC_API_URL", "https://api.wopr.bot");
+      vi.stubEnv("NEXT_PUBLIC_API_URL", "https://api.example.com");
       vi.resetModules();
       const mod = await import("./api-config");
-      expect(mod.PLATFORM_BASE_URL).toBe("https://api.wopr.bot");
+      expect(mod.PLATFORM_BASE_URL).toBe("https://api.example.com");
     });
 
     it("skips validation during build time (no NEXT_RUNTIME)", async () => {
@@ -75,17 +75,17 @@ describe("api-config", () => {
   });
 
   it("uses NEXT_PUBLIC_API_URL when set", async () => {
-    vi.stubEnv("NEXT_PUBLIC_API_URL", "https://api.wopr.bot");
+    vi.stubEnv("NEXT_PUBLIC_API_URL", "https://api.example.com");
     vi.resetModules();
     const { PLATFORM_BASE_URL } = await import("./api-config");
-    expect(PLATFORM_BASE_URL).toBe("https://api.wopr.bot");
+    expect(PLATFORM_BASE_URL).toBe("https://api.example.com");
   });
 
   it("derives API_BASE_URL from PLATFORM_BASE_URL", async () => {
-    vi.stubEnv("NEXT_PUBLIC_API_URL", "https://api.wopr.bot");
+    vi.stubEnv("NEXT_PUBLIC_API_URL", "https://api.example.com");
     vi.resetModules();
     const { API_BASE_URL } = await import("./api-config");
-    expect(API_BASE_URL).toBe("https://api.wopr.bot/api");
+    expect(API_BASE_URL).toBe("https://api.example.com/api");
   });
 
   it("uses default API_BASE_URL when env not set", async () => {

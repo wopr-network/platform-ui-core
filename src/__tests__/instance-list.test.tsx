@@ -18,9 +18,9 @@ vi.mock("@/lib/trpc", () => ({
                 uptime: null,
                 stats: null,
                 env: {
-                  WOPR_PLUGINS_CHANNELS: "discord",
-                  WOPR_PLUGINS_OTHER: "p1",
-                  WOPR_LLM_PROVIDER: "anthropic",
+                  PLATFORM_PLUGINS_CHANNELS: "discord",
+                  PLATFORM_PLUGINS_OTHER: "p1",
+                  PLATFORM_LLM_PROVIDER: "anthropic",
                 },
                 createdAt: "2026-01-01T00:00:00Z",
               },
@@ -50,9 +50,9 @@ vi.mock("@/lib/api", () => ({
     if (state === "error" || state === "dead") return "error";
     return "stopped";
   }),
-  getProviderFromEnv: vi.fn((env?: Record<string, string>) => env?.WOPR_LLM_PROVIDER ?? ""),
+  getProviderFromEnv: vi.fn((env?: Record<string, string>) => env?.PLATFORM_LLM_PROVIDER ?? ""),
   parseChannelsFromEnv: vi.fn((env?: Record<string, string>) => {
-    const raw = env?.WOPR_PLUGINS_CHANNELS;
+    const raw = env?.PLATFORM_PLUGINS_CHANNELS;
     if (!raw) return [];
     return raw
       .split(",")
@@ -62,7 +62,7 @@ vi.mock("@/lib/api", () => ({
   parsePluginsFromEnv: vi.fn((env?: Record<string, string>) => {
     if (!env) return [];
     const ids = new Set<string>();
-    for (const key of ["WOPR_PLUGINS_OTHER", "WOPR_PLUGINS_VOICE", "WOPR_PLUGINS_PROVIDERS"]) {
+    for (const key of ["PLATFORM_PLUGINS_OTHER", "PLATFORM_PLUGINS_VOICE", "PLATFORM_PLUGINS_PROVIDERS"]) {
       const raw = env[key];
       if (raw) {
         for (const id of raw

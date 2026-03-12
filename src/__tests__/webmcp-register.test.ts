@@ -23,19 +23,19 @@ const mockConfirm = vi.fn<(message: string) => Promise<boolean>>();
 
 const MOCK_TOOLS: ModelContextTool[] = [
   {
-    name: "wopr_list_instances",
+    name: "platform_list_instances",
     description: "List instances",
     inputSchema: { type: "object", properties: {} },
     handler: vi.fn(),
   },
   {
-    name: "wopr_create_instance",
+    name: "platform_create_instance",
     description: "Create instance",
     inputSchema: { type: "object", properties: {} },
     handler: vi.fn(),
   },
   {
-    name: "wopr_control_instance",
+    name: "platform_control_instance",
     description: "Control instance",
     inputSchema: { type: "object", properties: {} },
     handler: vi.fn(),
