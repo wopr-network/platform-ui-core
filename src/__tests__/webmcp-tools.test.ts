@@ -111,10 +111,10 @@ describe("getWebMCPTools", () => {
     }
   });
 
-  describe("wopr_list_instances handler", () => {
+  describe("platform_list_instances handler", () => {
     it("calls listInstances() and returns the result", async () => {
       mockListInstances.mockResolvedValue(MOCK_INSTANCES);
-      const tool = getTool("wopr_list_instances");
+      const tool = getTool("platform_list_instances");
 
       const result = await tool.handler({});
 
@@ -123,10 +123,10 @@ describe("getWebMCPTools", () => {
     });
   });
 
-  describe("wopr_control_instance handler", () => {
+  describe("platform_control_instance handler", () => {
     it("calls controlInstance for non-destructive actions without confirmation", async () => {
       mockControlInstance.mockResolvedValue(undefined);
-      const tool = getTool("wopr_control_instance");
+      const tool = getTool("platform_control_instance");
 
       const result = await tool.handler({ instanceId: "inst-001", action: "restart" });
 
@@ -138,7 +138,7 @@ describe("getWebMCPTools", () => {
     it("calls confirm callback for destroy action", async () => {
       mockConfirm.mockResolvedValue(true);
       mockControlInstance.mockResolvedValue(undefined);
-      const tool = getTool("wopr_control_instance");
+      const tool = getTool("platform_control_instance");
 
       await tool.handler({ instanceId: "inst-001", action: "destroy" });
 
@@ -148,7 +148,7 @@ describe("getWebMCPTools", () => {
 
     it("returns cancelled result when user declines confirmation", async () => {
       mockConfirm.mockResolvedValue(false);
-      const tool = getTool("wopr_control_instance");
+      const tool = getTool("platform_control_instance");
 
       const result = await tool.handler({ instanceId: "inst-001", action: "destroy" });
 
@@ -159,7 +159,7 @@ describe("getWebMCPTools", () => {
     it("proceeds with destroy when user confirms", async () => {
       mockConfirm.mockResolvedValue(true);
       mockControlInstance.mockResolvedValue(undefined);
-      const tool = getTool("wopr_control_instance");
+      const tool = getTool("platform_control_instance");
 
       const result = await tool.handler({ instanceId: "inst-001", action: "destroy" });
 
@@ -168,10 +168,10 @@ describe("getWebMCPTools", () => {
     });
   });
 
-  describe("wopr_browse_plugins handler", () => {
+  describe("platform_browse_plugins handler", () => {
     it("returns all plugins when no category filter", async () => {
       mockListMarketplacePlugins.mockResolvedValue(MOCK_PLUGINS);
-      const tool = getTool("wopr_browse_plugins");
+      const tool = getTool("platform_browse_plugins");
 
       const result = (await tool.handler({})) as { plugins: unknown[] };
 
@@ -180,7 +180,7 @@ describe("getWebMCPTools", () => {
 
     it("filters plugins by category", async () => {
       mockListMarketplacePlugins.mockResolvedValue(MOCK_PLUGINS);
-      const tool = getTool("wopr_browse_plugins");
+      const tool = getTool("platform_browse_plugins");
 
       const result = (await tool.handler({ category: "channel" })) as {
         plugins: { id: string }[];
@@ -191,10 +191,10 @@ describe("getWebMCPTools", () => {
     });
   });
 
-  describe("wopr_create_instance handler", () => {
+  describe("platform_create_instance handler", () => {
     it("calls createInstance with correct params", async () => {
       mockCreateInstance.mockResolvedValue(MOCK_INSTANCES[0]);
-      const tool = getTool("wopr_create_instance");
+      const tool = getTool("platform_create_instance");
 
       const result = await tool.handler({
         name: "My Bot",
@@ -216,7 +216,7 @@ describe("getWebMCPTools", () => {
 
     it("defaults channels and plugins to empty arrays", async () => {
       mockCreateInstance.mockResolvedValue(MOCK_INSTANCES[0]);
-      const tool = getTool("wopr_create_instance");
+      const tool = getTool("platform_create_instance");
 
       await tool.handler({
         name: "My Bot",
@@ -234,11 +234,11 @@ describe("getWebMCPTools", () => {
     });
   });
 
-  describe("wopr_install_plugin handler", () => {
+  describe("platform_install_plugin handler", () => {
     it("calls installPlugin and returns success for valid plugin", async () => {
       mockListMarketplacePlugins.mockResolvedValue(MOCK_PLUGINS);
       mockInstallPlugin.mockResolvedValue(undefined);
-      const tool = getTool("wopr_install_plugin");
+      const tool = getTool("platform_install_plugin");
 
       const result = (await tool.handler({
         instanceId: "inst-001",
@@ -253,7 +253,7 @@ describe("getWebMCPTools", () => {
 
     it("returns error for unknown plugin name without calling install", async () => {
       mockListMarketplacePlugins.mockResolvedValue(MOCK_PLUGINS);
-      const tool = getTool("wopr_install_plugin");
+      const tool = getTool("platform_install_plugin");
 
       const result = (await tool.handler({
         instanceId: "inst-001",
@@ -267,7 +267,7 @@ describe("getWebMCPTools", () => {
     it("returns error when installPlugin rejects", async () => {
       mockListMarketplacePlugins.mockResolvedValue(MOCK_PLUGINS);
       mockInstallPlugin.mockRejectedValue(new Error("Server error"));
-      const tool = getTool("wopr_install_plugin");
+      const tool = getTool("platform_install_plugin");
 
       const result = (await tool.handler({
         instanceId: "inst-001",
@@ -278,7 +278,7 @@ describe("getWebMCPTools", () => {
     });
   });
 
-  describe("wopr_get_instance_health handler", () => {
+  describe("platform_get_instance_health handler", () => {
     it("calls getInstanceHealth and returns { health }", async () => {
       const mockHealth = {
         instanceId: "inst-001",
@@ -288,7 +288,7 @@ describe("getWebMCPTools", () => {
         provider: { name: "anthropic", status: "ok" },
       };
       mockGetInstanceHealth.mockResolvedValue(mockHealth);
-      const tool = getTool("wopr_get_instance_health");
+      const tool = getTool("platform_get_instance_health");
 
       const result = await tool.handler({ instanceId: "inst-001" });
 
@@ -298,7 +298,7 @@ describe("getWebMCPTools", () => {
 
     it("returns { error } when getInstanceHealth throws", async () => {
       mockGetInstanceHealth.mockRejectedValue(new Error("Health check failed"));
-      const tool = getTool("wopr_get_instance_health");
+      const tool = getTool("platform_get_instance_health");
 
       const result = (await tool.handler({ instanceId: "inst-001" })) as { error: string };
 
@@ -306,7 +306,7 @@ describe("getWebMCPTools", () => {
     });
   });
 
-  describe("wopr_view_logs handler", () => {
+  describe("platform_view_logs handler", () => {
     const MOCK_LOGS = Array.from({ length: 100 }, (_, i) => ({
       id: `log-${i}`,
       timestamp: "2026-01-01T00:00:00Z",
@@ -317,7 +317,7 @@ describe("getWebMCPTools", () => {
 
     it("calls getInstanceLogs with level filter", async () => {
       mockGetInstanceLogs.mockResolvedValue(MOCK_LOGS.slice(0, 10));
-      const tool = getTool("wopr_view_logs");
+      const tool = getTool("platform_view_logs");
 
       await tool.handler({ instanceId: "inst-001", level: "error" });
 
@@ -326,7 +326,7 @@ describe("getWebMCPTools", () => {
 
     it("limits results to specified limit", async () => {
       mockGetInstanceLogs.mockResolvedValue(MOCK_LOGS);
-      const tool = getTool("wopr_view_logs");
+      const tool = getTool("platform_view_logs");
 
       const result = (await tool.handler({
         instanceId: "inst-001",
@@ -338,7 +338,7 @@ describe("getWebMCPTools", () => {
 
     it("defaults limit to 50", async () => {
       mockGetInstanceLogs.mockResolvedValue(MOCK_LOGS);
-      const tool = getTool("wopr_view_logs");
+      const tool = getTool("platform_view_logs");
 
       const result = (await tool.handler({ instanceId: "inst-001" })) as { logs: unknown[] };
 

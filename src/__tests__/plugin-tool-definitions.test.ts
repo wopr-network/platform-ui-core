@@ -23,9 +23,9 @@ describe("platformUIToolDefinitions", () => {
 
   it("includes expected fleet tools", () => {
     const names = platformUIToolDefinitions.map((d) => d.name);
-    expect(names).toContain("wopr_list_instances");
-    expect(names).toContain("wopr_create_instance");
-    expect(names).toContain("wopr_control_instance");
+    expect(names).toContain("platform_list_instances");
+    expect(names).toContain("platform_create_instance");
+    expect(names).toContain("platform_control_instance");
   });
 
   it("includes expected marketplace tools", () => {

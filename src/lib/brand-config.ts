@@ -39,6 +39,12 @@ export interface BrandConfig {
   /** Prefix for custom DOM events (e.g. "wopr", "paperclip") */
   eventPrefix: string;
 
+  /** Prefix for container env vars (e.g. "WOPR" → WOPR_LLM_MODEL) */
+  envVarPrefix: string;
+
+  /** Prefix for WebMCP tool names (e.g. "wopr" → wopr_list_instances) */
+  toolPrefix: string;
+
   /** Cookie name for tenant ID */
   tenantCookieName: string;
 
@@ -76,10 +82,10 @@ function envDefaults(): BrandConfig {
     defaultImage: env("NEXT_PUBLIC_BRAND_DEFAULT_IMAGE"),
     storagePrefix,
     eventPrefix,
-    tenantCookieName:
-      env("NEXT_PUBLIC_BRAND_TENANT_COOKIE") || `${storagePrefix}_tenant_id`,
-    companyLegalName:
-      env("NEXT_PUBLIC_BRAND_COMPANY_LEGAL") || "Platform Inc.",
+    envVarPrefix: env("NEXT_PUBLIC_BRAND_ENV_PREFIX") || storagePrefix.toUpperCase(),
+    toolPrefix: env("NEXT_PUBLIC_BRAND_TOOL_PREFIX") || storagePrefix,
+    tenantCookieName: env("NEXT_PUBLIC_BRAND_TENANT_COOKIE") || `${storagePrefix}_tenant_id`,
+    companyLegalName: env("NEXT_PUBLIC_BRAND_COMPANY_LEGAL") || "Platform Inc.",
     price: env("NEXT_PUBLIC_BRAND_PRICE"),
   };
 }

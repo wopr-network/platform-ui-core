@@ -193,7 +193,9 @@ vi.mock("@/lib/api", async (importOriginal) => {
     saveProviderKey: vi.fn().mockResolvedValue({ ok: true, id: "test-id", provider: "openai" }),
     updateProviderModel: vi.fn().mockResolvedValue(undefined),
     listApiKeys: vi.fn().mockResolvedValue(MOCK_API_KEYS),
-    createApiKey: vi.fn().mockResolvedValue({ key: MOCK_API_KEYS[0], secret: "platform_test_secret" }),
+    createApiKey: vi
+      .fn()
+      .mockResolvedValue({ key: MOCK_API_KEYS[0], secret: "platform_test_secret" }),
     revokeApiKey: vi.fn().mockResolvedValue(undefined),
     getBillingUsage: vi.fn().mockResolvedValue(MOCK_BILLING_USAGE),
     createBillingPortalSession: vi
@@ -445,7 +447,9 @@ describe("Providers page - billing gate", () => {
     await user.click(hostedRadio);
 
     // Dialog opens — wait for billing check to complete
-    expect(await screen.findByText(/Enable Platform Hosted for Text Generation/)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Enable Platform Hosted for Text Generation/),
+    ).toBeInTheDocument();
     // With a payment method on file, the Enable Hosted button should appear
     expect(await screen.findByRole("button", { name: "Enable Hosted" })).toBeInTheDocument();
   });

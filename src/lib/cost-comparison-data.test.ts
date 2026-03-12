@@ -26,7 +26,7 @@ describe("buildCostComparison", () => {
     const result = buildCostComparison([], []);
     expect(result.items).toEqual([]);
     expect(result.totalDiyMonthly).toBe("$0");
-    expect(result.totalWoprMonthly).toBe("$5");
+    expect(result.totalPlatformMonthly).toBe("$5");
     expect(result.accountsRequired).toBe(0);
     expect(result.apiKeysRequired).toBe(0);
   });
@@ -55,7 +55,7 @@ describe("buildCostComparison", () => {
     // image-gen (3000 cents) + voice (1500 cents) = 4500 cents = $45
     const result = buildCostComparison([], ["image-gen", "voice"]);
     expect(result.totalDiyMonthly).toBe("$45+");
-    expect(result.totalWoprMonthly).toBe("$5");
+    expect(result.totalPlatformMonthly).toBe("$5");
   });
 
   it("deduplicates accounts across items sharing the same provider", () => {

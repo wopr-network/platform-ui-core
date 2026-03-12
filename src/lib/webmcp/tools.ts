@@ -6,7 +6,7 @@ import {
   listInstances,
 } from "@/lib/api";
 import { installPlugin } from "@/lib/bot-settings-data";
-import { brandName, eventName, productName } from "@/lib/brand-config";
+import { brandName, eventName, getBrandConfig, productName } from "@/lib/brand-config";
 import { listMarketplacePlugins } from "@/lib/marketplace-data";
 
 /** Actions that require UI confirmation before executing. */
@@ -19,9 +19,10 @@ const DESTRUCTIVE_ACTIONS = new Set(["destroy"]);
 export type ConfirmCallback = (message: string) => Promise<boolean>;
 
 export function getWebMCPTools(confirm: ConfirmCallback): ModelContextTool[] {
+  const t = getBrandConfig().toolPrefix;
   return [
     {
-      name: "wopr_list_instances",
+      name: `${t}_list_instances`,
       description: `List all ${productName()} instances with their status, uptime, template, provider, and installed plugins.`,
       inputSchema: {
         type: "object",
@@ -37,7 +38,7 @@ export function getWebMCPTools(confirm: ConfirmCallback): ModelContextTool[] {
       },
     },
     {
-      name: "wopr_create_instance",
+      name: `${t}_create_instance`,
       description: `Create a new ${productName()} instance from a preset.`,
       inputSchema: {
         type: "object",
@@ -80,7 +81,7 @@ export function getWebMCPTools(confirm: ConfirmCallback): ModelContextTool[] {
       },
     },
     {
-      name: "wopr_control_instance",
+      name: `${t}_control_instance`,
       description: `Control a ${productName()} instance: start, stop, or restart it. The 'destroy' action requires UI confirmation.`,
       inputSchema: {
         type: "object",
@@ -116,7 +117,7 @@ export function getWebMCPTools(confirm: ConfirmCallback): ModelContextTool[] {
       },
     },
     {
-      name: "wopr_install_plugin",
+      name: `${t}_install_plugin`,
       description: `Install a plugin on a ${productName()} instance.`,
       inputSchema: {
         type: "object",
@@ -156,7 +157,7 @@ export function getWebMCPTools(confirm: ConfirmCallback): ModelContextTool[] {
       },
     },
     {
-      name: "wopr_browse_plugins",
+      name: `${t}_browse_plugins`,
       description: `Browse available plugins in the ${brandName()} marketplace. Optionally filter by category.`,
       inputSchema: {
         type: "object",
@@ -191,7 +192,7 @@ export function getWebMCPTools(confirm: ConfirmCallback): ModelContextTool[] {
       },
     },
     {
-      name: "wopr_get_instance_health",
+      name: `${t}_get_instance_health`,
       description: `Get detailed health information for a ${productName()} instance, including uptime, session count, plugin health, and provider status.`,
       inputSchema: {
         type: "object",
@@ -210,7 +211,7 @@ export function getWebMCPTools(confirm: ConfirmCallback): ModelContextTool[] {
       },
     },
     {
-      name: "wopr_view_logs",
+      name: `${t}_view_logs`,
       description: `View recent logs for a ${productName()} instance. Optionally filter by log level.`,
       inputSchema: {
         type: "object",

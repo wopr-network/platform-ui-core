@@ -221,15 +221,15 @@ describe("createOrgTopupCheckout", () => {
     const result = await createOrgTopupCheckout(
       "org-1",
       "price-abc",
-      "https://app.wopr.io/billing?success=true",
-      "https://app.wopr.io/billing?canceled=true",
+      "https://app.example.com/billing?success=true",
+      "https://app.example.com/billing?canceled=true",
     );
     expect(result).toBe(checkoutUrl);
     expect(mockOrgTopupCheckoutMutate).toHaveBeenCalledWith({
       orgId: "org-1",
       priceId: "price-abc",
-      successUrl: "https://app.wopr.io/billing?success=true",
-      cancelUrl: "https://app.wopr.io/billing?canceled=true",
+      successUrl: "https://app.example.com/billing?success=true",
+      cancelUrl: "https://app.example.com/billing?canceled=true",
     });
   });
 

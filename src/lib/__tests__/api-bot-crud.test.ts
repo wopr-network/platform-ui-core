@@ -90,7 +90,7 @@ describe("listInstances", () => {
           uptime: null,
           startedAt: null,
           createdAt: "2026-01-01T00:00:00Z",
-          env: { WOPR_PLUGINS_CHANNELS: "discord,slack" },
+          env: { PLATFORM_PLUGINS_CHANNELS: "discord,slack" },
           stats: null,
         },
       ],
@@ -145,7 +145,7 @@ describe("listInstances", () => {
     expect(result[0].status).toBe("stopped");
   });
 
-  it("parses plugins from WOPR_PLUGINS_OTHER env var", async () => {
+  it("parses plugins from PLATFORM_PLUGINS_OTHER env var", async () => {
     mockListInstances.mockResolvedValue({
       bots: [
         {
@@ -157,7 +157,7 @@ describe("listInstances", () => {
           startedAt: null,
           createdAt: "2026-01-01T00:00:00Z",
           env: {
-            WOPR_PLUGINS_OTHER: "plugin-a,plugin-b",
+            PLATFORM_PLUGINS_OTHER: "plugin-a,plugin-b",
           },
           stats: null,
         },
@@ -180,9 +180,9 @@ describe("listInstances", () => {
           startedAt: null,
           createdAt: "2026-01-01T00:00:00Z",
           env: {
-            WOPR_PLUGINS_OTHER: "plugin-a,plugin-b",
-            WOPR_PLUGINS_VOICE: "voice-plugin",
-            WOPR_PLUGINS_PROVIDERS: "provider-a",
+            PLATFORM_PLUGINS_OTHER: "plugin-a,plugin-b",
+            PLATFORM_PLUGINS_VOICE: "voice-plugin",
+            PLATFORM_PLUGINS_PROVIDERS: "provider-a",
           },
           stats: null,
         },

@@ -182,9 +182,9 @@ describe("bot-settings-data API functions", () => {
           method: "PATCH",
           body: JSON.stringify({
             env: {
-              WOPR_LLM_MODEL: "gpt-4",
-              WOPR_LLM_PROVIDER: "openai",
-              WOPR_LLM_MODE: "byok",
+              PLATFORM_LLM_MODEL: "gpt-4",
+              PLATFORM_LLM_PROVIDER: "openai",
+              PLATFORM_LLM_MODE: "byok",
             },
           }),
         }),
@@ -198,8 +198,8 @@ describe("bot-settings-data API functions", () => {
       await updateBotBrain("bot-1", { model: "claude-4" });
 
       const callBody = JSON.parse((fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body);
-      expect(callBody.env).toEqual({ WOPR_LLM_MODEL: "claude-4" });
-      expect(callBody.env.WOPR_LLM_PROVIDER).toBeUndefined();
+      expect(callBody.env).toEqual({ PLATFORM_LLM_MODEL: "claude-4" });
+      expect(callBody.env.PLATFORM_LLM_PROVIDER).toBeUndefined();
     });
   });
 
