@@ -61,6 +61,8 @@ export interface Instance {
   plugins: PluginInfo[];
   uptime: number | null;
   createdAt: string;
+  subdomain?: string;
+  nodeId?: string;
 }
 
 export interface PluginInfo {
@@ -93,6 +95,8 @@ export interface InstanceDetail extends Instance {
     memoryMb: number;
     cpuPercent: number;
   };
+  budgetCents?: number;
+  perAgentCents?: number;
 }
 
 // --- API client ---
@@ -315,6 +319,7 @@ export async function getInstance(id: string): Promise<InstanceDetail> {
     id,
   })) as BotStatusResponse;
   const uptimeMs = bot.uptime ? new Date(bot.uptime).getTime() : NaN;
+  const extra = bot as Record<string, unknown>;
   return {
     id: bot.id,
     name: bot.name,
@@ -324,6 +329,8 @@ export async function getInstance(id: string): Promise<InstanceDetail> {
     plugins: parsePluginsFromEnv(bot.env as Record<string, string> | undefined),
     uptime: Number.isNaN(uptimeMs) ? null : Math.floor((Date.now() - uptimeMs) / 1000),
     createdAt: (bot.createdAt as string | undefined) ?? new Date().toISOString(),
+    subdomain: (extra.subdomain as string | undefined) ?? undefined,
+    nodeId: (extra.nodeId as string | undefined) ?? undefined,
     config: bot.env ?? {},
     channelDetails: [],
     sessions: [],
@@ -331,6 +338,8 @@ export async function getInstance(id: string): Promise<InstanceDetail> {
       memoryMb: bot.stats?.memoryUsageMb ?? 0,
       cpuPercent: bot.stats?.cpuPercent ?? 0,
     },
+    budgetCents: typeof extra.budgetCents === "number" ? extra.budgetCents : undefined,
+    perAgentCents: typeof extra.perAgentCents === "number" ? extra.perAgentCents : undefined,
   };
 }
 
@@ -455,6 +464,18 @@ export async function updateInstanceConfig(id: string, env: Record<string, strin
   await fleetFetch(`/bots/${id}`, {
     method: "PATCH",
     body: JSON.stringify({ env }),
+  });
+}
+
+/** PUT /api/provision/budget — Update instance spending budget. */
+export async function updateInstanceBudget(
+  id: string,
+  budgetCents: number,
+  perAgentCents?: number,
+): Promise<void> {
+  await apiFetch("/api/provision/budget", {
+    method: "PUT",
+    body: JSON.stringify({ instanceId: id, budgetCents, perAgentCents }),
   });
 }
 
