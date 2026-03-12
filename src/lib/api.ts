@@ -477,7 +477,7 @@ export async function updateInstanceBudget(
   budgetCents: number,
   perAgentCents?: number,
 ): Promise<void> {
-  await apiFetch("/api/provision/budget", {
+  await apiFetch("/provision/budget", {
     method: "PUT",
     body: JSON.stringify({ instanceId: id, budgetCents, perAgentCents }),
   });

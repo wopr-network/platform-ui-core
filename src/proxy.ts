@@ -191,7 +191,8 @@ export default async function middleware(request: NextRequest) {
       request.cookies.get("better-auth.session_token") ??
       request.cookies.get("__Secure-better-auth.session_token");
     if (sessionToken?.value.trim()) {
-      const appDomain = process.env.NEXT_PUBLIC_APP_DOMAIN;
+      const appDomain =
+        process.env.NEXT_PUBLIC_BRAND_APP_DOMAIN || process.env.NEXT_PUBLIC_APP_DOMAIN;
       if (appDomain && !host.startsWith("app.")) {
         // On marketing domain — redirect to the app subdomain
         return withCsp(NextResponse.redirect(new URL(`https://${appDomain}/marketplace`)));

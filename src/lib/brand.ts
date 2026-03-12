@@ -53,7 +53,7 @@ export function getVision() {
         "Show something massive. Then reveal the price. The contrast does the selling.",
     },
     world:
-      `A world where anyone with $5 and an idea can have an army of AI workers ` +
+      `A world where anyone with ${config.price || "$5/month"} and an idea can have an army of AI workers ` +
       `running their business 24/7. No code. No infrastructure. No employees. ` +
       `Just a ${name} and a credit card.`,
     competitiveReality: {
