@@ -5,7 +5,7 @@ test.describe("Public pages (no auth required)", () => {
 		await page.goto("/pricing", { waitUntil: "domcontentloaded" });
 
 		// Hero heading
-		await expect(page.getByText(/WOPR pays for itself/i).first()).toBeVisible({
+		await expect(page.getByText(/Platform pays for itself/i).first()).toBeVisible({
 			timeout: 10000,
 		});
 

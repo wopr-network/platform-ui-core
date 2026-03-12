@@ -137,12 +137,12 @@ test.describe("Fleet overview and health", () => {
 			page.getByRole("heading", { name: "Fleet Health" }),
 		).toBeVisible({ timeout: 10000 });
 
-		// Verify empty state message (renders as "> FLEET EMPTY. NO WOPR BOT UNITS DEPLOYED.")
+		// Verify empty state message (renders as "> FLEET EMPTY. NO PLATFORM UNITS DEPLOYED.")
 		await expect(
 			page.getByText("FLEET EMPTY").first(),
 		).toBeVisible({ timeout: 5000 });
 		await expect(
-			page.getByText("NO WOPR BOT UNITS DEPLOYED").first(),
+			page.getByText("NO PLATFORM UNITS DEPLOYED").first(),
 		).toBeVisible();
 
 		// Verify "Deploy your first instance" CTA link points to /instances/new

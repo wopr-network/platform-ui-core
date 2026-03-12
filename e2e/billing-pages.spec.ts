@@ -217,8 +217,8 @@ test.describe("Billing Pages", () => {
       page.getByText("Simple pricing. No tiers. No gotchas.").first(),
     ).toBeVisible();
 
-    // Plan card title (rendered as uppercase CardTitle)
-    await expect(page.getByText("WOPR Bot").first()).toBeVisible();
+    // Plan card title (rendered as uppercase CardTitle, uses productName())
+    await expect(page.getByText("Platform").first()).toBeVisible();
 
     // Price: from pricingData.bot_price
     await expect(page.getByText(`$${pricingData.bot_price.amount}`).first()).toBeVisible();

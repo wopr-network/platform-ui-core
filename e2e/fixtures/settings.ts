@@ -364,7 +364,7 @@ export async function mockSettingsAPI(
       const newKey = {
         id: `key-${++state._apiKeyCounter}`,
         name: body?.name ?? "Untitled",
-        prefix: "wopr_",
+        prefix: "platform_",
         scope: body?.scope ?? "full",
         createdAt: new Date().toISOString(),
         lastUsedAt: null,
@@ -379,7 +379,7 @@ export async function mockSettingsAPI(
         contentType: "application/json",
         body: JSON.stringify({
           key: newKey,
-          secret: `wopr_test_${newKey.id}_secretkey123456789`,
+          secret: `platform_test_${newKey.id}_secretkey123456789`,
         }),
       });
     } else {

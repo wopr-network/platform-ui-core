@@ -21,8 +21,8 @@ async function setupFreshUser(page: Page) {
 	// Navigate to establish origin, then clear onboarding state
 	await page.goto("/onboarding");
 	await page.evaluate(() => {
-		localStorage.removeItem("wopr-onboarding-complete");
-		localStorage.removeItem("wopr-onboarding");
+		localStorage.removeItem("platform-onboarding-complete");
+		localStorage.removeItem("platform-onboarding");
 	});
 }
 

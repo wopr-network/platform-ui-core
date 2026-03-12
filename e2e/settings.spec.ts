@@ -182,7 +182,7 @@ test.describe("Settings: API Keys", () => {
 
     // Key secret should be shown
     await expect(page.getByText("Your new API key has been created").first()).toBeVisible();
-    await expect(page.getByText(/wopr_test_/).first()).toBeVisible();
+    await expect(page.getByText(/platform_test_/).first()).toBeVisible();
 
     // Dismiss the secret banner
     await page.getByRole("button", { name: "Dismiss" }).first().click();
@@ -201,7 +201,7 @@ test.describe("Settings: API Keys", () => {
     state.apiKeys.push({
       id: "existing-key",
       name: "Old Key",
-      prefix: "wopr_",
+      prefix: "platform_",
       scope: "full",
       createdAt: new Date().toISOString(),
       lastUsedAt: null,
@@ -251,7 +251,7 @@ test.describe("Settings: Brain", () => {
     await page.goto("/settings/brain");
 
     await expect(page.getByRole("heading", { name: "Brain" }).first()).toBeVisible();
-    await expect(page.getByText("Choose which AI model powers your WOPR").first()).toBeVisible();
+    await expect(page.getByText("Choose which AI model powers your Platform").first()).toBeVisible();
 
     // Current model card should be visible
     await expect(page.getByTestId("current-model").first()).toBeVisible();

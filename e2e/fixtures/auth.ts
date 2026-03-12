@@ -218,7 +218,7 @@ export async function mockAuthAPI(page: Page) {
  */
 export async function bypassOnboarding(page: Page) {
 	await page.evaluate(() => {
-		localStorage.setItem("wopr-onboarding-complete", "1");
+		localStorage.setItem("platform-onboarding-complete", "1");
 	});
 }
 

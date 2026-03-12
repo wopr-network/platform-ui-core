@@ -8,8 +8,8 @@ test("homepage loads with status 200", async ({ page }) => {
 
 test("homepage has correct title and nav", async ({ page }) => {
 	await page.goto("/", { waitUntil: "domcontentloaded" });
-	await expect(page).toHaveTitle(/WOPR/);
-	await expect(page.getByRole("link", { name: "WOPR" })).toBeVisible();
+	await expect(page).toHaveTitle(/Platform/);
+	await expect(page.getByRole("link", { name: "Platform" })).toBeVisible();
 	await expect(page.getByRole("link", { name: "Sign in" })).toBeVisible();
 });
 

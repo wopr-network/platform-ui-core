@@ -7,7 +7,7 @@ async function loginToMarketplace(page: import("@playwright/test").Page) {
   await bypassOnboarding(page);
   // Also bypass first-visit hero overlay
   await page.evaluate(() => {
-    localStorage.setItem("wopr-marketplace-visited", "1");
+    localStorage.setItem("platform-marketplace-visited", "1");
   });
   await page.getByLabel("Email").fill("e2e@wopr.test");
   await page.getByLabel("Password").fill("TestPassword123!");
