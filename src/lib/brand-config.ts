@@ -14,10 +14,10 @@ export interface BrandConfig {
   /** Short brand identifier (e.g. "WOPR", "Paperclip") */
   brandName: string;
 
-  /** Primary domain (e.g. "wopr.bot", "runpaperclip.ai") */
+  /** Primary domain (e.g. "wopr.bot", "runpaperclip.com") */
   domain: string;
 
-  /** App subdomain (e.g. "app.wopr.bot", "app.runpaperclip.ai") */
+  /** App subdomain (e.g. "app.wopr.bot", "app.runpaperclip.com") */
   appDomain: string;
 
   /** One-line tagline */
