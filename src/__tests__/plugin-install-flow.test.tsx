@@ -508,6 +508,10 @@ describe("Plugin Toggle (Enable/Disable)", () => {
       expect(screen.getByText("Cross-field validation failed")).toBeInTheDocument();
     });
 
+    // After typing in any field the _form banner should clear immediately
+    await user.type(tokenInput, "x");
+    expect(screen.queryByText("Cross-field validation failed")).not.toBeInTheDocument();
+
     injectPathlessZodError.value = false;
   });
 });
