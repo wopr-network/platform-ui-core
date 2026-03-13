@@ -211,8 +211,16 @@ export function InstallWizard({ plugin, onComplete, onCancel }: InstallWizardPro
     }
     const stepErrors: Record<string, string> = {};
     for (const issue of result.error.issues) {
-      const key = issue.path[0] as string;
-      stepErrors[key] = issue.message;
+      if (issue.path.length > 0) {
+        const key = issue.path[0] as string;
+        stepErrors[key] = issue.message;
+      } else {
+        // Object-level errors (refinements, superRefine, union discriminants) have empty path.
+        // Collect under _form so they render in a general error area.
+        stepErrors._form = stepErrors._form
+          ? `${stepErrors._form}. ${issue.message}`
+          : issue.message;
+      }
     }
     setErrors(stepErrors);
     return false;
@@ -608,6 +616,7 @@ function SetupStepForm({
 
   return (
     <div className="space-y-4">
+      {errors._form && <p className="text-xs text-destructive">{errors._form}</p>}
       {step.instruction && <p className="text-sm text-muted-foreground">{step.instruction}</p>}
       {step.externalUrl && (
         <a

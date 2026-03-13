@@ -43,24 +43,24 @@ vi.mock("framer-motion", () => {
 });
 
 // vi.hoisted runs before module imports so TEST_PLUGINS and mocks are available in vi.mock factories
-const { TEST_PLUGINS, mockInstallPlugin, mockListBots, mockListInstalledPlugins } = vi.hoisted(
-  () => {
+const { TEST_PLUGINS, ALL_PLUGINS, mockInstallPlugin, mockListBots, mockListInstalledPlugins } =
+  vi.hoisted(() => {
     const mockInstallPlugin = vi.fn();
     const mockListBots = vi
       .fn()
       .mockResolvedValue([{ id: "bot-001", name: "My Bot", state: "running" }]);
     const mockListInstalledPlugins = vi.fn().mockResolvedValue([]);
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { INSTALL_FLOW_TEST_PLUGINS } =
+    const { INSTALL_FLOW_TEST_PLUGINS, MARKETPLACE_TEST_PLUGINS } =
       require("./fixtures/mock-manifests-data") as typeof import("./fixtures/mock-manifests");
     return {
       TEST_PLUGINS: INSTALL_FLOW_TEST_PLUGINS,
+      ALL_PLUGINS: MARKETPLACE_TEST_PLUGINS,
       mockInstallPlugin,
       mockListBots,
       mockListInstalledPlugins,
     };
-  },
-);
+  });
 
 const mockPush = vi.fn();
 const mockParams: { plugin?: string } = {};
@@ -440,6 +440,35 @@ describe("Plugin Toggle (Enable/Disable)", () => {
       expect(screen.getByText(/No bots found/i)).toBeInTheDocument();
     });
     expect(screen.getByText("Create a Bot")).toBeInTheDocument();
+  });
+
+  it("validateFields surfaces path-less Zod errors visibly instead of swallowing them", async () => {
+    const user = userEvent.setup();
+    const { InstallWizard } = await import("../components/marketplace/install-wizard");
+
+    // Use the Discord plugin which has a setup step with a required botToken field
+    const discordPlugin = ALL_PLUGINS.find(
+      (p: Record<string, unknown>) => p.id === "discord",
+    ) as unknown as PluginManifest;
+
+    render(<InstallWizard plugin={discordPlugin} onComplete={vi.fn()} onCancel={vi.fn()} />);
+
+    // Select bot and advance to setup
+    const botButton = await screen.findByText("My Bot");
+    await user.click(botButton);
+    await user.click(screen.getByText("Continue"));
+
+    // Skip the first setup step (no fields — "Create a Discord Bot")
+    await user.click(screen.getByText("Continue"));
+
+    // Now on "Enter Bot Token" step with required botToken field
+    // Leave botToken empty and click Continue to trigger validation
+    await user.click(screen.getByText("Continue"));
+
+    // The error for the required field should be visible (not swallowed into stepErrors["undefined"])
+    await waitFor(() => {
+      expect(screen.getByText(/Bot Token is required|expected string/i)).toBeInTheDocument();
+    });
   });
 });
 
