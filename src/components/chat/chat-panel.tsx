@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { type Variants, motion } from "framer-motion";
 import { Maximize2, X } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
@@ -19,7 +19,7 @@ interface ChatPanelProps {
   onFullscreen: () => void;
 }
 
-const panelVariants = {
+const panelVariants: Variants = {
   hidden: { opacity: 0, y: 20, scale: 0.95 },
   visible: {
     opacity: 1,
@@ -30,7 +30,7 @@ const panelVariants = {
   exit: { opacity: 0, y: 20, scale: 0.95, transition: { duration: 0.15 } },
 };
 
-const fullscreenVariants = {
+const fullscreenVariants: Variants = {
   hidden: { opacity: 0 },
   visible: { opacity: 1, transition: { duration: 0.2 } },
   exit: { opacity: 0, transition: { duration: 0.15 } },
