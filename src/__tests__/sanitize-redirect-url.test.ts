@@ -25,6 +25,21 @@ describe("sanitizeRedirectUrl", () => {
     expect(sanitizeRedirectUrl("/%252F%252Fevil.com")).toBe("/");
   });
 
+  it("rejects backslash-relative URLs", () => {
+    expect(sanitizeRedirectUrl("/\\evil.com")).toBe("/");
+    expect(sanitizeRedirectUrl("/%5Cevil.com")).toBe("/");
+  });
+
+  it("returns / when decode loop exceeds max iterations", () => {
+    // Build a string with deeply nested encoding that requires >5 rounds to decode
+    let tail = "//evil.com";
+    for (let i = 0; i < 10; i++) {
+      tail = encodeURIComponent(tail);
+    }
+    const deeplyEncoded = `/${tail}`;
+    expect(sanitizeRedirectUrl(deeplyEncoded)).toBe("/");
+  });
+
   it("falls back to / for null and undefined", () => {
     expect(sanitizeRedirectUrl(null)).toBe("/");
     expect(sanitizeRedirectUrl(undefined)).toBe("/");

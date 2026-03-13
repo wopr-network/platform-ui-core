@@ -7,8 +7,8 @@ export function cn(...inputs: ClassValue[]) {
 
 /**
  * Validate a redirect URL is a safe relative path.
- * Accepts paths starting with "/" but rejects protocol-relative URLs like "//evil.com".
- * Also rejects percent-encoded variants (e.g. "/%2F%2Fevil.com") that decode to "//".
+ * Fully decodes percent-encoding (up to 5 iterations) then rejects
+ * protocol-relative URLs ("//evil.com") and backslash-relative URLs ("/\evil.com").
  * Falls back to "/" for any unsafe value.
  */
 export function sanitizeRedirectUrl(raw: string | null | undefined): string {
@@ -16,23 +16,28 @@ export function sanitizeRedirectUrl(raw: string | null | undefined): string {
     return "/";
   }
 
-  // Decode percent-encoding to catch bypass attempts like /%2F%2Fevil.com.
+  // Decode percent-encoding to catch bypass attempts like /%2F%2Fevil.com or /%5Cevil.com.
   // Loop because double-encoding is possible (/%252F → /%2F → //).
+  // Cap iterations to prevent abuse via deeply nested encoding.
+  const MAX_DECODE_ITERATIONS = 5;
   let decoded = raw;
   try {
-    let prev = decoded;
-    decoded = decodeURIComponent(decoded);
-    // Iteratively decode until stable (handles double/triple encoding)
-    while (decoded !== prev) {
+    let prev: string;
+    let iterations = 0;
+    do {
       prev = decoded;
       decoded = decodeURIComponent(decoded);
-    }
+      iterations++;
+      if (iterations > MAX_DECODE_ITERATIONS) {
+        return "/";
+      }
+    } while (decoded !== prev);
   } catch {
     // Malformed percent-encoding — reject
     return "/";
   }
 
-  if (decoded.startsWith("//")) {
+  if (decoded.startsWith("//") || decoded.startsWith("/\\")) {
     return "/";
   }
 
