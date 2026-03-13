@@ -174,6 +174,7 @@ export function InstallWizard({ plugin, onComplete, onCancel }: InstallWizardPro
     setErrors((prev) => {
       const next = { ...prev };
       delete next[key];
+      delete next._form;
       return next;
     });
   }, []);
