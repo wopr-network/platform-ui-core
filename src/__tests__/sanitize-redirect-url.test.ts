@@ -40,6 +40,11 @@ describe("sanitizeRedirectUrl", () => {
     expect(sanitizeRedirectUrl(deeplyEncoded)).toBe("/");
   });
 
+  it("allows valid paths with percent-encoded characters (no false rejection)", () => {
+    // /100%25 decodes to /100% — a literal % sign, not a bypass — must not be rejected
+    expect(sanitizeRedirectUrl("/100%25")).toBe("/100%25");
+  });
+
   it("falls back to / for null and undefined", () => {
     expect(sanitizeRedirectUrl(null)).toBe("/");
     expect(sanitizeRedirectUrl(undefined)).toBe("/");
