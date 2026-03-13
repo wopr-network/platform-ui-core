@@ -74,6 +74,34 @@ export interface BrandConfig {
  * its env vars in .env (or .env.local) and the config picks them up
  * at build time — no code changes required.
  */
+/**
+ * Parse NEXT_PUBLIC_BRAND_NAV_ITEMS env var.
+ * Format: JSON array of {label, href} objects.
+ * Example: '[{"label":"Home","href":"/"},{"label":"Settings","href":"/settings"}]'
+ * Returns null if unset or invalid (falls back to defaults).
+ */
+function parseNavItems(raw: string | undefined): Array<{ label: string; href: string }> | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    if (
+      Array.isArray(parsed) &&
+      parsed.every(
+        (item: unknown) =>
+          typeof item === "object" &&
+          item !== null &&
+          typeof (item as { label?: unknown }).label === "string" &&
+          typeof (item as { href?: unknown }).href === "string",
+      )
+    ) {
+      return parsed as Array<{ label: string; href: string }>;
+    }
+  } catch {
+    // Invalid JSON — fall back to defaults
+  }
+  return null;
+}
+
 function envDefaults(): BrandConfig {
   // Direct process.env.X access is required — Next.js Turbopack only inlines
   // NEXT_PUBLIC_* vars when accessed as literal dot-property references.
@@ -102,7 +130,7 @@ function envDefaults(): BrandConfig {
     companyLegalName: process.env.NEXT_PUBLIC_BRAND_COMPANY_LEGAL || "Platform Inc.",
     price: process.env.NEXT_PUBLIC_BRAND_PRICE || "",
     homePath: process.env.NEXT_PUBLIC_BRAND_HOME_PATH || "/marketplace",
-    navItems: [
+    navItems: parseNavItems(process.env.NEXT_PUBLIC_BRAND_NAV_ITEMS) ?? [
       { label: "Dashboard", href: "/dashboard" },
       { label: "Chat", href: "/chat" },
       { label: "Marketplace", href: "/marketplace" },
