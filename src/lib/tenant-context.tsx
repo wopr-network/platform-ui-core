@@ -14,6 +14,8 @@ let _activeTenantId = "";
 /**
  * Set the active tenant ID from server context (called by TenantProvider on mount
  * and on tenant switch). Also used by tests.
+ *
+ * @internal Not for production code. Import in tests only.
  */
 export function setServerTenantId(tenantId: string): void {
   _activeTenantId = tenantId;
@@ -72,18 +74,6 @@ export function TenantProvider({ children, initialTenantId = "" }: TenantProvide
   const [orgsLoaded, setOrgsLoaded] = useState(false);
   const [activeTenantId, setActiveTenantId] = useState<string>(initialTenantId);
 
-  // Sync module-level variable on mount and when tenant changes
-  useEffect(() => {
-    _activeTenantId = activeTenantId;
-  }, [activeTenantId]);
-
-  // Also set on initial mount for SSR → client hydration
-  useEffect(() => {
-    if (initialTenantId) {
-      _activeTenantId = initialTenantId;
-    }
-  }, [initialTenantId]);
-
   // Fetch orgs once user is available
   useEffect(() => {
     if (!user) return;
@@ -131,9 +121,13 @@ export function TenantProvider({ children, initialTenantId = "" }: TenantProvide
     return user.id;
   }, [user, activeTenantId, tenants]);
 
-  // Keep module-level var in sync with resolved value
+  // Keep module-level var in sync with resolved value.
+  // Guard on truthy value so an initial render with user=null (resolvedTenantId="")
+  // does not overwrite a value already set by switchTenant or SSR hydration.
   useEffect(() => {
-    _activeTenantId = resolvedTenantId;
+    if (resolvedTenantId) {
+      _activeTenantId = resolvedTenantId;
+    }
   }, [resolvedTenantId]);
 
   const switchTenant = useCallback(

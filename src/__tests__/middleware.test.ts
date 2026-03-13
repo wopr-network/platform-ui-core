@@ -737,6 +737,31 @@ describe("tenant cookie forwarding", () => {
     expect(isPassThrough(res)).toBe(true);
     expect(res.headers.get("x-middleware-request-x-tenant-id")).toBeNull();
   });
+
+  it("strips client-supplied x-tenant-id header when no tenant cookie is set (spoofing prevention)", async () => {
+    const req = buildRequest("/marketplace", {
+      cookies: { "better-auth.session_token": "valid-token" },
+      headers: { "x-tenant-id": "attacker-tenant" },
+    });
+    const res = await middleware(req);
+    expect(isPassThrough(res)).toBe(true);
+    // The attacker's header must not be forwarded to server components
+    expect(res.headers.get("x-middleware-request-x-tenant-id")).toBeNull();
+  });
+
+  it("replaces client-supplied x-tenant-id with the trusted cookie value when cookie is set", async () => {
+    const req = buildRequest("/marketplace", {
+      cookies: {
+        "better-auth.session_token": "valid-token",
+        platform_tenant_id: "real-tenant",
+      },
+      headers: { "x-tenant-id": "attacker-tenant" },
+    });
+    const res = await middleware(req);
+    expect(isPassThrough(res)).toBe(true);
+    // Must be the cookie value, not the client-supplied value
+    expect(res.headers.get("x-middleware-request-x-tenant-id")).toBe("real-tenant");
+  });
 });
 
 // ---------------------------------------------------------------------------
