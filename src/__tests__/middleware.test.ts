@@ -119,6 +119,41 @@ describe("middleware", () => {
   });
 
   // ---------------------------------------------------------------------------
+  // Open redirect prevention — callbackUrl sanitization
+  // ---------------------------------------------------------------------------
+  describe("callbackUrl sanitization (open redirect prevention)", () => {
+    it("sanitizes percent-encoded protocol-relative pathname in callbackUrl", async () => {
+      // /%2F%2Fevil-redirect decodes to //evil-redirect — must be rejected.
+      // Path has no dot so it reaches the session check (not static-file bypass).
+      const req = buildRequest("/%2F%2Fevil-redirect");
+      const res = await middleware(req);
+      expect(isRedirect(res)).toBe(true);
+      const loc = redirectPath(res);
+      expect(loc).toContain("/login");
+      // callbackUrl must be "/" (sanitized), not the malicious path
+      expect(loc).toContain("callbackUrl=%2F");
+      expect(loc).not.toContain("evil-redirect");
+    });
+
+    it("preserves legitimate callbackUrl for normal paths", async () => {
+      const req = buildRequest("/settings/profile");
+      const res = await middleware(req);
+      expect(isRedirect(res)).toBe(true);
+      const loc = redirectPath(res);
+      expect(loc).toContain("callbackUrl=%2Fsettings%2Fprofile");
+    });
+
+    it("sanitizes mixed-case percent-encoded bypass attempts", async () => {
+      // /%2f%2Fevil-redirect also decodes to //evil-redirect — path has no dot.
+      const req = buildRequest("/%2f%2Fevil-redirect");
+      const res = await middleware(req);
+      expect(isRedirect(res)).toBe(true);
+      const loc = redirectPath(res);
+      expect(loc).not.toContain("evil-redirect");
+    });
+  });
+
+  // ---------------------------------------------------------------------------
   // Authenticated pass-through
   // ---------------------------------------------------------------------------
   describe("authenticated pass-through", () => {

@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
+import { sanitizeRedirectUrl } from "@/lib/utils";
 
 const log = logger("middleware");
 
@@ -246,7 +247,7 @@ export default async function middleware(request: NextRequest) {
 
   if (!sessionToken || !sessionToken.value.trim()) {
     const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("callbackUrl", pathname);
+    loginUrl.searchParams.set("callbackUrl", sanitizeRedirectUrl(pathname));
     return withCsp(NextResponse.redirect(loginUrl));
   }
 
