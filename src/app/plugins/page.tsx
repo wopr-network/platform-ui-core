@@ -73,6 +73,7 @@ export default function PluginsPage() {
   const [catalog, setCatalog] = useState<PluginManifest[]>([]);
   const [loading, setLoading] = useState(true);
   const [installed, setInstalled] = useState<InstalledPlugin[]>([]);
+  const installedRef = useRef<InstalledPlugin[]>([]);
   const [search, setSearch] = useState("");
   const [bots, setBots] = useState<BotSummary[]>([]);
   const [selectedBotId, setSelectedBotId] = useState<string | null>(null);
@@ -129,6 +130,9 @@ export default function PluginsPage() {
     loadCatalog();
   }, [loadCatalog]);
 
+  // Keep installedRef current so togglePlugin can read installed without being in useCallback deps
+  installedRef.current = installed;
+
   // Load installed plugins when bot changes
   useEffect(() => {
     if (!selectedBotId) {
@@ -143,7 +147,7 @@ export default function PluginsPage() {
   const togglePlugin = useCallback(
     async (pluginId: string) => {
       if (!selectedBotId || togglingRef.current) return;
-      const plugin = installed.find((p) => p.pluginId === pluginId);
+      const plugin = installedRef.current.find((p) => p.pluginId === pluginId);
       if (!plugin) return;
 
       // Set ref synchronously BEFORE any await — prevents race
@@ -175,7 +179,7 @@ export default function PluginsPage() {
         setToggling(null);
       }
     },
-    [selectedBotId, installed],
+    [selectedBotId],
   );
 
   const installedManifests = useMemo(() => {

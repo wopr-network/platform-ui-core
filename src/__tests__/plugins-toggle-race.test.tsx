@@ -104,6 +104,13 @@ describe("togglePlugin race condition", () => {
   });
 
   it("blocks a second toggle while the first is in flight (stale closure exposes race)", async () => {
+    // Use a deferred promise instead of a real timer to avoid async leak on test teardown
+    let resolveToggle!: () => void;
+    const togglePromise = new Promise<void>((resolve) => {
+      resolveToggle = resolve;
+    });
+    mockTogglePluginEnabled.mockReturnValue(togglePromise);
+
     render(<PluginsPage />);
 
     // Wait for the page to fully load
@@ -126,6 +133,11 @@ describe("togglePlugin race condition", () => {
     await waitFor(() => {
       // If the stale closure bug exists, this will be 2. With the ref fix, it will be 1.
       expect(mockTogglePluginEnabled).toHaveBeenCalledTimes(1);
+    });
+
+    // Resolve the deferred promise to drain the pending async operation before teardown
+    await act(async () => {
+      resolveToggle();
     });
   });
 
