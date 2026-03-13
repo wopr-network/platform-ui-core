@@ -54,7 +54,14 @@ export interface BrandConfig {
   /** Base pricing display string (e.g. "$5/month") */
   price: string;
 
-  /** Post-auth redirect path (default "/marketplace") */
+  /**
+   * Post-auth redirect path (default "/marketplace").
+   *
+   * The Next.js middleware reads this from NEXT_PUBLIC_BRAND_HOME_PATH
+   * at build time. setBrandConfig({ homePath }) only affects client-side
+   * redirects. Brand shells must set the env var AND call setBrandConfig
+   * to keep both paths in sync.
+   */
   homePath: string;
 
   /** Sidebar navigation items. Each has a label and href. */
