@@ -79,6 +79,10 @@ const CSRF_EXEMPT_AUTH_PATHS = [
 
 const PLATFORM_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
+const TENANT_COOKIE_NAME =
+  process.env.NEXT_PUBLIC_BRAND_TENANT_COOKIE ||
+  `${process.env.NEXT_PUBLIC_BRAND_STORAGE_PREFIX || "platform"}_tenant_id`;
+
 /**
  * Validate that a state-changing request originates from this application.
  * Checks the Origin header (preferred) with Referer as fallback.
@@ -168,6 +172,13 @@ export default async function middleware(request: NextRequest) {
   function nextWithNonce(): NextResponse {
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set("x-nonce", nonce);
+
+    // Forward HttpOnly tenant cookie as request header for server components
+    const tenantCookie = request.cookies.get(TENANT_COOKIE_NAME);
+    if (tenantCookie?.value) {
+      requestHeaders.set("x-tenant-id", tenantCookie.value);
+    }
+
     return NextResponse.next({ request: { headers: requestHeaders } });
   }
 

@@ -714,6 +714,32 @@ describe("CSP style-src directive", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Tenant cookie forwarding (WOP-2114)
+// ---------------------------------------------------------------------------
+describe("tenant cookie forwarding", () => {
+  it("forwards tenant cookie as x-tenant-id request header for authenticated users", async () => {
+    const req = buildRequest("/marketplace", {
+      cookies: {
+        "better-auth.session_token": "valid-token",
+        platform_tenant_id: "org-456",
+      },
+    });
+    const res = await middleware(req);
+    expect(isPassThrough(res)).toBe(true);
+    expect(res.headers.get("x-middleware-request-x-tenant-id")).toBe("org-456");
+  });
+
+  it("does not set x-tenant-id header when no tenant cookie present", async () => {
+    const req = buildRequest("/marketplace", {
+      cookies: { "better-auth.session_token": "valid-token" },
+    });
+    const res = await middleware(req);
+    expect(isPassThrough(res)).toBe(true);
+    expect(res.headers.get("x-middleware-request-x-tenant-id")).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
 // config export
 // ---------------------------------------------------------------------------
 describe("middleware config", () => {
