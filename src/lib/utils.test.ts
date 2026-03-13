@@ -33,6 +33,15 @@ describe("sanitizeRedirectUrl", () => {
     expect(sanitizeRedirectUrl("//evil.com")).toBe("/");
   });
 
+  it("rejects percent-encoded protocol-relative URLs", () => {
+    expect(sanitizeRedirectUrl("/%2F%2Fevil.com")).toBe("/");
+    expect(sanitizeRedirectUrl("/%2f%2fevil.com")).toBe("/");
+  });
+
+  it("rejects double-encoded protocol-relative URLs", () => {
+    expect(sanitizeRedirectUrl("/%252F%252Fevil.com")).toBe("/");
+  });
+
   it("rejects absolute URLs", () => {
     expect(sanitizeRedirectUrl("https://evil.com")).toBe("/");
   });

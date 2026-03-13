@@ -18,6 +18,13 @@ describe("sanitizeRedirectUrl", () => {
     expect(sanitizeRedirectUrl("//evil.com/path")).toBe("/");
   });
 
+  it("rejects percent-encoded protocol-relative URLs (bypass attempt)", () => {
+    expect(sanitizeRedirectUrl("/%2F%2Fevil.com")).toBe("/");
+    expect(sanitizeRedirectUrl("/%2f%2fevil.com")).toBe("/");
+    expect(sanitizeRedirectUrl("/%2F/evil.com")).toBe("/");
+    expect(sanitizeRedirectUrl("/%252F%252Fevil.com")).toBe("/");
+  });
+
   it("falls back to / for null and undefined", () => {
     expect(sanitizeRedirectUrl(null)).toBe("/");
     expect(sanitizeRedirectUrl(undefined)).toBe("/");
