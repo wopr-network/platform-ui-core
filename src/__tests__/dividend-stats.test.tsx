@@ -1,5 +1,5 @@
 import { render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Stub fetch globally before any module imports
 const mockFetch = vi.fn();
@@ -16,6 +16,10 @@ describe("DividendStats", () => {
     vi.resetModules();
   });
 
+  afterAll(() => {
+    vi.unmock("@/lib/api");
+  });
+
   it("renders fallback dashes when API returns non-ok response", async () => {
     mockFetch.mockResolvedValue({
       ok: false,
@@ -27,6 +31,10 @@ describe("DividendStats", () => {
     const { DividendStats } = await import("@/components/pricing/dividend-stats");
     render(<DividendStats />);
 
+    // Wait for fetch to complete (loaded=true), then verify fallback dashes
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalled();
+    });
     // fetchDividendStats returns null on non-ok → pool/users/dividend stay 0 → "--" shown
     await waitFor(() => {
       expect(screen.getByTestId("pool-amount")).toHaveTextContent("--");
@@ -63,6 +71,10 @@ describe("DividendStats", () => {
     const { DividendStats } = await import("@/components/pricing/dividend-stats");
     render(<DividendStats />);
 
+    // Wait for fetch to complete, then verify fallback dashes
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalled();
+    });
     // fetchDividendStats catches network errors and returns null → component shows "--"
     await waitFor(() => {
       expect(screen.getByTestId("pool-amount")).toHaveTextContent("--");
@@ -82,6 +94,10 @@ describe("DividendStats", () => {
     const { DividendStats } = await import("@/components/pricing/dividend-stats");
     render(<DividendStats />);
 
+    // Wait for fetch to complete (loaded=true)
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalled();
+    });
     // fetchDividendStats returns null (no throw) → component .then() runs, data is null
     // → loaded=true, no error set, just "--" fallback
     await waitFor(() => {
