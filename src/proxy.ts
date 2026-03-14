@@ -31,7 +31,7 @@ function buildCsp(nonce: string, requestUrl?: string): string {
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://js.stripe.com`,
     ...(NONCE_STYLES_ENABLED
-      ? [`style-src-elem 'self' 'nonce-${nonce}'`, "style-src-attr 'unsafe-inline'"]
+      ? [`style-src-elem 'self' 'unsafe-inline' 'nonce-${nonce}'`, "style-src-attr 'unsafe-inline'"]
       : ["style-src 'self' 'unsafe-inline'"]),
     "img-src 'self' data: blob:",
     "font-src 'self'",
