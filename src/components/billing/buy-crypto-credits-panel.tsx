@@ -8,7 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   createCryptoCheckout,
+  createEthCheckout,
   createStablecoinCheckout,
+  type EthCheckoutResult,
   type StablecoinCheckoutResult,
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -27,7 +29,17 @@ const STABLECOIN_TOKENS = [
   { token: "DAI", label: "DAI", chain: "base", chainLabel: "Base" },
 ];
 
-type PaymentMethod = "btc" | "stablecoin";
+type PaymentMethod = "btc" | "stablecoin" | "eth";
+
+/** Format wei (BigInt string) to ETH string without Number precision loss. */
+function formatWeiToEth(weiStr: string): string {
+  const wei = BigInt(weiStr);
+  const divisor = BigInt("1000000000000000000");
+  const whole = wei / divisor;
+  const frac = wei % divisor;
+  const fracStr = frac.toString().padStart(18, "0").slice(0, 6);
+  return `${whole}.${fracStr}`;
+}
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
@@ -52,7 +64,7 @@ function StablecoinDeposit({
   checkout: StablecoinCheckoutResult;
   onReset: () => void;
 }) {
-  const [confirmed, setConfirmed] = useState(false);
+  const [confirmed, _setConfirmed] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -122,6 +134,21 @@ export function BuyCryptoCreditPanel() {
   const [stablecoinCheckout, setStablecoinCheckout] = useState<StablecoinCheckoutResult | null>(
     null,
   );
+  const [ethCheckout, setEthCheckout] = useState<EthCheckoutResult | null>(null);
+
+  async function handleEthCheckout() {
+    if (selected === null) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await createEthCheckout(selected, "base");
+      setEthCheckout(result);
+    } catch {
+      setError("Checkout failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   async function handleBtcCheckout() {
     if (selected === null) return;
@@ -161,6 +188,7 @@ export function BuyCryptoCreditPanel() {
 
   function handleReset() {
     setStablecoinCheckout(null);
+    setEthCheckout(null);
     setSelected(null);
     setError(null);
   }
@@ -176,6 +204,8 @@ export function BuyCryptoCreditPanel() {
           <CardTitle className="flex items-center gap-2">
             {method === "btc" ? (
               <Bitcoin className="h-4 w-4 text-amber-500" />
+            ) : method === "eth" ? (
+              <CircleDollarSign className="h-4 w-4 text-indigo-500" />
             ) : (
               <CircleDollarSign className="h-4 w-4 text-blue-500" />
             )}
@@ -200,6 +230,21 @@ export function BuyCryptoCreditPanel() {
             <button
               type="button"
               onClick={() => {
+                setMethod("eth");
+                handleReset();
+              }}
+              className={cn(
+                "rounded-full px-3 py-1 text-xs font-medium transition-colors",
+                method === "eth"
+                  ? "bg-indigo-500/10 text-indigo-500"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              ETH
+            </button>
+            <button
+              type="button"
+              onClick={() => {
                 setMethod("btc");
                 handleReset();
               }}
@@ -215,7 +260,41 @@ export function BuyCryptoCreditPanel() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {stablecoinCheckout ? (
+          {ethCheckout ? (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-4"
+            >
+              <div className="rounded-md border p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">
+                    Send approximately{" "}
+                    <span className="font-mono font-bold text-foreground">
+                      {formatWeiToEth(ethCheckout.expectedWei)} ETH
+                    </span>{" "}
+                    (${ethCheckout.amountUsd}) to:
+                  </p>
+                  <Badge variant="outline" className="text-xs">
+                    ETH on {ethCheckout.chain}
+                  </Badge>
+                </div>
+                <div className="flex items-center gap-2 rounded-md bg-muted/50 px-3 py-2">
+                  <code className="flex-1 text-xs font-mono break-all text-foreground">
+                    {ethCheckout.depositAddress}
+                  </code>
+                  <CopyButton text={ethCheckout.depositAddress} />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  ETH price at checkout: ${(ethCheckout.priceCents / 100).toFixed(2)}. Only send ETH
+                  on the {ethCheckout.chain} network.
+                </p>
+              </div>
+              <Button variant="ghost" size="sm" onClick={handleReset}>
+                Cancel
+              </Button>
+            </motion.div>
+          ) : stablecoinCheckout ? (
             <StablecoinDeposit checkout={stablecoinCheckout} onReset={handleReset} />
           ) : (
             <>
@@ -263,7 +342,13 @@ export function BuyCryptoCreditPanel() {
               {error && <p className="text-sm text-destructive">{error}</p>}
 
               <Button
-                onClick={method === "btc" ? handleBtcCheckout : handleStablecoinCheckout}
+                onClick={
+                  method === "btc"
+                    ? handleBtcCheckout
+                    : method === "eth"
+                      ? handleEthCheckout
+                      : handleStablecoinCheckout
+                }
                 disabled={selected === null || loading}
                 variant="outline"
                 className="w-full sm:w-auto"
@@ -272,7 +357,9 @@ export function BuyCryptoCreditPanel() {
                   ? "Creating checkout..."
                   : method === "btc"
                     ? "Pay with BTC"
-                    : `Pay with ${selectedToken.label}`}
+                    : method === "eth"
+                      ? "Pay with ETH"
+                      : `Pay with ${selectedToken.label}`}
               </Button>
             </>
           )}

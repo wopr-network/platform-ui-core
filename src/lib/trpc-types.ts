@@ -114,6 +114,7 @@ type AppRouterRecord = {
     affiliateReferrals: AnyTRPCQueryProcedure;
     cryptoCheckout: AnyTRPCMutationProcedure;
     stablecoinCheckout: AnyTRPCMutationProcedure;
+    ethCheckout: AnyTRPCMutationProcedure;
     autoTopupSettings: AnyTRPCQueryProcedure;
     updateAutoTopupSettings: AnyTRPCMutationProcedure;
     accountStatus: AnyTRPCQueryProcedure;
