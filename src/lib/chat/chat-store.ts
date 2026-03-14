@@ -52,13 +52,12 @@ export function loadChatHistory(): ChatMessage[] {
 export function saveChatHistory(messages: ChatMessage[]): void {
   if (typeof window === "undefined") return;
   try {
-    const trimmed = messages
-      .slice(-MAX_CHAT_HISTORY)
-      .map((msg) =>
-        msg.content.length > MAX_MESSAGE_CONTENT_LENGTH
-          ? { ...msg, content: msg.content.slice(0, MAX_MESSAGE_CONTENT_LENGTH) }
-          : msg,
-      );
+    const trimmed = messages.slice(-MAX_CHAT_HISTORY).map((msg) => {
+      const codepoints = [...msg.content];
+      return codepoints.length > MAX_MESSAGE_CONTENT_LENGTH
+        ? { ...msg, content: `${codepoints.slice(0, MAX_MESSAGE_CONTENT_LENGTH).join("")}…` }
+        : msg;
+    });
     localStorage.setItem(HISTORY_KEY, JSON.stringify(trimmed));
   } catch {
     // ignore — quota exceeded or private browsing

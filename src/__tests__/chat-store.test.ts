@@ -104,7 +104,7 @@ describe("chat-store", () => {
       expect(loaded[MAX_CHAT_HISTORY - 1].id).toBe(String(total - 1));
     });
 
-    it("truncates message content exceeding MAX_MESSAGE_CONTENT_LENGTH", () => {
+    it("truncates message content exceeding MAX_MESSAGE_CONTENT_LENGTH and appends ellipsis", () => {
       const longContent = "x".repeat(MAX_MESSAGE_CONTENT_LENGTH + 1000);
       const messages: ChatMessage[] = [
         { id: "1", role: "user", content: longContent, timestamp: 1000 },
@@ -112,8 +112,40 @@ describe("chat-store", () => {
       saveChatHistory(messages);
       const loaded = loadChatHistory();
       expect(loaded).toHaveLength(1);
-      expect(loaded[0].content).toHaveLength(MAX_MESSAGE_CONTENT_LENGTH);
-      expect(loaded[0].content).toBe("x".repeat(MAX_MESSAGE_CONTENT_LENGTH));
+      expect(loaded[0].content).toHaveLength(MAX_MESSAGE_CONTENT_LENGTH + 1);
+      expect(loaded[0].content).toBe(`${"x".repeat(MAX_MESSAGE_CONTENT_LENGTH)}…`);
+    });
+
+    it("does not mutate the original messages array when saving", () => {
+      const longContent = "x".repeat(MAX_MESSAGE_CONTENT_LENGTH + 1000);
+      const messages: ChatMessage[] = [
+        { id: "1", role: "user", content: longContent, timestamp: 1000 },
+      ];
+      const originalContent = messages[0].content;
+      saveChatHistory(messages);
+      // localStorage copy is truncated; in-memory array must be unchanged
+      expect(messages[0].content).toBe(originalContent);
+      expect(messages[0].content).toHaveLength(MAX_MESSAGE_CONTENT_LENGTH + 1000);
+    });
+
+    it("slices by Unicode codepoints so emoji are not split", () => {
+      // Each emoji is 2 UTF-16 code units but 1 codepoint.
+      // String.slice() cuts by code units; [...str].slice() cuts by codepoints.
+      // A string of MAX_MESSAGE_CONTENT_LENGTH emoji has 2*MAX code units.
+      // With .slice() the last emoji would be split; with spread it must not be.
+      const emoji = "\u{1F600}"; // 😀 — 2 code units
+      const longContent = emoji.repeat(MAX_MESSAGE_CONTENT_LENGTH + 100);
+      const messages: ChatMessage[] = [
+        { id: "1", role: "user", content: longContent, timestamp: 1000 },
+      ];
+      saveChatHistory(messages);
+      const loaded = loadChatHistory();
+      const stored = loaded[0].content;
+      // The stored content (minus ellipsis) must decode to valid codepoints only.
+      // If the last emoji were split, it would contain a lone surrogate which
+      // JSON.parse would either mangle or preserve as an invalid codepoint.
+      const withoutEllipsis = stored.slice(0, -1); // remove "…"
+      expect([...withoutEllipsis].every((ch) => ch === emoji)).toBe(true);
     });
 
     it("does not truncate content at or below the limit", () => {
@@ -139,7 +171,8 @@ describe("chat-store", () => {
       expect(loaded).toHaveLength(MAX_CHAT_HISTORY);
       expect(loaded[0].id).toBe("10");
       for (const msg of loaded) {
-        expect(msg.content).toHaveLength(MAX_MESSAGE_CONTENT_LENGTH);
+        expect(msg.content).toHaveLength(MAX_MESSAGE_CONTENT_LENGTH + 1);
+        expect(msg.content.endsWith("…")).toBe(true);
       }
     });
   });
