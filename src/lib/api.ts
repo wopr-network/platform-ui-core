@@ -1336,6 +1336,23 @@ export async function createCryptoCheckout(
   return trpcVanilla.billing.cryptoCheckout.mutate({ amountUsd });
 }
 
+export interface StablecoinCheckoutResult {
+  depositAddress: string;
+  amountRaw: string;
+  amountUsd: number;
+  chain: string;
+  token: string;
+  referenceId: string;
+}
+
+export async function createStablecoinCheckout(
+  amountUsd: number,
+  token: string,
+  chain: string,
+): Promise<StablecoinCheckoutResult> {
+  return trpcVanilla.billing.stablecoinCheckout.mutate({ amountUsd, token, chain });
+}
+
 // --- Dividend types ---
 
 export interface DividendWalletStats {
