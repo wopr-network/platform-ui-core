@@ -1,49 +1,28 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Bitcoin, Check, CircleDollarSign, Copy } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Check, CircleDollarSign, Copy } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  createCryptoCheckout,
-  createEthCheckout,
-  createStablecoinCheckout,
-  type EthCheckoutResult,
-  type StablecoinCheckoutResult,
+  type CheckoutResult,
+  createCheckout,
+  getSupportedPaymentMethods,
+  type SupportedPaymentMethod,
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import { isAllowedRedirectUrl } from "@/lib/validate-redirect-url";
 
-const CRYPTO_AMOUNTS = [
+const AMOUNTS = [
   { value: 10, label: "$10" },
   { value: 25, label: "$25" },
   { value: 50, label: "$50" },
   { value: 100, label: "$100" },
 ];
 
-const STABLECOIN_TOKENS = [
-  { token: "USDC", label: "USDC", chain: "base", chainLabel: "Base" },
-  { token: "USDT", label: "USDT", chain: "base", chainLabel: "Base" },
-  { token: "DAI", label: "DAI", chain: "base", chainLabel: "Base" },
-];
-
-type PaymentMethod = "btc" | "stablecoin" | "eth";
-
-/** Format wei (BigInt string) to ETH string without Number precision loss. */
-function formatWeiToEth(weiStr: string): string {
-  const wei = BigInt(weiStr);
-  const divisor = BigInt("1000000000000000000");
-  const whole = wei / divisor;
-  const frac = wei % divisor;
-  const fracStr = frac.toString().padStart(18, "0").slice(0, 6);
-  return `${whole}.${fracStr}`;
-}
-
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
-
   const handleCopy = useCallback(() => {
     navigator.clipboard.writeText(text);
     setCopied(true);
@@ -57,128 +36,35 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
-function StablecoinDeposit({
-  checkout,
-  onReset,
-}: {
-  checkout: StablecoinCheckoutResult;
-  onReset: () => void;
-}) {
-  const [confirmed, _setConfirmed] = useState(false);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  useEffect(() => {
-    // TODO: poll charge status via tRPC query when backend endpoint exists
-    // For now, show the deposit address and let the user confirm manually
-    return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
-    };
-  }, []);
-
-  const displayAmount = `${checkout.amountUsd} ${checkout.token}`;
-
-  if (confirmed) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="rounded-md border border-primary/25 bg-primary/5 p-4 text-center"
-      >
-        <Check className="mx-auto h-8 w-8 text-primary" />
-        <p className="mt-2 text-sm font-medium">Payment detected. Credits will appear shortly.</p>
-      </motion.div>
-    );
-  }
-
-  return (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
-      <div className="rounded-md border p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            Send exactly{" "}
-            <span className="font-mono font-bold text-foreground">{displayAmount}</span> to:
-          </p>
-          <Badge variant="outline" className="text-xs">
-            {checkout.token} on {checkout.chain}
-          </Badge>
-        </div>
-
-        <div className="flex items-center gap-2 rounded-md bg-muted/50 px-3 py-2">
-          <code className="flex-1 text-xs font-mono break-all text-foreground">
-            {checkout.depositAddress}
-          </code>
-          <CopyButton text={checkout.depositAddress} />
-        </div>
-
-        <p className="text-xs text-muted-foreground">
-          Only send {checkout.token} on the {checkout.chain} network. Other tokens or chains will be
-          lost.
-        </p>
-      </div>
-
-      <div className="flex gap-2">
-        <Button variant="ghost" size="sm" onClick={onReset}>
-          Cancel
-        </Button>
-      </div>
-    </motion.div>
-  );
-}
-
 export function BuyCryptoCreditPanel() {
-  const [method, setMethod] = useState<PaymentMethod>("stablecoin");
-  const [selected, setSelected] = useState<number | null>(null);
-  const [selectedToken, setSelectedToken] = useState(STABLECOIN_TOKENS[0]);
+  const [methods, setMethods] = useState<SupportedPaymentMethod[]>([]);
+  const [selectedMethod, setSelectedMethod] = useState<SupportedPaymentMethod | null>(null);
+  const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [stablecoinCheckout, setStablecoinCheckout] = useState<StablecoinCheckoutResult | null>(
-    null,
-  );
-  const [ethCheckout, setEthCheckout] = useState<EthCheckoutResult | null>(null);
+  const [checkout, setCheckout] = useState<CheckoutResult | null>(null);
 
-  async function handleEthCheckout() {
-    if (selected === null) return;
+  // Fetch available payment methods from backend on mount
+  useEffect(() => {
+    getSupportedPaymentMethods()
+      .then((m) => {
+        if (m.length > 0) {
+          setMethods(m);
+          setSelectedMethod(m[0]);
+        }
+      })
+      .catch(() => {
+        // Backend unavailable — panel stays empty
+      });
+  }, []);
+
+  async function handleCheckout() {
+    if (selectedAmount === null || !selectedMethod) return;
     setLoading(true);
     setError(null);
     try {
-      const result = await createEthCheckout(selected, "base");
-      setEthCheckout(result);
-    } catch {
-      setError("Checkout failed. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleBtcCheckout() {
-    if (selected === null) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const { url } = await createCryptoCheckout(selected);
-      if (!isAllowedRedirectUrl(url)) {
-        setError("Unexpected checkout URL. Please contact support.");
-        setLoading(false);
-        return;
-      }
-      window.location.href = url;
-    } catch {
-      setError("Checkout failed. Please try again.");
-      setLoading(false);
-    }
-  }
-
-  async function handleStablecoinCheckout() {
-    if (selected === null) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await createStablecoinCheckout(
-        selected,
-        selectedToken.token,
-        selectedToken.chain,
-      );
-      setStablecoinCheckout(result);
+      const result = await createCheckout(selectedMethod.id, selectedAmount);
+      setCheckout(result);
     } catch {
       setError("Checkout failed. Please try again.");
     } finally {
@@ -187,11 +73,12 @@ export function BuyCryptoCreditPanel() {
   }
 
   function handleReset() {
-    setStablecoinCheckout(null);
-    setEthCheckout(null);
-    setSelected(null);
+    setCheckout(null);
+    setSelectedAmount(null);
     setError(null);
   }
+
+  if (methods.length === 0) return null;
 
   return (
     <motion.div
@@ -202,65 +89,32 @@ export function BuyCryptoCreditPanel() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            {method === "btc" ? (
-              <Bitcoin className="h-4 w-4 text-amber-500" />
-            ) : method === "eth" ? (
-              <CircleDollarSign className="h-4 w-4 text-indigo-500" />
-            ) : (
-              <CircleDollarSign className="h-4 w-4 text-blue-500" />
-            )}
+            <CircleDollarSign className="h-4 w-4 text-primary" />
             Pay with Crypto
           </CardTitle>
-          <div className="flex gap-2 pt-1">
-            <button
-              type="button"
-              onClick={() => {
-                setMethod("stablecoin");
-                handleReset();
-              }}
-              className={cn(
-                "rounded-full px-3 py-1 text-xs font-medium transition-colors",
-                method === "stablecoin"
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              Stablecoin
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setMethod("eth");
-                handleReset();
-              }}
-              className={cn(
-                "rounded-full px-3 py-1 text-xs font-medium transition-colors",
-                method === "eth"
-                  ? "bg-indigo-500/10 text-indigo-500"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              ETH
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setMethod("btc");
-                handleReset();
-              }}
-              className={cn(
-                "rounded-full px-3 py-1 text-xs font-medium transition-colors",
-                method === "btc"
-                  ? "bg-amber-500/10 text-amber-500"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              BTC
-            </button>
+          <div className="flex flex-wrap gap-2 pt-1">
+            {methods.map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => {
+                  setSelectedMethod(m);
+                  handleReset();
+                }}
+                className={cn(
+                  "rounded-full px-3 py-1 text-xs font-medium transition-colors",
+                  selectedMethod?.id === m.id
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {m.token}
+              </button>
+            ))}
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {ethCheckout ? (
+          {checkout ? (
             <motion.div
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
@@ -269,67 +123,50 @@ export function BuyCryptoCreditPanel() {
               <div className="rounded-md border p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <p className="text-sm text-muted-foreground">
-                    Send approximately{" "}
+                    Send{" "}
                     <span className="font-mono font-bold text-foreground">
-                      {formatWeiToEth(ethCheckout.expectedWei)} ETH
+                      {checkout.displayAmount}
                     </span>{" "}
-                    (${ethCheckout.amountUsd}) to:
+                    to:
                   </p>
                   <Badge variant="outline" className="text-xs">
-                    ETH on {ethCheckout.chain}
+                    {checkout.token} on {checkout.chain}
                   </Badge>
                 </div>
                 <div className="flex items-center gap-2 rounded-md bg-muted/50 px-3 py-2">
                   <code className="flex-1 text-xs font-mono break-all text-foreground">
-                    {ethCheckout.depositAddress}
+                    {checkout.depositAddress}
                   </code>
-                  <CopyButton text={ethCheckout.depositAddress} />
+                  <CopyButton text={checkout.depositAddress} />
                 </div>
+                {checkout.priceCents && (
+                  <p className="text-xs text-muted-foreground">
+                    Price at checkout: ${(checkout.priceCents / 100).toFixed(2)} per{" "}
+                    {checkout.token}
+                  </p>
+                )}
                 <p className="text-xs text-muted-foreground">
-                  ETH price at checkout: ${(ethCheckout.priceCents / 100).toFixed(2)}. Only send ETH
-                  on the {ethCheckout.chain} network.
+                  Only send {checkout.token} on the {checkout.chain} network.
                 </p>
               </div>
               <Button variant="ghost" size="sm" onClick={handleReset}>
                 Cancel
               </Button>
             </motion.div>
-          ) : stablecoinCheckout ? (
-            <StablecoinDeposit checkout={stablecoinCheckout} onReset={handleReset} />
           ) : (
             <>
-              {method === "stablecoin" && (
-                <div className="flex gap-2">
-                  {STABLECOIN_TOKENS.map((t) => (
-                    <button
-                      key={`${t.token}:${t.chain}`}
-                      type="button"
-                      onClick={() => setSelectedToken(t)}
-                      className={cn(
-                        "rounded-md border px-3 py-1.5 text-xs font-medium transition-colors",
-                        selectedToken.token === t.token && selectedToken.chain === t.chain
-                          ? "border-primary bg-primary/5 text-primary"
-                          : "border-border text-muted-foreground hover:text-foreground",
-                      )}
-                    >
-                      {t.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                {CRYPTO_AMOUNTS.map((amt) => (
+                {AMOUNTS.map((amt) => (
                   <motion.button
                     key={amt.value}
                     type="button"
-                    onClick={() => setSelected(amt.value)}
+                    onClick={() => setSelectedAmount(amt.value)}
                     whileHover={{ scale: 1.03 }}
                     whileTap={{ scale: 0.98 }}
                     transition={{ type: "spring", stiffness: 400, damping: 25 }}
                     className={cn(
                       "flex flex-col items-center gap-1 rounded-md border p-3 text-sm font-medium transition-colors hover:bg-accent",
-                      selected === amt.value
+                      selectedAmount === amt.value
                         ? "border-primary bg-primary/5 ring-1 ring-primary shadow-[0_0_15px_rgba(0,255,65,0.3)]"
                         : "border-border",
                     )}
@@ -342,24 +179,12 @@ export function BuyCryptoCreditPanel() {
               {error && <p className="text-sm text-destructive">{error}</p>}
 
               <Button
-                onClick={
-                  method === "btc"
-                    ? handleBtcCheckout
-                    : method === "eth"
-                      ? handleEthCheckout
-                      : handleStablecoinCheckout
-                }
-                disabled={selected === null || loading}
+                onClick={handleCheckout}
+                disabled={selectedAmount === null || !selectedMethod || loading}
                 variant="outline"
                 className="w-full sm:w-auto"
               >
-                {loading
-                  ? "Creating checkout..."
-                  : method === "btc"
-                    ? "Pay with BTC"
-                    : method === "eth"
-                      ? "Pay with ETH"
-                      : `Pay with ${selectedToken.label}`}
+                {loading ? "Creating checkout..." : `Pay with ${selectedMethod?.token ?? "Crypto"}`}
               </Button>
             </>
           )}
