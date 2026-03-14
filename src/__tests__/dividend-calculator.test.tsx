@@ -17,4 +17,19 @@ describe("DividendCalculator", () => {
 
     expect(screen.getByText(/the earlier you join/i)).toBeInTheDocument();
   });
+
+  it("renders without crash when no API context is available (unauthenticated)", async () => {
+    // DividendCalculator is a static component with no API dependencies.
+    // This test verifies it renders completely in an environment where
+    // fetch is stubbed to reject (simulating unauthenticated pricing page).
+    // If a future refactor adds data fetching, this test catches regressions.
+    const { DividendCalculator } = await import("@/components/pricing/dividend-calculator");
+    const { container } = render(<DividendCalculator />);
+
+    // Component should render two Card sections
+    expect(screen.getByTestId("net-cost")).toHaveTextContent("Net cost of credits at scale: $0.");
+    expect(screen.getByText(/early adopter advantage/i)).toBeInTheDocument();
+    // No error text or crash indicators
+    expect(container.querySelector(".text-red-500")).toBeNull();
+  });
 });

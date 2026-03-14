@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Stub fetch globally before any module imports
@@ -13,9 +13,10 @@ vi.mock("@/lib/api-config", () => ({
 describe("DividendStats", () => {
   beforeEach(() => {
     mockFetch.mockReset();
+    vi.resetModules();
   });
 
-  it("renders fallback values when API returns null", async () => {
+  it("renders fallback dashes when API returns non-ok response", async () => {
     mockFetch.mockResolvedValue({
       ok: false,
       status: 500,
@@ -26,9 +27,12 @@ describe("DividendStats", () => {
     const { DividendStats } = await import("@/components/pricing/dividend-stats");
     render(<DividendStats />);
 
-    expect(screen.getByTestId("pool-amount")).toBeInTheDocument();
-    expect(screen.getByTestId("active-users")).toBeInTheDocument();
-    expect(screen.getByTestId("projected-dividend")).toBeInTheDocument();
+    // fetchDividendStats returns null on non-ok → pool/users/dividend stay 0 → "--" shown
+    await waitFor(() => {
+      expect(screen.getByTestId("pool-amount")).toHaveTextContent("--");
+    });
+    expect(screen.getByTestId("active-users")).toHaveTextContent("--");
+    expect(screen.getByTestId("projected-dividend")).toHaveTextContent("--");
   });
 
   it("renders live data when API succeeds", async () => {
@@ -45,9 +49,12 @@ describe("DividendStats", () => {
     const { DividendStats } = await import("@/components/pricing/dividend-stats");
     render(<DividendStats />);
 
-    expect(screen.getByTestId("pool-amount")).toBeInTheDocument();
-    expect(screen.getByTestId("active-users")).toBeInTheDocument();
-    expect(screen.getByTestId("projected-dividend")).toBeInTheDocument();
+    // useCountUp with prefers-reduced-motion: true sets value immediately
+    await waitFor(() => {
+      expect(screen.getByTestId("pool-amount")).toHaveTextContent("$2500.00");
+    });
+    expect(screen.getByTestId("active-users")).toHaveTextContent("8,000");
+    expect(screen.getByTestId("projected-dividend")).toHaveTextContent("~$0.31");
   });
 
   it("renders fallback dashes when fetch rejects (network error)", async () => {
@@ -56,9 +63,56 @@ describe("DividendStats", () => {
     const { DividendStats } = await import("@/components/pricing/dividend-stats");
     render(<DividendStats />);
 
-    // fetchDividendStats catches network errors and returns null — component shows "--"
-    expect(screen.getByTestId("pool-amount")).toBeInTheDocument();
-    expect(screen.getByTestId("active-users")).toBeInTheDocument();
-    expect(screen.getByTestId("projected-dividend")).toBeInTheDocument();
+    // fetchDividendStats catches network errors and returns null → component shows "--"
+    await waitFor(() => {
+      expect(screen.getByTestId("pool-amount")).toHaveTextContent("--");
+    });
+    expect(screen.getByTestId("active-users")).toHaveTextContent("--");
+    expect(screen.getByTestId("projected-dividend")).toHaveTextContent("--");
+  });
+
+  it("does not render error message when fetch returns null (non-ok)", async () => {
+    mockFetch.mockResolvedValue({
+      ok: false,
+      status: 503,
+      statusText: "Service Unavailable",
+      json: () => Promise.resolve({}),
+    });
+
+    const { DividendStats } = await import("@/components/pricing/dividend-stats");
+    render(<DividendStats />);
+
+    // fetchDividendStats returns null (no throw) → component .then() runs, data is null
+    // → loaded=true, no error set, just "--" fallback
+    await waitFor(() => {
+      expect(screen.getByTestId("pool-amount")).toHaveTextContent("--");
+    });
+    // No red error paragraph should appear
+    expect(screen.queryByText(/failed to load/i)).not.toBeInTheDocument();
+  });
+
+  it("renders error message when fetchDividendStats throws", async () => {
+    // To hit the component's .catch() branch, mock the API module directly
+    // so fetchDividendStats rejects instead of catching internally
+    vi.doMock("@/lib/api", async (importOriginal) => {
+      const orig = await importOriginal<typeof import("@/lib/api")>();
+      return {
+        ...orig,
+        fetchDividendStats: vi.fn().mockRejectedValue(new Error("Unexpected failure")),
+      };
+    });
+
+    const { DividendStats } = await import("@/components/pricing/dividend-stats");
+    render(<DividendStats />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Unexpected failure")).toBeInTheDocument();
+    });
+    // Error text should be red
+    expect(screen.getByText("Unexpected failure")).toHaveClass("text-red-500");
+    // Data fields should show "--" (never populated)
+    expect(screen.getByTestId("pool-amount")).toHaveTextContent("--");
+    expect(screen.getByTestId("active-users")).toHaveTextContent("--");
+    expect(screen.getByTestId("projected-dividend")).toHaveTextContent("--");
   });
 });
