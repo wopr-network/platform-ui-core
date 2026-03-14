@@ -1369,6 +1369,71 @@ export async function createEthCheckout(
   return trpcVanilla.billing.ethCheckout.mutate({ amountUsd, chain });
 }
 
+// --- Supported payment methods (runtime-configured) ---
+
+export interface SupportedPaymentMethod {
+  id: string;
+  type: string;
+  token: string;
+  chain: string;
+  displayName: string;
+  decimals: number;
+  displayOrder: number;
+}
+
+export async function getSupportedPaymentMethods(): Promise<SupportedPaymentMethod[]> {
+  return trpcVanilla.billing.supportedPaymentMethods.query(undefined);
+}
+
+// --- Unified checkout (replaces stablecoin/eth/btc-specific endpoints) ---
+
+export interface CheckoutResult {
+  depositAddress: string;
+  displayAmount: string;
+  amountUsd: number;
+  token: string;
+  chain: string;
+  referenceId: string;
+  priceCents?: number;
+}
+
+export async function createCheckout(methodId: string, amountUsd: number): Promise<CheckoutResult> {
+  return trpcVanilla.billing.checkout.mutate({ methodId, amountUsd });
+}
+
+// --- Admin payment method management ---
+
+export interface PaymentMethodAdmin {
+  id: string;
+  type: string;
+  token: string;
+  chain: string;
+  contractAddress: string | null;
+  decimals: number;
+  displayName: string;
+  enabled: boolean;
+  displayOrder: number;
+  rpcUrl: string | null;
+  confirmations: number;
+}
+
+export async function adminListPaymentMethods(): Promise<PaymentMethodAdmin[]> {
+  return trpcVanilla.billing.adminListPaymentMethods.query(undefined);
+}
+
+export async function adminUpsertPaymentMethod(
+  method: PaymentMethodAdmin,
+): Promise<{ ok: boolean }> {
+  return trpcVanilla.billing.adminUpsertPaymentMethod.mutate(method);
+}
+
+export async function adminTogglePaymentMethod(
+  id: string,
+  enabled: boolean,
+): Promise<{ ok: boolean }> {
+  return trpcVanilla.billing.adminTogglePaymentMethod.mutate({ id, enabled });
+}
+
 // --- Dividend types ---
 
 export interface DividendWalletStats {

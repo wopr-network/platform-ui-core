@@ -115,6 +115,11 @@ type AppRouterRecord = {
     cryptoCheckout: AnyTRPCMutationProcedure;
     stablecoinCheckout: AnyTRPCMutationProcedure;
     ethCheckout: AnyTRPCMutationProcedure;
+    checkout: AnyTRPCMutationProcedure;
+    supportedPaymentMethods: AnyTRPCQueryProcedure;
+    adminListPaymentMethods: AnyTRPCQueryProcedure;
+    adminUpsertPaymentMethod: AnyTRPCMutationProcedure;
+    adminTogglePaymentMethod: AnyTRPCMutationProcedure;
     autoTopupSettings: AnyTRPCQueryProcedure;
     updateAutoTopupSettings: AnyTRPCMutationProcedure;
     accountStatus: AnyTRPCQueryProcedure;
