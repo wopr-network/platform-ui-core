@@ -19,6 +19,22 @@ vi.mock("better-auth/react", () => ({
   }),
 }));
 
+/** Return an ISO-8601 UTC date string N days from now, truncated to midnight. */
+function daysFromNow(n: number): string {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() + n);
+  d.setUTCHours(0, 0, 0, 0);
+  return d.toISOString();
+}
+
+/** Return an ISO-8601 UTC date string N days from now, at end-of-day. */
+function endOfDayFromNow(n: number): string {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() + n);
+  d.setUTCHours(23, 59, 59, 0);
+  return d.toISOString();
+}
+
 const MOCK_BALANCE: CreditBalance = {
   balance: 0.5,
   dailyBurn: 0.33,
@@ -32,8 +48,8 @@ vi.mock("@/lib/api", async (importOriginal) => {
     getCreditBalance: vi.fn().mockResolvedValue(MOCK_BALANCE),
     getAccountStatus: vi.fn().mockResolvedValue(null),
     getBillingUsageSummary: vi.fn().mockResolvedValue({
-      periodStart: "2026-02-01T00:00:00Z",
-      periodEnd: "2026-02-28T23:59:59Z",
+      periodStart: daysFromNow(-30),
+      periodEnd: endOfDayFromNow(0),
       totalSpend: 30,
       includedCredit: 50,
       amountDue: 0,
@@ -105,8 +121,8 @@ describe("SuspensionBanner", () => {
       runway: 5,
     });
     vi.mocked(api.getBillingUsageSummary).mockResolvedValueOnce({
-      periodStart: "2026-02-01T00:00:00Z",
-      periodEnd: "2026-02-28T23:59:59Z",
+      periodStart: daysFromNow(-30),
+      periodEnd: endOfDayFromNow(0),
       totalSpend: 120,
       includedCredit: 50,
       amountDue: 70,

@@ -35,6 +35,14 @@ vi.mock("better-auth/react", () => ({
   }),
 }));
 
+/** Return an ISO-8601 UTC date string N days from now, truncated to midnight. */
+function daysFromNow(n: number): string {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() + n);
+  d.setUTCHours(0, 0, 0, 0);
+  return d.toISOString();
+}
+
 const MOCK_SETTINGS: AutoTopupSettings = {
   usageBased: {
     enabled: false,
@@ -61,7 +69,7 @@ const MOCK_SETTINGS_ENABLED: AutoTopupSettings = {
     enabled: true,
     amountCents: 2000,
     interval: "weekly",
-    nextChargeDate: "2026-02-24T00:00:00Z",
+    nextChargeDate: daysFromNow(7),
   },
   paymentMethodLast4: "4242",
   paymentMethodBrand: "Visa",
@@ -89,7 +97,7 @@ const MOCK_SETTINGS_MONTHLY: AutoTopupSettings = {
     enabled: true,
     amountCents: 2000,
     interval: "monthly",
-    nextChargeDate: "2026-03-01T00:00:00Z",
+    nextChargeDate: daysFromNow(14),
   },
 };
 
