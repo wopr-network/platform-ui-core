@@ -658,7 +658,7 @@ describe("CSP nonce in middleware", () => {
     const res = await middleware(req);
     const csp = res.headers.get("content-security-policy") ?? "";
     expect(csp).toContain("default-src 'self'");
-    expect(csp).toMatch(/style-src-elem 'self' 'nonce-[A-Za-z0-9+/=_-]+'/);
+    expect(csp).toMatch(/style-src-elem 'self' 'unsafe-inline' 'nonce-[A-Za-z0-9+/=_-]+'/);
 
     expect(csp).toContain("img-src 'self' data: blob:");
     expect(csp).toContain("frame-src https://js.stripe.com");
@@ -706,10 +706,10 @@ describe("CSP style-src directive", () => {
     });
     const res = await middleware(req);
     const csp = res.headers.get("content-security-policy") ?? "";
-    // Must contain nonce in style-src-elem (split from style-src for finer-grained control)
-    expect(csp).toMatch(/style-src-elem 'self' 'nonce-[A-Za-z0-9+/=_-]+'/);
-    // Must NOT contain unsafe-inline in style-src-elem
-    expect(csp).not.toContain("style-src-elem 'self' 'unsafe-inline'");
+    // Must contain nonce + unsafe-inline in style-src-elem
+    // (unsafe-inline needed for framer-motion dynamic style injection)
+    expect(csp).toMatch(/style-src-elem 'self' 'unsafe-inline' 'nonce-[A-Za-z0-9+/=_-]+'/);
+    expect(csp).toContain("style-src-attr 'unsafe-inline'");
   });
 });
 
