@@ -40,7 +40,9 @@ function CreditsContent() {
   useEffect(() => {
     getOrganization()
       .then((org) => {
-        const currentMember = org.members.find((m) => m.email === session?.user?.email);
+        const currentMember = org.members.find(
+          (m) => m.userId === session?.user?.id || (m.email && m.email === session?.user?.email),
+        );
         setOrgContext({
           orgId: org.id,
           orgName: org.name,
@@ -51,7 +53,7 @@ function CreditsContent() {
         // No org — show personal billing
       })
       .finally(() => setOrgChecked(true));
-  }, [session?.user?.email]);
+  }, [session?.user?.email, session?.user?.id]);
 
   const [showCryptoPending, setShowCryptoPending] = useState(cryptoPending);
   const [dividendStats, setDividendStats] = useState<DividendWalletStats | null>(null);
