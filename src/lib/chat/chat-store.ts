@@ -5,6 +5,12 @@ import type { ChatMessage } from "./types";
 const HISTORY_KEY = storageKey("chat-history");
 const SESSION_KEY = storageKey("chat-session");
 
+/** Maximum number of messages persisted to localStorage. */
+export const MAX_CHAT_HISTORY = 100;
+
+/** Maximum character length for a single message's content field. */
+export const MAX_MESSAGE_CONTENT_LENGTH = 4_000;
+
 const ChatMessageSchema = z.object({
   id: z.string(),
   role: z.enum(["user", "bot", "event"]),
@@ -46,9 +52,15 @@ export function loadChatHistory(): ChatMessage[] {
 export function saveChatHistory(messages: ChatMessage[]): void {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(messages));
+    const trimmed = messages.slice(-MAX_CHAT_HISTORY).map((msg) => {
+      const codepoints = [...msg.content];
+      return codepoints.length > MAX_MESSAGE_CONTENT_LENGTH
+        ? { ...msg, content: `${codepoints.slice(0, MAX_MESSAGE_CONTENT_LENGTH).join("")}…` }
+        : msg;
+    });
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(trimmed));
   } catch {
-    // ignore
+    // ignore — quota exceeded or private browsing
   }
 }
 
