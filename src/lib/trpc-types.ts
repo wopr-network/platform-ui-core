@@ -112,10 +112,8 @@ type AppRouterRecord = {
     setDefaultPaymentMethod: AnyTRPCMutationProcedure;
     affiliateStats: AnyTRPCQueryProcedure;
     affiliateReferrals: AnyTRPCQueryProcedure;
-    cryptoCheckout: AnyTRPCMutationProcedure;
-    stablecoinCheckout: AnyTRPCMutationProcedure;
-    ethCheckout: AnyTRPCMutationProcedure;
     checkout: AnyTRPCMutationProcedure;
+    chargeStatus: AnyTRPCQueryProcedure;
     supportedPaymentMethods: AnyTRPCQueryProcedure;
     adminListPaymentMethods: AnyTRPCQueryProcedure;
     adminUpsertPaymentMethod: AnyTRPCMutationProcedure;

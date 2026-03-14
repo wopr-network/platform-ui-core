@@ -1330,45 +1330,6 @@ export async function createCreditCheckout(priceId: string): Promise<CheckoutRes
   return { checkoutUrl: url };
 }
 
-export async function createCryptoCheckout(
-  amountUsd: number,
-): Promise<{ url: string; referenceId: string }> {
-  return trpcVanilla.billing.cryptoCheckout.mutate({ amountUsd });
-}
-
-export interface StablecoinCheckoutResult {
-  depositAddress: string;
-  amountRaw: string;
-  amountUsd: number;
-  chain: string;
-  token: string;
-  referenceId: string;
-}
-
-export async function createStablecoinCheckout(
-  amountUsd: number,
-  token: string,
-  chain: string,
-): Promise<StablecoinCheckoutResult> {
-  return trpcVanilla.billing.stablecoinCheckout.mutate({ amountUsd, token, chain });
-}
-
-export interface EthCheckoutResult {
-  depositAddress: string;
-  expectedWei: string;
-  amountUsd: number;
-  priceCents: number;
-  chain: string;
-  referenceId: string;
-}
-
-export async function createEthCheckout(
-  amountUsd: number,
-  chain: string,
-): Promise<EthCheckoutResult> {
-  return trpcVanilla.billing.ethCheckout.mutate({ amountUsd, chain });
-}
-
 // --- Supported payment methods (runtime-configured) ---
 
 export interface SupportedPaymentMethod {
@@ -1414,6 +1375,8 @@ export interface PaymentMethodAdmin {
   enabled: boolean;
   displayOrder: number;
   rpcUrl: string | null;
+  oracleAddress: string | null;
+  xpub: string | null;
   confirmations: number;
 }
 
