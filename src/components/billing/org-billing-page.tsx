@@ -5,6 +5,7 @@ import { Building2, Download } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { AddPaymentMethodDialog } from "@/components/billing/add-payment-method-dialog";
 import { BuyCreditsPanel } from "@/components/billing/buy-credits-panel";
+import { BuyCryptoCreditPanel } from "@/components/billing/buy-crypto-credits-panel";
 import { CreditBalance } from "@/components/billing/credit-balance";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -157,6 +158,9 @@ export function OrgBillingPage({ orgId, orgName, isAdmin }: OrgBillingPageProps)
           transition={{ duration: 0.4, delay: sectionDelays.buyCredits, ease: "easeOut" }}
         >
           <BuyCreditsPanel />
+          <div className="mt-4">
+            <BuyCryptoCreditPanel />
+          </div>
         </motion.div>
       )}
 
