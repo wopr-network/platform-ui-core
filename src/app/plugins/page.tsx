@@ -82,6 +82,7 @@ export default function PluginsPage() {
   const [toggling, setToggling] = useState<string | null>(null);
   const togglingRef = useRef<string | null>(null);
   const [toggleError, setToggleError] = useState<string | null>(null);
+  const [catalogError, setCatalogError] = useState(false);
   const [installedPage, setInstalledPage] = useState(1);
   const [catalogPage, setCatalogPage] = useState(1);
 
@@ -115,12 +116,13 @@ export default function PluginsPage() {
   }, []);
 
   const loadCatalog = useCallback(async () => {
+    setCatalogError(false);
     setLoading(true);
     try {
       const data = await listMarketplacePlugins();
       setCatalog(data);
     } catch {
-      // Keep previous catalog on error
+      setCatalogError(true);
     } finally {
       setLoading(false);
     }
@@ -446,7 +448,21 @@ export default function PluginsPage() {
             className="max-w-sm bg-black/50 border-terminal/30 placeholder:text-terminal/30 focus-visible:border-terminal focus-visible:ring-terminal/20"
           />
 
-          {catalogTotal === 0 ? (
+          {catalogError && catalogTotal === 0 ? (
+            <div className="flex h-40 flex-col items-center justify-center gap-3 rounded-sm border border-dashed border-red-500/25 bg-red-500/5">
+              <p className="font-mono text-sm text-red-500">
+                &gt; CATALOG LOAD FAILED. CHECK CONNECTION AND RETRY.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-red-500/30 text-red-500 hover:bg-red-500/10"
+                onClick={loadCatalog}
+              >
+                Retry
+              </Button>
+            </div>
+          ) : catalogTotal === 0 ? (
             <div className="flex h-40 items-center justify-center rounded-sm border border-dashed border-terminal/20">
               <p className="font-mono text-sm text-terminal/60">&gt; NO MATCHING PLUGINS FOUND.</p>
             </div>
