@@ -58,8 +58,8 @@ export default function OrgPage() {
   const router = useRouter();
   const routerRef = useRef(router);
   routerRef.current = router;
-  const isAdminOrOwner = useIsAdminOrOwner();
   const [org, setOrg] = useState<Organization | null>(null);
+  const isAdminOrOwner = useIsAdminOrOwner(org);
   const [loading, setLoading] = useState(true);
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -310,7 +310,8 @@ export default function OrgPage() {
                 <span className="font-medium text-muted-foreground">Name:</span> {org.name}
               </div>
               <div>
-                <span className="font-medium text-muted-foreground">Slug:</span> {org.slug}
+                <span className="font-medium text-muted-foreground">Slug:</span>{" "}
+                {org.slug ?? <span className="text-muted-foreground italic">not set</span>}
               </div>
             </div>
           </CardContent>

@@ -1,47 +1,32 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import type { OrgMember } from "@/lib/api";
+import { useMemo } from "react";
+import type { Organization, OrgMember } from "@/lib/api";
 import { useSession } from "@/lib/auth-client";
-import { getOrganization } from "@/lib/org-api";
 
 /**
- * Returns the current user's role in the active organization.
- * Returns null while loading or if the user has no org.
+ * Derives the current user's role from an already-fetched org object.
+ * Does NOT fetch org data — avoids duplicate requests and role-flash.
+ * Pass the org from the page's own load() call.
  */
-export function useMyOrgRole(): OrgMember["role"] | null {
+export function useMyOrgRole(org: Organization | null): OrgMember["role"] | null {
   const { data: session } = useSession();
-  const [role, setRole] = useState<OrgMember["role"] | null>(null);
 
-  useEffect(() => {
-    if (!session?.user) return;
+  return useMemo(() => {
+    if (!org || !session?.user?.id) return null;
 
-    let cancelled = false;
-    getOrganization()
-      .then((org) => {
-        if (cancelled) return;
-        const me = org.members.find(
-          (m) => m.userId === session.user.id || m.email === session.user.email,
-        );
-        setRole(me?.role ?? null);
-      })
-      .catch(() => {
-        if (!cancelled) setRole(null);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [session?.user]);
-
-  return role;
+    const me = org.members?.find(
+      (m: OrgMember) => m.userId === session.user.id || m.email === session.user.email,
+    );
+    return me?.role ?? null;
+  }, [org, session?.user?.id, session?.user?.email]);
 }
 
 /**
- * Returns true if the current user is an admin or owner of the active organization.
- * Returns false while loading or if the user is a regular member.
+ * Returns true if the current user is an admin or owner of the given org.
+ * Pass the org from the page's own load() call.
  */
-export function useIsAdminOrOwner(): boolean {
-  const role = useMyOrgRole();
+export function useIsAdminOrOwner(org: Organization | null): boolean {
+  const role = useMyOrgRole(org);
   return role === "admin" || role === "owner";
 }
