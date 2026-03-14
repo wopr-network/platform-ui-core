@@ -559,6 +559,10 @@ function InstanceUpdateBadge({
   onUpdated?: () => void;
 }) {
   const { updateAvailable } = useImageStatus(instanceId);
+  const { data: changelog } = trpc.fleet.getChangelog.useQuery(
+    { instanceId },
+    { enabled: updateAvailable },
+  );
 
   if (!updateAvailable) return null;
 
@@ -566,6 +570,7 @@ function InstanceUpdateBadge({
     <UpdateAvailableBadge
       instanceId={instanceId}
       instanceName={instanceName}
+      changelog={changelog ?? null}
       onUpdated={onUpdated}
     />
   );
