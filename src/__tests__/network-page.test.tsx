@@ -61,14 +61,14 @@ describe("NetworkPage", () => {
   it("renders page heading", async () => {
     vi.mocked(listInstances).mockResolvedValue(MOCK_INSTANCES);
     render(<NetworkPage />);
-    expect(screen.getByText(/friends/i)).toBeTruthy();
+    expect(screen.getByText(/friends/i)).toBeInTheDocument();
   });
 
   it("shows instance selector after load", async () => {
     vi.mocked(listInstances).mockResolvedValue(MOCK_INSTANCES);
     render(<NetworkPage />);
     await waitFor(() => {
-      expect(screen.getByRole("combobox", { name: /select instance/i })).toBeTruthy();
+      expect(screen.getByRole("combobox", { name: /select instance/i })).toBeInTheDocument();
     });
   });
 
@@ -76,7 +76,7 @@ describe("NetworkPage", () => {
     vi.mocked(listInstances).mockResolvedValue(MOCK_INSTANCES);
     render(<NetworkPage />);
     await waitFor(() => {
-      expect(screen.getByText(/select an instance to manage friends/i)).toBeTruthy();
+      expect(screen.getByText(/select an instance to manage friends/i)).toBeInTheDocument();
     });
   });
 
@@ -94,7 +94,7 @@ describe("NetworkPage", () => {
     vi.mocked(listInstances).mockRejectedValue(new Error("network error"));
     render(<NetworkPage />);
     await waitFor(() => {
-      expect(screen.getByText(/network error/i)).toBeTruthy();
+      expect(screen.getByText(/network error/i)).toBeInTheDocument();
     });
   });
 });

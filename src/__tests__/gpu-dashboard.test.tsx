@@ -90,7 +90,7 @@ describe("GpuDashboard", () => {
     mockListGpuNodes.mockResolvedValue([]);
     render(<GpuDashboard />);
     await waitFor(() => {
-      expect(screen.getByText(/GPU Management/i)).toBeTruthy();
+      expect(screen.getByText(/GPU Management/i)).toBeInTheDocument();
     });
   });
 
@@ -98,10 +98,10 @@ describe("GpuDashboard", () => {
     mockListGpuNodes.mockResolvedValue([fakeNode({ name: "my-gpu" })]);
     render(<GpuDashboard />);
     await waitFor(() => {
-      expect(screen.getByText("my-gpu")).toBeTruthy();
+      expect(screen.getByText("my-gpu")).toBeInTheDocument();
     });
-    expect(screen.getByText("running")).toBeTruthy();
-    expect(screen.getByText("42%")).toBeTruthy();
+    expect(screen.getByText("running")).toBeInTheDocument();
+    expect(screen.getByText("42%")).toBeInTheDocument();
     // Temperature appears in both the KPI card and the table row
     expect(screen.getAllByText("65°C").length).toBeGreaterThan(0);
   });
@@ -110,7 +110,7 @@ describe("GpuDashboard", () => {
     mockListGpuNodes.mockResolvedValue([]);
     render(<GpuDashboard />);
     await waitFor(() => {
-      expect(screen.getByText(/No GPU nodes provisioned/i)).toBeTruthy();
+      expect(screen.getByText(/No GPU nodes provisioned/i)).toBeInTheDocument();
     });
   });
 
@@ -118,7 +118,7 @@ describe("GpuDashboard", () => {
     mockListGpuNodes.mockRejectedValue(new Error("API down"));
     render(<GpuDashboard />);
     await waitFor(() => {
-      expect(screen.getByText("API down")).toBeTruthy();
+      expect(screen.getByText("API down")).toBeInTheDocument();
     });
   });
 
@@ -130,8 +130,8 @@ describe("GpuDashboard", () => {
     render(<GpuDashboard />);
     await waitFor(() => {
       // Total nodes = 2, Running = 1
-      expect(screen.getByText("Total Nodes")).toBeTruthy();
-      expect(screen.getByText("Running")).toBeTruthy();
+      expect(screen.getByText("Total Nodes")).toBeInTheDocument();
+      expect(screen.getByText("Running")).toBeInTheDocument();
     });
   });
 
@@ -139,8 +139,8 @@ describe("GpuDashboard", () => {
     mockListGpuNodes.mockResolvedValue([]);
     render(<GpuDashboard />);
     await waitFor(() => {
-      expect(screen.getByText(/Allocation \/ Tenant Mapping/i)).toBeTruthy();
-      expect(screen.getByText(/GPU Configuration/i)).toBeTruthy();
+      expect(screen.getByText(/Allocation \/ Tenant Mapping/i)).toBeInTheDocument();
+      expect(screen.getByText(/GPU Configuration/i)).toBeInTheDocument();
     });
   });
 
@@ -206,7 +206,7 @@ describe("GpuDashboard", () => {
 
     await userEvent.click(screen.getByText(/Provision Node/i));
 
-    expect(screen.getByText(/Provision New GPU Node/i)).toBeTruthy();
+    expect(screen.getByText(/Provision New GPU Node/i)).toBeInTheDocument();
   });
 
   it("submits provision form and adds new node", async () => {
