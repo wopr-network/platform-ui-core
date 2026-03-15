@@ -106,6 +106,16 @@ All API calls go through `apiFetch` in `src/lib/api.ts`. This function:
 
 For tRPC endpoints, use the `trpc` client in `src/lib/trpc.ts` — it shares the same base URL and auth plumbing.
 
+## Crypto Payments UI
+
+- **Checkout panel** (`src/components/billing/buy-crypto-credits-panel.tsx`) — fetches enabled payment methods from `getSupportedPaymentMethods()` on mount, renders tabs dynamically. Single `createCheckout(methodId, amountUsd)` call. No hardcoded tokens.
+- **Admin panel** (`src/app/admin/payment-methods/page.tsx`) — full CRUD for payment methods: token, chain, type, contract address, RPC URL, oracle address, xpub, decimals, confirmations. All runtime-configurable.
+- **Mnemonic-to-xpub derivation** — admin pastes mnemonic into password field, client-side derives xpub via `@scure/bip32` + `@scure/bip39`. Mnemonic NEVER leaves the browser. Auto-detects BIP-44 coin type from chain (EVM=60, BTC=0, LTC=2).
+- **Charge status polling** — `billing.chargeStatus` tRPC query lets UI poll for payment confirmation.
+- **API types** in `src/lib/api.ts`: `SupportedPaymentMethod`, `CheckoutResult`, `PaymentMethodAdmin`.
+- **tRPC type stubs** in `src/lib/trpc-types.ts`: `checkout`, `chargeStatus`, `supportedPaymentMethods`, `adminListPaymentMethods`, `adminUpsertPaymentMethod`, `adminTogglePaymentMethod`.
+- **Dependencies**: `@scure/bip32`, `@scure/bip39`, `@noble/hashes` (for mnemonic derivation in admin panel).
+
 ## Forbidden Patterns
 
 - **No raw `fetch()` in components.** Use `apiFetch` (REST) or the tRPC client. Raw fetch skips auth headers, tenant context, and 401 handling.
