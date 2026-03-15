@@ -183,6 +183,13 @@ type AppRouterRecord = {
     previewTemplate: AnyTRPCMutationProcedure;
     seedDefaults: AnyTRPCMutationProcedure;
   };
+  /** Admin-only: fleet rollout management. */
+  adminFleetUpdate: {
+    rolloutStatus: AnyTRPCQueryProcedure;
+    forceRollout: AnyTRPCMutationProcedure;
+    listTenantConfigs: AnyTRPCQueryProcedure;
+    setTenantConfig: AnyTRPCMutationProcedure;
+  };
   adminMarketplace: {
     listPlugins: AnyTRPCQueryProcedure;
     updatePlugin: AnyTRPCMutationProcedure;
