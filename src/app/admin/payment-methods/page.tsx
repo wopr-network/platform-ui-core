@@ -10,6 +10,107 @@ import {
   type PaymentMethodAdmin,
 } from "@/lib/api";
 
+/** BIP-44 coin types by chain name. */
+const COIN_TYPES: Record<string, number> = {
+  base: 60,
+  ethereum: 60,
+  polygon: 60,
+  optimism: 60,
+  arbitrum: 60,
+  bitcoin: 0,
+  litecoin: 2,
+  dogecoin: 3,
+};
+
+/**
+ * Derive xpub from mnemonic client-side. Mnemonic NEVER leaves the browser.
+ * Returns the extended public key for the given BIP-44 coin type.
+ * Path: m/44'/<coinType>'/0'
+ */
+async function deriveXpubFromMnemonic(mnemonic: string, coinType: number): Promise<string> {
+  const { HDKey } = await import("@scure/bip32");
+  const { mnemonicToSeedSync } = await import("@scure/bip39");
+  const seed = mnemonicToSeedSync(mnemonic.trim());
+  const master = HDKey.fromMasterSeed(seed);
+  const account = master.derive(`m/44'/${coinType}'/0'`);
+  const xpub = account.publicExtendedKey;
+  if (!xpub) throw new Error("Failed to derive xpub");
+  return xpub;
+}
+
+function MnemonicDeriveSection({
+  chain,
+  onXpubDerived,
+}: {
+  chain: string;
+  onXpubDerived: (xpub: string) => void;
+}) {
+  const [mnemonic, setMnemonic] = useState("");
+  const [deriving, setDeriving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [derived, setDerived] = useState(false);
+
+  const coinType = COIN_TYPES[chain.toLowerCase()] ?? 60;
+  const path = `m/44'/${coinType}'/0'`;
+
+  async function handleDerive() {
+    if (!mnemonic.trim()) return;
+    setDeriving(true);
+    setError(null);
+    try {
+      const xpub = await deriveXpubFromMnemonic(mnemonic, coinType);
+      onXpubDerived(xpub);
+      setMnemonic(""); // Clear mnemonic immediately
+      setDerived(true);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setDeriving(false);
+    }
+  }
+
+  if (derived) {
+    return (
+      <div className="col-span-2 rounded-md border border-green-500/30 bg-green-500/5 p-3">
+        <p className="text-xs text-green-500">
+          xpub derived and set. Mnemonic was cleared from memory.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="col-span-2 space-y-2 rounded-md border border-dashed border-muted-foreground/30 p-3">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-medium text-muted-foreground">Derive xpub from mnemonic</span>
+        <span className="text-xs text-muted-foreground/60">Path: {path}</span>
+      </div>
+      <p className="text-xs text-muted-foreground/60">
+        Your mnemonic never leaves this browser. Only the xpub (public key) is sent to the server.
+      </p>
+      <input
+        type="password"
+        className="w-full rounded-md border bg-background px-3 py-1.5 text-sm font-mono"
+        placeholder="word1 word2 word3 ... (12 or 24 words)"
+        value={mnemonic}
+        onChange={(e) => setMnemonic(e.target.value)}
+        autoComplete="off"
+        spellCheck={false}
+      />
+      {error && <p className="text-xs text-destructive">{error}</p>}
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={handleDerive}
+        disabled={deriving || !mnemonic.trim()}
+      >
+        {deriving ? "Deriving..." : "Derive xpub"}
+      </Button>
+    </div>
+  );
+}
+
 function AddMethodForm({ onSaved }: { onSaved: () => void }) {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -23,6 +124,8 @@ function AddMethodForm({ onSaved }: { onSaved: () => void }) {
     displayOrder: 0,
     confirmations: 1,
     rpcUrl: "",
+    oracleAddress: "",
+    xpub: "",
   });
 
   async function handleSubmit(e: React.FormEvent) {
@@ -40,6 +143,8 @@ function AddMethodForm({ onSaved }: { onSaved: () => void }) {
       enabled: true,
       displayOrder: form.displayOrder,
       rpcUrl: form.rpcUrl || null,
+      oracleAddress: form.oracleAddress || null,
+      xpub: form.xpub || null,
       confirmations: form.confirmations,
     });
     setSaving(false);
@@ -54,6 +159,8 @@ function AddMethodForm({ onSaved }: { onSaved: () => void }) {
       displayOrder: 0,
       confirmations: 1,
       rpcUrl: "",
+      oracleAddress: "",
+      xpub: "",
     });
     onSaved();
   }
@@ -118,6 +225,44 @@ function AddMethodForm({ onSaved }: { onSaved: () => void }) {
             onChange={(e) => setForm({ ...form, contractAddress: e.target.value })}
           />
         </label>
+        <label className="col-span-2 space-y-1">
+          <span className="text-xs text-muted-foreground">RPC URL (chain node endpoint)</span>
+          <input
+            className="w-full rounded-md border bg-background px-3 py-1.5 text-sm font-mono"
+            placeholder="http://op-geth:8545"
+            value={form.rpcUrl}
+            onChange={(e) => setForm({ ...form, rpcUrl: e.target.value })}
+          />
+        </label>
+        <label className="col-span-2 space-y-1">
+          <span className="text-xs text-muted-foreground">
+            Oracle Address (Chainlink feed — empty for stablecoins)
+          </span>
+          <input
+            className="w-full rounded-md border bg-background px-3 py-1.5 text-sm font-mono"
+            placeholder="0x..."
+            value={form.oracleAddress}
+            onChange={(e) => setForm({ ...form, oracleAddress: e.target.value })}
+          />
+        </label>
+
+        {/* --- xpub: paste directly or derive from mnemonic --- */}
+        <MnemonicDeriveSection
+          chain={form.chain}
+          onXpubDerived={(xpub) => setForm((f) => ({ ...f, xpub }))}
+        />
+        <label className="col-span-2 space-y-1">
+          <span className="text-xs text-muted-foreground">
+            xpub (auto-filled from mnemonic above, or paste directly)
+          </span>
+          <input
+            className="w-full rounded-md border bg-background px-3 py-1.5 text-xs font-mono"
+            placeholder="xpub6..."
+            value={form.xpub}
+            onChange={(e) => setForm({ ...form, xpub: e.target.value })}
+          />
+        </label>
+
         <label className="space-y-1">
           <span className="text-xs text-muted-foreground">Display Order</span>
           <input
@@ -199,8 +344,8 @@ export default function AdminPaymentMethodsPage() {
                     <th className="pb-2 pr-4">Chain</th>
                     <th className="pb-2 pr-4">Type</th>
                     <th className="pb-2 pr-4">Contract</th>
-                    <th className="pb-2 pr-4">Decimals</th>
-                    <th className="pb-2 pr-4">Order</th>
+                    <th className="pb-2 pr-4">xpub</th>
+                    <th className="pb-2 pr-4">RPC</th>
                     <th className="pb-2 pr-4">Status</th>
                     <th className="pb-2">Actions</th>
                   </tr>
@@ -214,8 +359,12 @@ export default function AdminPaymentMethodsPage() {
                       <td className="py-2 pr-4 font-mono text-xs">
                         {m.contractAddress ? `${m.contractAddress.slice(0, 10)}...` : "—"}
                       </td>
-                      <td className="py-2 pr-4">{m.decimals}</td>
-                      <td className="py-2 pr-4">{m.displayOrder}</td>
+                      <td className="py-2 pr-4 font-mono text-xs">
+                        {m.xpub ? `${m.xpub.slice(0, 12)}...` : "—"}
+                      </td>
+                      <td className="py-2 pr-4 font-mono text-xs">
+                        {m.rpcUrl ? `${m.rpcUrl.slice(0, 20)}...` : "—"}
+                      </td>
                       <td className="py-2 pr-4">
                         <span
                           className={
