@@ -92,6 +92,10 @@ export function UpdateSettingsCard() {
             <Loader2 className="h-4 w-4 animate-spin" />
             Loading settings...
           </div>
+        ) : configQuery.isError ? (
+          <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+            Failed to load update settings. Please try again later.
+          </div>
         ) : (
           <>
             {/* Auto/Manual toggle */}
