@@ -142,6 +142,8 @@ export function EmailTemplatesClient() {
   });
 
   const seedMutation = trpc.notificationTemplates.seedDefaults.useMutation({
+    // NOTE: Cast needed because trpc-types.ts uses AnyTRPCMutationProcedure stubs
+    // that erase return types. Remove when @wopr-network/sdk is published.
     onSuccess: (data: unknown) => {
       const result = data as { seeded: number } | undefined;
       const count = result?.seeded ?? 0;
@@ -154,6 +156,8 @@ export function EmailTemplatesClient() {
   });
 
   // --- Derived data ---
+  // NOTE: Cast needed because trpc-types.ts uses AnyTRPCMutationProcedure stubs
+  // that erase return types. Remove when @wopr-network/sdk is published.
   const templates = (listQuery.data ?? []) as EmailTemplate[];
 
   const filtered = useMemo(() => {
@@ -187,11 +191,28 @@ export function EmailTemplatesClient() {
   }, []);
 
   const closeEditor = useCallback(() => {
+    // Dirty check — warn if editor state differs from loaded template values
+    if (selectedTemplate) {
+      const isDirty =
+        editDescription !== (selectedTemplate.description ?? "") ||
+        editSubject !== selectedTemplate.subject ||
+        editHtmlBody !== selectedTemplate.htmlBody ||
+        editTextBody !== selectedTemplate.textBody ||
+        editActive !== selectedTemplate.active;
+
+      if (isDirty) {
+        const confirmed = window.confirm(
+          "You have unsaved changes. Are you sure you want to close without saving?",
+        );
+        if (!confirmed) return;
+      }
+    }
+
     setSelectedId(null);
     setPreviewHtml(null);
     setPreviewSubject(null);
     setPreviewText(null);
-  }, []);
+  }, [selectedTemplate, editDescription, editSubject, editHtmlBody, editTextBody, editActive]);
 
   const handleSave = useCallback(() => {
     if (!selectedId) return;
@@ -227,6 +248,8 @@ export function EmailTemplatesClient() {
         sampleData,
       },
       {
+        // NOTE: Cast needed because trpc-types.ts uses AnyTRPCMutationProcedure stubs
+        // that erase return types. Remove when @wopr-network/sdk is published.
         onSuccess: (data: unknown) => {
           const result = data as {
             html: string;
@@ -460,11 +483,13 @@ export function EmailTemplatesClient() {
                     <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                       HTML Preview
                     </span>
-                    <div
-                      className="rounded-md border border-border bg-white p-4 text-black text-sm overflow-auto max-h-[400px]"
-                      // biome-ignore lint/security/noDangerouslySetInnerHtml: Admin preview of their own email template
-                      dangerouslySetInnerHTML={{ __html: previewHtml }}
-                    />
+                    <div className="rounded-md border border-border overflow-auto max-h-[400px]">
+                      <div
+                        className="bg-white p-4 text-black text-sm [color-scheme:light]"
+                        // biome-ignore lint/security/noDangerouslySetInnerHtml: Admin preview of controlled email template
+                        dangerouslySetInnerHTML={{ __html: previewHtml }}
+                      />
+                    </div>
                   </div>
                 )}
 
