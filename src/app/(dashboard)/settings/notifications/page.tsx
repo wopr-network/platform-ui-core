@@ -81,7 +81,7 @@ const PREF_GROUPS: PrefGroup[] = [
     items: [
       {
         key: "fleet_updates",
-        label: "Fleet Updates",
+        label: "Update availability alerts",
         description: "Get notified when updates are available or applied to your fleet.",
       },
     ],
