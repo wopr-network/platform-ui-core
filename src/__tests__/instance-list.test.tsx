@@ -6,6 +6,9 @@ import { InstanceListClient } from "../app/instances/instance-list-client";
 vi.mock("@/lib/trpc", () => ({
   trpc: {
     fleet: {
+      getChangelog: {
+        useQuery: vi.fn().mockReturnValue({ data: null, isLoading: false, error: null }),
+      },
       listInstances: {
         useQuery: vi.fn().mockReturnValue({
           data: {
