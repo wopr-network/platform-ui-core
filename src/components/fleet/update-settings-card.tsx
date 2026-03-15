@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { getActiveTenantId } from "@/lib/tenant-context";
+import { useTenant } from "@/lib/tenant-context";
 import { trpc } from "@/lib/trpc";
 
 const HOUR_OPTIONS = Array.from({ length: 24 }, (_, i) => {
@@ -23,7 +23,7 @@ const HOUR_OPTIONS = Array.from({ length: 24 }, (_, i) => {
 });
 
 export function UpdateSettingsCard() {
-  const tenantId = getActiveTenantId();
+  const { activeTenantId: tenantId } = useTenant();
   const [saving, setSaving] = useState(false);
 
   const configQuery = trpc.fleetUpdateConfig.getUpdateConfig.useQuery(
@@ -156,7 +156,7 @@ export function UpdateSettingsCard() {
             {configQuery.data?.updatedAt && (
               <p className="text-xs text-muted-foreground">
                 Last changed:{" "}
-                {new Date(configQuery.data.updatedAt).toLocaleDateString(undefined, {
+                {new Date(configQuery.data.updatedAt).toLocaleString(undefined, {
                   year: "numeric",
                   month: "short",
                   day: "numeric",
