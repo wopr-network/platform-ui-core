@@ -42,6 +42,15 @@ function makeQueryClient(): QueryClient {
       queries: {
         staleTime: 30_000,
         refetchOnWindowFocus: false,
+        retry(failureCount, error) {
+          // Never retry rate-limit (429) or auth (401) errors — retrying
+          // amplifies the problem into an exponential request storm.
+          if (error && typeof error === "object" && "data" in error) {
+            const httpStatus = (error as { data?: { httpStatus?: number } }).data?.httpStatus;
+            if (httpStatus === 429 || httpStatus === 401) return false;
+          }
+          return failureCount < 2;
+        },
       },
     },
   });
