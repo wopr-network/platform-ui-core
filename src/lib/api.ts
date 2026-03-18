@@ -340,12 +340,16 @@ export async function getInstance(id: string): Promise<InstanceDetail> {
 
 export async function createInstance(data: {
   name: string;
+  image?: string;
   template?: string;
   provider: string;
   channels: string[];
   plugins: string[];
 }): Promise<Instance> {
-  const result = await trpcVanilla.fleet.createInstance.mutate(data);
+  const result = await trpcVanilla.fleet.createInstance.mutate({
+    ...data,
+    image: data.image ?? "ghcr.io/wopr-network/wopr:latest",
+  });
   const profile = result as Record<string, unknown>;
   return {
     id: (profile.id as string) ?? "",
