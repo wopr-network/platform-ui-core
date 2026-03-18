@@ -277,6 +277,7 @@ describe("createInstance", () => {
 
     expect(mockCreateInstance).toHaveBeenCalledWith({
       name: "BotX",
+      image: "ghcr.io/wopr-network/wopr:latest",
       template: "custom",
       provider: "openai",
       channels: ["slack"],
