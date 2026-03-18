@@ -122,6 +122,7 @@ describe("createInstance uses tRPC", () => {
 
     expect(mockCreateInstance).toHaveBeenCalledWith({
       name: "my-bot",
+      image: "ghcr.io/wopr-network/wopr:latest",
       template: "Custom",
       provider: "anthropic",
       channels: ["discord"],
