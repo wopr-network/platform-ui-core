@@ -15,6 +15,14 @@ import {
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
+type PaymentProgress = {
+  status: "waiting" | "partial" | "confirming" | "credited" | "expired" | "failed";
+  amountExpectedCents: number;
+  amountReceivedCents: number;
+  confirmations: number;
+  confirmationsRequired: number;
+};
+
 const AMOUNTS = [
   { value: 10, label: "$10" },
   { value: 25, label: "$25" },
@@ -44,25 +52,46 @@ export function BuyCryptoCreditPanel() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [checkout, setCheckout] = useState<CheckoutResult | null>(null);
-  const [paymentStatus, setPaymentStatus] = useState<"waiting" | "detected" | "credited" | null>(
-    null,
-  );
+  const [paymentProgress, setPaymentProgress] = useState<PaymentProgress | null>(null);
 
   // Poll charge status after checkout
   useEffect(() => {
     if (!checkout?.referenceId) {
-      setPaymentStatus(null);
+      setPaymentProgress(null);
       return;
     }
-    setPaymentStatus("waiting");
+    setPaymentProgress({
+      status: "waiting",
+      amountExpectedCents: 0,
+      amountReceivedCents: 0,
+      confirmations: 0,
+      confirmationsRequired: 0,
+    });
     const interval = setInterval(async () => {
       try {
-        const status = await getChargeStatus(checkout.referenceId);
-        if (status.credited) {
-          setPaymentStatus("credited");
+        const res = await getChargeStatus(checkout.referenceId);
+        let status: PaymentProgress["status"] = "waiting";
+        if (res.credited) {
+          status = "credited";
+        } else if (res.status === "expired" || res.status === "failed") {
+          status = res.status;
+        } else if (
+          res.amountReceivedCents >= res.amountExpectedCents &&
+          res.amountReceivedCents > 0
+        ) {
+          status = "confirming";
+        } else if (res.amountReceivedCents > 0) {
+          status = "partial";
+        }
+        setPaymentProgress({
+          status,
+          amountExpectedCents: res.amountExpectedCents,
+          amountReceivedCents: res.amountReceivedCents,
+          confirmations: res.confirmations,
+          confirmationsRequired: res.confirmationsRequired,
+        });
+        if (status === "credited" || status === "expired" || status === "failed") {
           clearInterval(interval);
-        } else if (status.status === "Settled" || status.status === "Processing") {
-          setPaymentStatus("detected");
         }
       } catch {
         // Ignore poll errors
@@ -90,7 +119,7 @@ export function BuyCryptoCreditPanel() {
     setLoading(true);
     setError(null);
     try {
-      const result = await createCheckout(selectedMethod.id, selectedAmount);
+      const result = await createCheckout(selectedMethod.chain, selectedAmount);
       setCheckout(result);
     } catch {
       setError("Checkout failed. Please try again.");
@@ -129,12 +158,22 @@ export function BuyCryptoCreditPanel() {
                   handleReset();
                 }}
                 className={cn(
-                  "rounded-full px-3 py-1 text-xs font-medium transition-colors",
+                  "flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors",
                   selectedMethod?.id === m.id
                     ? "bg-primary/10 text-primary"
                     : "text-muted-foreground hover:text-foreground",
                 )}
               >
+                {/* biome-ignore lint/performance/noImgElement: external dynamic URLs from backend, not static assets */}
+                <img
+                  src={m.iconUrl}
+                  alt={m.token}
+                  className="h-4 w-4"
+                  loading="lazy"
+                  onError={(e) => {
+                    e.currentTarget.style.display = "none";
+                  }}
+                />
                 {m.token}
               </button>
             ))}
@@ -175,22 +214,48 @@ export function BuyCryptoCreditPanel() {
                 <p className="text-xs text-muted-foreground">
                   Only send {checkout.token} on the {checkout.chain} network.
                 </p>
-                {paymentStatus === "waiting" && (
+                {paymentProgress?.status === "waiting" && (
                   <p className="text-xs text-yellow-500 animate-pulse">Waiting for payment...</p>
                 )}
-                {paymentStatus === "detected" && (
-                  <p className="text-xs text-blue-500">Payment detected, confirming...</p>
-                )}
-                {paymentStatus === "credited" && (
-                  <p className="text-xs text-green-500 font-medium">
-                    Payment confirmed! Credits added to your account.
+                {paymentProgress?.status === "partial" && (
+                  <p className="text-xs text-blue-500">
+                    Received ${(paymentProgress.amountReceivedCents / 100).toFixed(2)} of $
+                    {(paymentProgress.amountExpectedCents / 100).toFixed(2)} — send $
+                    {(
+                      (paymentProgress.amountExpectedCents - paymentProgress.amountReceivedCents) /
+                      100
+                    ).toFixed(2)}{" "}
+                    more
                   </p>
                 )}
+                {paymentProgress?.status === "confirming" && (
+                  <p className="text-xs text-blue-500">
+                    Payment received. Confirming ({paymentProgress.confirmations} of{" "}
+                    {paymentProgress.confirmationsRequired})...
+                  </p>
+                )}
+                {paymentProgress?.status === "credited" && (
+                  <p className="text-xs text-green-500 font-medium">
+                    Payment confirmed! Credits added.
+                  </p>
+                )}
+                {paymentProgress?.status === "expired" && (
+                  <p className="text-xs text-red-500">Payment expired.</p>
+                )}
+                {paymentProgress?.status === "failed" && (
+                  <p className="text-xs text-red-500">Payment failed.</p>
+                )}
               </div>
-              {paymentStatus === "credited" ? (
+              {paymentProgress?.status === "credited" ? (
                 <Button variant="outline" size="sm" onClick={handleReset}>
                   Done
                 </Button>
+              ) : paymentProgress?.status === "expired" || paymentProgress?.status === "failed" ? (
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={handleReset}>
+                    Try Again
+                  </Button>
+                </div>
               ) : (
                 <Button variant="ghost" size="sm" onClick={handleReset}>
                   Cancel
