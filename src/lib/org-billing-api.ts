@@ -90,6 +90,13 @@ export async function removeOrgPaymentMethod(
   return trpcVanilla.org.orgRemovePaymentMethod.mutate({ orgId, paymentMethodId });
 }
 
+export async function setOrgDefaultPaymentMethod(
+  orgId: string,
+  paymentMethodId: string,
+): Promise<void> {
+  await trpcVanilla.org.orgSetDefaultPaymentMethod.mutate({ orgId, paymentMethodId });
+}
+
 export async function createOrgSetupIntent(orgId: string): Promise<{ clientSecret: string }> {
   const result = await trpcVanilla.org.orgSetupIntent.mutate({ orgId });
   if (!result?.clientSecret || typeof result.clientSecret !== "string") {
