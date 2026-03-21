@@ -1345,6 +1345,7 @@ export interface SupportedPaymentMethod {
   displayName: string;
   decimals: number;
   displayOrder: number;
+  iconUrl: string;
 }
 
 export async function getSupportedPaymentMethods(): Promise<SupportedPaymentMethod[]> {
@@ -1363,18 +1364,23 @@ export interface CheckoutResult {
   priceCents?: number;
 }
 
-export async function createCheckout(methodId: string, amountUsd: number): Promise<CheckoutResult> {
-  return trpcVanilla.billing.checkout.mutate({ methodId, amountUsd });
+export async function createCheckout(chain: string, amountUsd: number): Promise<CheckoutResult> {
+  return trpcVanilla.billing.checkout.mutate({ chain, amountUsd });
 }
 
 // --- Charge status polling ---
 
 export interface ChargeStatusResult {
-  status: string;
+  chargeId: string;
+  status: "pending" | "partial" | "confirmed" | "expired" | "failed";
+  amountExpectedCents: number;
+  amountReceivedCents: number;
+  confirmations: number;
+  confirmationsRequired: number;
+  txHash?: string;
   credited: boolean;
+  /** @deprecated Use amountExpectedCents. Removed next major. */
   amountUsdCents: number;
-  token: string | null;
-  chain: string | null;
 }
 
 export async function getChargeStatus(referenceId: string): Promise<ChargeStatusResult> {
@@ -1393,6 +1399,7 @@ export interface PaymentMethodAdmin {
   displayName: string;
   enabled: boolean;
   displayOrder: number;
+  iconUrl: string;
   rpcUrl: string | null;
   oracleAddress: string | null;
   xpub: string | null;

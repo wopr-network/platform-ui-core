@@ -174,6 +174,8 @@ For tRPC endpoints, use the `trpc` client in `src/lib/trpc.ts` — it shares the
 - **Optimistic delete rollback:** On rollback in a catch block, call `load()` to re-fetch fresh state instead of restoring a stale pre-delete snapshot — the snapshot may already be outdated.
 - **Null-safe API response fields:** When API responses have nullable fields (e.g., `patch: string | null` for binary files), render an explicit user-facing fallback (e.g., "No diff available" or "Binary file") rather than crashing or silently omitting content. This is especially important for list/detail views where the absence of data should not break the UI.
 - **Next.js App Router stale request safety:** Dynamic route segments that receive IDs from server components naturally prevent stale request bugs during navigation. When the route changes, React remounts the component with the new ID, making request tracking via ref counters unnecessary in this architecture. This differs from SPA patterns where the same component instance persists across navigations.
+- **Radix AlertDialogAction with async operations:** `AlertDialogAction` closes the dialog on click by default (Radix behavior). To keep the dialog open during async operations (e.g., API calls), call `e.preventDefault()` in the onClick handler before async work. Without this, the dialog closes before the operation completes.
+- **Optimistic UI mutations must optimistically remove first:** When deleting items from a list, remove the item from UI state optimistically before calling `load()` on error. Calling `load()` after mutation causes a full-page skeleton flash. Pattern: mutate → optimistically remove → on error, call `load()` to fetch fresh state.
 
 ## Pre-Commit Checklist
 

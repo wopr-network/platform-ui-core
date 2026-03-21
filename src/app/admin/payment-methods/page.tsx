@@ -122,6 +122,7 @@ function AddMethodForm({ onSaved }: { onSaved: () => void }) {
     decimals: 18,
     displayName: "",
     displayOrder: 0,
+    iconUrl: "",
     confirmations: 1,
     rpcUrl: "",
     oracleAddress: "",
@@ -142,6 +143,7 @@ function AddMethodForm({ onSaved }: { onSaved: () => void }) {
       displayName: form.displayName || `${form.token} on ${form.chain}`,
       enabled: true,
       displayOrder: form.displayOrder,
+      iconUrl: form.iconUrl,
       rpcUrl: form.rpcUrl || null,
       oracleAddress: form.oracleAddress || null,
       xpub: form.xpub || null,
@@ -157,6 +159,7 @@ function AddMethodForm({ onSaved }: { onSaved: () => void }) {
       decimals: 18,
       displayName: "",
       displayOrder: 0,
+      iconUrl: "",
       confirmations: 1,
       rpcUrl: "",
       oracleAddress: "",
@@ -214,6 +217,16 @@ function AddMethodForm({ onSaved }: { onSaved: () => void }) {
             className="w-full rounded-md border bg-background px-3 py-1.5 text-sm"
             value={form.decimals}
             onChange={(e) => setForm({ ...form, decimals: Number(e.target.value) })}
+          />
+        </label>
+        <label className="col-span-2 space-y-1">
+          <span className="text-xs text-muted-foreground">Icon URL</span>
+          <input
+            className="w-full rounded-md border bg-background px-3 py-1.5 text-sm"
+            placeholder="https://example.com/icon.svg"
+            value={form.iconUrl}
+            onChange={(e) => setForm({ ...form, iconUrl: e.target.value })}
+            required
           />
         </label>
         <label className="col-span-2 space-y-1">
