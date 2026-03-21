@@ -14,6 +14,7 @@ interface MockTrpcVanilla {
     orgMemberUsage: MockQuery;
     orgBillingInfo: MockQuery;
     orgTopupCheckout: MockMutate;
+    orgRemovePaymentMethod: MockMutate;
   };
 }
 
@@ -24,6 +25,7 @@ vi.mock("@/lib/trpc", () => ({
       orgMemberUsage: { query: vi.fn() },
       orgBillingInfo: { query: vi.fn() },
       orgTopupCheckout: { mutate: vi.fn() },
+      orgRemovePaymentMethod: { mutate: vi.fn() },
     },
   },
 }));
@@ -60,5 +62,19 @@ describe("org-billing-api null guards", () => {
     const result = await getOrgBillingInfo("org-1");
     expect(result.paymentMethods).toEqual([]);
     expect(result.invoices).toEqual([]);
+  });
+
+  it("removeOrgPaymentMethod calls mutate with correct args", async () => {
+    const { trpcVanilla } = await import("@/lib/trpc");
+    const { org } = trpcVanilla as unknown as MockTrpcVanilla;
+    org.orgRemovePaymentMethod.mutate.mockResolvedValue({ removed: true });
+
+    const { removeOrgPaymentMethod } = await import("@/lib/org-billing-api");
+    const result = await removeOrgPaymentMethod("org-1", "pm_123");
+    expect(result).toEqual({ removed: true });
+    expect(org.orgRemovePaymentMethod.mutate).toHaveBeenCalledWith({
+      orgId: "org-1",
+      paymentMethodId: "pm_123",
+    });
   });
 });
