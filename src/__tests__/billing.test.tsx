@@ -173,21 +173,22 @@ const MOCK_BILLING_INFO: BillingInfo = {
       date: "2026-02-01T00:00:00Z",
       amount: 29,
       status: "pending",
-      downloadUrl: "#",
+      downloadUrl: "https://stripe.com/invoice-003.pdf",
     },
     {
       id: "inv-002",
       date: "2026-01-01T00:00:00Z",
       amount: 29,
       status: "paid",
-      downloadUrl: "#",
+      downloadUrl: "",
+      hostedUrl: "https://invoice.stripe.com/i/inv-002",
     },
     {
       id: "inv-001",
       date: "2025-12-01T00:00:00Z",
       amount: 29,
       status: "paid",
-      downloadUrl: "#",
+      downloadUrl: "",
     },
   ],
 };
@@ -379,14 +380,35 @@ describe("Payment page", () => {
     expect(screen.getAllByText("paid").length).toBe(2);
   });
 
-  it("renders download links for invoices", async () => {
+  it("renders Download PDF link when downloadUrl is present", async () => {
     const { default: PaymentPage } = await import("../app/(dashboard)/billing/payment/page");
     render(<PaymentPage />);
 
-    const downloadLinks = await screen.findAllByRole("link", {
-      name: "Download",
-    });
-    expect(downloadLinks.length).toBe(3);
+    const pdfLink = await screen.findByRole("link", { name: /Download PDF/ });
+    expect(pdfLink).toHaveAttribute("href", "https://stripe.com/invoice-003.pdf");
+    expect(pdfLink).toHaveAttribute("target", "_blank");
+  });
+
+  it("renders View in Stripe link when only hostedUrl is present", async () => {
+    const { default: PaymentPage } = await import("../app/(dashboard)/billing/payment/page");
+    render(<PaymentPage />);
+
+    const stripeLink = await screen.findByRole("link", { name: /View in Stripe/ });
+    expect(stripeLink).toHaveAttribute("href", "https://invoice.stripe.com/i/inv-002");
+    expect(stripeLink).toHaveAttribute("target", "_blank");
+  });
+
+  it("renders no action when neither downloadUrl nor hostedUrl is present", async () => {
+    const { default: PaymentPage } = await import("../app/(dashboard)/billing/payment/page");
+    render(<PaymentPage />);
+
+    await screen.findByText("Billing History");
+    // inv-001 has no downloadUrl and no hostedUrl — should have no link
+    const allLinks = screen.getAllByRole("link");
+    const inv001Links = allLinks.filter(
+      (link) => link.getAttribute("href") === "" || link.textContent?.includes("inv-001"),
+    );
+    expect(inv001Links).toHaveLength(0);
   });
 
   it("renders BYOK messaging", async () => {
