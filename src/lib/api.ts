@@ -1083,7 +1083,7 @@ export interface Invoice {
   amount: number;
   status: "paid" | "pending" | "failed";
   downloadUrl: string;
-  hostedUrl?: string;
+  hostedUrl: string;
   hostedLineItems?: InvoiceLineItem[];
 }
 

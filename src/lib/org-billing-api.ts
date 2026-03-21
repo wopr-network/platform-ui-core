@@ -1,3 +1,4 @@
+import type { Invoice } from "./api";
 import { trpcVanilla } from "./trpc";
 
 // ---- Exported types ----
@@ -59,7 +60,17 @@ export async function getOrgBillingInfo(orgId: string) {
   const res = await trpcVanilla.org.orgBillingInfo.query({ orgId });
   return {
     paymentMethods: Array.isArray(res?.paymentMethods) ? res.paymentMethods : [],
-    invoices: Array.isArray(res?.invoices) ? res.invoices : [],
+    invoices: Array.isArray(res?.invoices)
+      ? (res.invoices as Invoice[]).map((inv) => ({
+          id: inv.id ?? "",
+          date: inv.date ?? "",
+          amount: inv.amount ?? 0,
+          status: inv.status ?? ("paid" as const),
+          downloadUrl: inv.downloadUrl ?? "",
+          hostedUrl: inv.hostedUrl ?? "",
+          hostedLineItems: inv.hostedLineItems,
+        }))
+      : ([] as Invoice[]),
   };
 }
 

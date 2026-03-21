@@ -174,6 +174,7 @@ const MOCK_BILLING_INFO: BillingInfo = {
       amount: 29,
       status: "pending",
       downloadUrl: "https://stripe.com/invoice-003.pdf",
+      hostedUrl: "",
     },
     {
       id: "inv-002",
@@ -189,6 +190,7 @@ const MOCK_BILLING_INFO: BillingInfo = {
       amount: 29,
       status: "paid",
       downloadUrl: "",
+      hostedUrl: "",
     },
   ],
 };
@@ -403,12 +405,16 @@ describe("Payment page", () => {
     render(<PaymentPage />);
 
     await screen.findByText("Billing History");
-    // inv-001 has no downloadUrl and no hostedUrl — should have no link
+    // inv-001 has no downloadUrl and no hostedUrl — the row should render no <a> element at all
+    // inv-003 has downloadUrl → "Download PDF" link; inv-002 has hostedUrl → "View in Stripe" link
     const allLinks = screen.getAllByRole("link");
-    const inv001Links = allLinks.filter(
-      (link) => link.getAttribute("href") === "" || link.textContent?.includes("inv-001"),
+    const actionLinks = allLinks.filter(
+      (link) =>
+        link.textContent?.includes("Download PDF") || link.textContent?.includes("View in Stripe"),
     );
-    expect(inv001Links).toHaveLength(0);
+    // Only 2 action links: one for inv-003, one for inv-002. None for inv-001.
+    expect(actionLinks).toHaveLength(2);
+    expect(actionLinks.every((link) => link.getAttribute("href") !== "")).toBe(true);
   });
 
   it("renders BYOK messaging", async () => {

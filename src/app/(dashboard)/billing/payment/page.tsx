@@ -91,16 +91,7 @@ export default function PaymentPage() {
       isDefault: boolean;
     }>
   >([]);
-  const [orgInvoices, setOrgInvoices] = useState<
-    Array<{
-      id: string;
-      date: string;
-      amount: number;
-      status: string;
-      downloadUrl: string;
-      hostedUrl?: string;
-    }>
-  >([]);
+  const [orgInvoices, setOrgInvoices] = useState<Invoice[]>([]);
   const [orgChecked, setOrgChecked] = useState(false);
   const [orgLoading, setOrgLoading] = useState(false);
 
