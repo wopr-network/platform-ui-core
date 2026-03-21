@@ -109,12 +109,14 @@ export function OrgBillingPage({ orgId, orgName, isAdmin }: OrgBillingPageProps)
   const handleDeletePaymentMethod = useCallback(
     async (paymentMethodId: string) => {
       setDeleteLoading(true);
+      setPaymentMethods((prev) => prev.filter((pm) => pm.id !== paymentMethodId));
       try {
         await removeOrgPaymentMethod(orgId, paymentMethodId);
         toast.success("Payment method removed");
-        await load();
+        load();
       } catch (err) {
         toast.error(toUserMessage(err));
+        load();
       } finally {
         setDeleteLoading(false);
         setDeletingPmId(null);
@@ -302,7 +304,7 @@ export function OrgBillingPage({ orgId, orgName, isAdmin }: OrgBillingPageProps)
                         </Badge>
                       )}
                     </p>
-                    {isAdmin && (
+                    {isAdmin && stripeBackendReady && (
                       <Button
                         variant="ghost"
                         size="sm"
@@ -348,7 +350,10 @@ export function OrgBillingPage({ orgId, orgName, isAdmin }: OrgBillingPageProps)
                 <AlertDialogAction
                   disabled={deleteLoading}
                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  onClick={() => deletingPmId && handleDeletePaymentMethod(deletingPmId)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (deletingPmId) handleDeletePaymentMethod(deletingPmId);
+                  }}
                 >
                   {deleteLoading ? "Removing..." : "Remove"}
                 </AlertDialogAction>
