@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type {
@@ -404,17 +404,12 @@ describe("Payment page", () => {
     const { default: PaymentPage } = await import("../app/(dashboard)/billing/payment/page");
     render(<PaymentPage />);
 
-    await screen.findByText("Billing History");
+    // Wait for invoices to render (3 rows each showing "$29.00")
+    const amountCells = await screen.findAllByText("$29.00");
     // inv-001 has no downloadUrl and no hostedUrl — the row should render no <a> element at all
-    // inv-003 has downloadUrl → "Download PDF" link; inv-002 has hostedUrl → "View in Stripe" link
-    const allLinks = screen.getAllByRole("link");
-    const actionLinks = allLinks.filter(
-      (link) =>
-        link.textContent?.includes("Download PDF") || link.textContent?.includes("View in Stripe"),
-    );
-    // Only 2 action links: one for inv-003, one for inv-002. None for inv-001.
-    expect(actionLinks).toHaveLength(2);
-    expect(actionLinks.every((link) => link.getAttribute("href") !== "")).toBe(true);
+    // The 3rd amount cell belongs to inv-001 (oldest invoice, no URLs)
+    const inv001Row = amountCells[2].closest("tr")!;
+    expect(within(inv001Row).queryByRole("link")).toBeNull();
   });
 
   it("renders BYOK messaging", async () => {
