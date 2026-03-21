@@ -1,12 +1,23 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Building2, Download } from "lucide-react";
+import { Building2, Download, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 import { AddPaymentMethodDialog } from "@/components/billing/add-payment-method-dialog";
 import { BuyCreditsPanel } from "@/components/billing/buy-credits-panel";
 import { BuyCryptoCreditPanel } from "@/components/billing/buy-crypto-credits-panel";
 import { CreditBalance } from "@/components/billing/credit-balance";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,9 +31,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { toUserMessage } from "@/lib/errors";
 import { formatCreditStandard } from "@/lib/format-credit";
 import type { OrgCreditBalance, OrgMemberUsageRow } from "@/lib/org-billing-api";
-import { getOrgBillingInfo, getOrgCreditBalance, getOrgMemberUsage } from "@/lib/org-billing-api";
+import {
+  getOrgBillingInfo,
+  getOrgCreditBalance,
+  getOrgMemberUsage,
+  removeOrgPaymentMethod,
+} from "@/lib/org-billing-api";
 
 const stripeBackendReady = Boolean(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
 
@@ -63,6 +80,8 @@ export function OrgBillingPage({ orgId, orgName, isAdmin }: OrgBillingPageProps)
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAddPayment, setShowAddPayment] = useState(false);
+  const [deletingPmId, setDeletingPmId] = useState<string | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -86,6 +105,25 @@ export function OrgBillingPage({ orgId, orgName, isAdmin }: OrgBillingPageProps)
   useEffect(() => {
     load();
   }, [load]);
+
+  const handleDeletePaymentMethod = useCallback(
+    async (paymentMethodId: string) => {
+      setDeleteLoading(true);
+      setPaymentMethods((prev) => prev.filter((pm) => pm.id !== paymentMethodId));
+      try {
+        await removeOrgPaymentMethod(orgId, paymentMethodId);
+        toast.success("Payment method removed");
+        load();
+      } catch (err) {
+        toast.error(toUserMessage(err));
+        load();
+      } finally {
+        setDeleteLoading(false);
+        setDeletingPmId(null);
+      }
+    },
+    [orgId, load],
+  );
 
   if (loading) {
     return (
@@ -266,13 +304,16 @@ export function OrgBillingPage({ orgId, orgName, isAdmin }: OrgBillingPageProps)
                         </Badge>
                       )}
                     </p>
-                    {/* Wire to org.orgRemovePaymentMethod tRPC procedure when backend adds it
-                    {isAdmin && (
-                      <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-destructive"
-                        onClick={() => handleDeletePaymentMethod(pm.id)}>
+                    {isAdmin && stripeBackendReady && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-muted-foreground hover:text-destructive"
+                        onClick={() => setDeletingPmId(pm.id)}
+                      >
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
-                    )} */}
+                    )}
                   </div>
                 ))}
               </div>
@@ -292,6 +333,33 @@ export function OrgBillingPage({ orgId, orgName, isAdmin }: OrgBillingPageProps)
               </>
             )}
           </CardContent>
+          <AlertDialog
+            open={!!deletingPmId}
+            onOpenChange={(open) => !open && setDeletingPmId(null)}
+          >
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Remove Payment Method</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This payment method will be permanently removed from your organization. This
+                  action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={deleteLoading}>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  disabled={deleteLoading}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (deletingPmId) handleDeletePaymentMethod(deletingPmId);
+                  }}
+                >
+                  {deleteLoading ? "Removing..." : "Remove"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </Card>
       </motion.div>
 
