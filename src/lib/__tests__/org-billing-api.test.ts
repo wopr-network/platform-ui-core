@@ -180,11 +180,34 @@ describe("getOrgBillingInfo", () => {
 
   it("returns payment methods and invoices", async () => {
     const paymentMethods = [{ id: "pm-1", brand: "visa", last4: "4242" }];
-    const invoices = [{ id: "inv-1", amount: 5000, status: "paid" }];
+    const invoices = [
+      {
+        id: "inv-1",
+        amount: 5000,
+        status: "paid",
+        date: "2026-03-01",
+        downloadUrl: "https://invoice.example.com/inv-1.pdf",
+        hostedUrl: "https://invoice.example.com/inv-1",
+        hostedLineItems: undefined,
+      },
+    ];
     mockOrgBillingInfoQuery.mockResolvedValue({ paymentMethods, invoices });
 
     const result = await getOrgBillingInfo("org-1");
-    expect(result).toEqual({ paymentMethods, invoices });
+    expect(result).toEqual({
+      paymentMethods,
+      invoices: [
+        {
+          id: "inv-1",
+          date: "2026-03-01",
+          amount: 5000,
+          status: "paid",
+          downloadUrl: "https://invoice.example.com/inv-1.pdf",
+          hostedUrl: "https://invoice.example.com/inv-1",
+          hostedLineItems: undefined,
+        },
+      ],
+    });
     expect(mockOrgBillingInfoQuery).toHaveBeenCalledWith({ orgId: "org-1" });
   });
 

@@ -104,7 +104,7 @@ describe("PaymentPage org invoices", () => {
     expect(screen.getByText("paid")).toBeInTheDocument();
     expect(screen.getByText("pending")).toBeInTheDocument();
 
-    const downloadLinks = screen.getAllByText("Download");
+    const downloadLinks = screen.getAllByRole("link", { name: /Download PDF/ });
     expect(downloadLinks.length).toBeGreaterThanOrEqual(2);
   });
 

@@ -1,7 +1,13 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { CreditCardIcon, LockIcon, ShieldCheckIcon } from "lucide-react";
+import {
+  CreditCardIcon,
+  DownloadIcon,
+  ExternalLinkIcon,
+  LockIcon,
+  ShieldCheckIcon,
+} from "lucide-react";
 import { type FormEvent, useCallback, useEffect, useState } from "react";
 import { AddPaymentMethodDialog } from "@/components/billing/add-payment-method-dialog";
 import { ByokCallout } from "@/components/billing/byok-callout";
@@ -85,9 +91,7 @@ export default function PaymentPage() {
       isDefault: boolean;
     }>
   >([]);
-  const [orgInvoices, setOrgInvoices] = useState<
-    Array<{ id: string; date: string; amount: number; status: string; downloadUrl: string }>
-  >([]);
+  const [orgInvoices, setOrgInvoices] = useState<Invoice[]>([]);
   const [orgChecked, setOrgChecked] = useState(false);
   const [orgLoading, setOrgLoading] = useState(false);
 
@@ -470,7 +474,7 @@ export default function PaymentPage() {
                       <TableHead>Date</TableHead>
                       <TableHead>Amount</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead className="w-[100px]" />
+                      <TableHead className="w-[140px]" />
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -497,9 +501,25 @@ export default function PaymentPage() {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <Button variant="ghost" size="sm" asChild>
-                            <a href={invoice.downloadUrl}>Download</a>
-                          </Button>
+                          {invoice.downloadUrl ? (
+                            <Button variant="ghost" size="sm" asChild>
+                              <a
+                                href={invoice.downloadUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                <DownloadIcon className="mr-1 size-3" />
+                                Download PDF
+                              </a>
+                            </Button>
+                          ) : invoice.hostedUrl ? (
+                            <Button variant="ghost" size="sm" asChild>
+                              <a href={invoice.hostedUrl} target="_blank" rel="noopener noreferrer">
+                                <ExternalLinkIcon className="mr-1 size-3" />
+                                View in Stripe
+                              </a>
+                            </Button>
+                          ) : null}
                         </TableCell>
                       </motion.tr>
                     ))}
@@ -531,7 +551,7 @@ export default function PaymentPage() {
                 <TableHead>Date</TableHead>
                 <TableHead>Amount</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="w-[100px]" />
+                <TableHead className="w-[140px]" />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -593,9 +613,21 @@ function InvoiceRow({
               {expanded ? "Hide" : "Details"}
             </Button>
           )}
-          <Button variant="ghost" size="sm" asChild>
-            <a href={invoice.downloadUrl}>Download</a>
-          </Button>
+          {invoice.downloadUrl ? (
+            <Button variant="ghost" size="sm" asChild>
+              <a href={invoice.downloadUrl} target="_blank" rel="noopener noreferrer">
+                <DownloadIcon className="mr-1 size-3" />
+                Download PDF
+              </a>
+            </Button>
+          ) : invoice.hostedUrl ? (
+            <Button variant="ghost" size="sm" asChild>
+              <a href={invoice.hostedUrl} target="_blank" rel="noopener noreferrer">
+                <ExternalLinkIcon className="mr-1 size-3" />
+                View in Stripe
+              </a>
+            </Button>
+          ) : null}
         </TableCell>
       </motion.tr>
       <tr className="border-0">
