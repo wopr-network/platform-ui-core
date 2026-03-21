@@ -170,6 +170,7 @@ type AppRouterRecord = {
     orgTopupCheckout: AnyTRPCMutationProcedure;
     orgSetupIntent: AnyTRPCMutationProcedure;
     orgRemovePaymentMethod: AnyTRPCMutationProcedure;
+    orgSetDefaultPaymentMethod: AnyTRPCMutationProcedure;
   };
   /** Separate from `fleet` — backed by createFleetUpdateConfigRouter in platform-core. */
   fleetUpdateConfig: {

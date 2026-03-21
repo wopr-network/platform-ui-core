@@ -39,6 +39,7 @@ import {
   getOrgCreditBalance,
   getOrgMemberUsage,
   removeOrgPaymentMethod,
+  setOrgDefaultPaymentMethod,
 } from "@/lib/org-billing-api";
 
 const stripeBackendReady = Boolean(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
@@ -82,6 +83,27 @@ export function OrgBillingPage({ orgId, orgName, isAdmin }: OrgBillingPageProps)
   const [showAddPayment, setShowAddPayment] = useState(false);
   const [deletingPmId, setDeletingPmId] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [settingDefault, setSettingDefault] = useState<string | null>(null);
+
+  const handleSetDefault = useCallback(
+    async (paymentMethodId: string) => {
+      setSettingDefault(paymentMethodId);
+      const prev = paymentMethods;
+      setPaymentMethods((pms) =>
+        pms.map((pm) => ({ ...pm, isDefault: pm.id === paymentMethodId })),
+      );
+      try {
+        await setOrgDefaultPaymentMethod(orgId, paymentMethodId);
+      } catch {
+        toast.error("Failed to update default payment method");
+        setPaymentMethods(prev);
+      } finally {
+        setSettingDefault(null);
+      }
+    },
+    [orgId, paymentMethods],
+  );
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -304,6 +326,17 @@ export function OrgBillingPage({ orgId, orgName, isAdmin }: OrgBillingPageProps)
                         </Badge>
                       )}
                     </p>
+                    {isAdmin && !pm.isDefault && paymentMethods.length > 1 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs text-muted-foreground hover:text-primary"
+                        disabled={settingDefault !== null}
+                        onClick={() => handleSetDefault(pm.id)}
+                      >
+                        {settingDefault === pm.id ? "Setting..." : "Set as default"}
+                      </Button>
+                    )}
                     {isAdmin && stripeBackendReady && (
                       <Button
                         variant="ghost"
