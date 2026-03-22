@@ -262,6 +262,7 @@
 /* ── Sonner toast — match platform theme ─────────────────────────── */
 [data-sonner-toaster] {
   font-family: var(--font-mono), ui-monospace, monospace !important;
+  --width: 320px !important;
 }
 
 [data-sonner-toast] {
@@ -272,8 +273,8 @@
   font-family: var(--font-mono), ui-monospace, monospace !important;
   padding: 10px 14px !important;
   gap: 6px !important;
-  max-width: 360px !important;
-  width: auto !important;
+  text-align: center !important;
+  justify-content: center !important;
 }
 
 .dark [data-sonner-toast] {
