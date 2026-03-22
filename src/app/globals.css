@@ -137,10 +137,10 @@
 @keyframes terminal-pulse {
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgba(0, 255, 65, 0);
+    box-shadow: 0 0 0 0 transparent;
   }
   50% {
-    box-shadow: 0 0 8px 2px rgba(0, 255, 65, 0.2);
+    box-shadow: 0 0 8px 2px color-mix(in srgb, var(--terminal, #00ff41) 20%, transparent);
   }
 }
 
@@ -227,8 +227,8 @@
     0deg,
     transparent,
     transparent 2px,
-    rgba(0, 255, 65, 0.03) 2px,
-    rgba(0, 255, 65, 0.03) 4px
+    color-mix(in srgb, var(--terminal, #00ff41) 3%, transparent) 2px,
+    color-mix(in srgb, var(--terminal, #00ff41) 3%, transparent) 4px
   );
   border-radius: inherit;
   z-index: 1;
