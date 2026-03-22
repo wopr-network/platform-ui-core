@@ -336,7 +336,7 @@ export function TerminalSequence({ onComplete, onMilestone, onFadeStart }: Termi
     >
       {/* Grid dot background */}
       <div
-        className="animate-grid-drift pointer-events-none absolute inset-0 bg-[radial-gradient(#00FF4115_1px,transparent_1px)] bg-[size:24px_24px]"
+        className="animate-grid-drift pointer-events-none absolute inset-0 bg-grid-dots"
         style={{
           maskImage: "radial-gradient(ellipse at center, black 40%, transparent 80%)",
           WebkitMaskImage: "radial-gradient(ellipse at center, black 40%, transparent 80%)",
