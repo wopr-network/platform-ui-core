@@ -41,7 +41,7 @@ function lerpColor(a: [number, number, number], b: [number, number, number], t: 
 
 function getLineColor(milestoneCount: number, now: number): string {
   const stops = getColorStops();
-  const terminal = getTerminalColor();
+  const terminal: [number, number, number] = [stops[0][1], stops[0][2], stops[0][3]];
 
   // Pulsing phase — lerp between white and terminal
   if (milestoneCount >= 53) {
