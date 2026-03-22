@@ -258,3 +258,106 @@
   );
   background-size: 24px 24px;
 }
+
+/* ── Sonner toast — match platform theme ─────────────────────────── */
+[data-sonner-toaster] {
+  font-family: var(--font-mono), ui-monospace, monospace !important;
+}
+
+[data-sonner-toast] {
+  background: var(--card) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-md) !important;
+  color: var(--foreground) !important;
+  font-family: var(--font-mono), ui-monospace, monospace !important;
+  padding: 12px 16px !important;
+  gap: 8px !important;
+}
+
+.dark [data-sonner-toast] {
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.5),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.03) !important;
+}
+
+[data-sonner-toast] [data-title] {
+  color: var(--foreground) !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+}
+
+[data-sonner-toast] [data-description] {
+  color: var(--muted-foreground) !important;
+  font-size: 12px !important;
+}
+
+[data-sonner-toast] [data-close-button] {
+  background: var(--muted) !important;
+  border-color: var(--border) !important;
+  color: var(--muted-foreground) !important;
+}
+
+[data-sonner-toast] [data-close-button]:hover {
+  background: var(--accent) !important;
+  color: var(--foreground) !important;
+}
+
+/* Success — subtle terminal-color tint */
+.dark [data-sonner-toast][data-type="success"] {
+  background: color-mix(in srgb, var(--terminal) 6%, var(--card)) !important;
+  border-color: color-mix(in srgb, var(--terminal) 30%, transparent) !important;
+}
+[data-sonner-toast][data-type="success"] [data-icon] {
+  color: var(--terminal) !important;
+}
+
+/* Error — subtle red tint */
+.dark [data-sonner-toast][data-type="error"] {
+  background: color-mix(in srgb, var(--destructive) 6%, var(--card)) !important;
+  border-color: color-mix(in srgb, var(--destructive) 30%, transparent) !important;
+}
+[data-sonner-toast][data-type="error"] [data-icon] {
+  color: var(--destructive) !important;
+}
+
+/* Warning — subtle amber tint */
+.dark [data-sonner-toast][data-type="warning"] {
+  background: color-mix(in srgb, #f59e0b 6%, var(--card)) !important;
+  border-color: color-mix(in srgb, #f59e0b 30%, transparent) !important;
+}
+[data-sonner-toast][data-type="warning"] [data-icon] {
+  color: #f59e0b !important;
+}
+
+/* Info */
+.dark [data-sonner-toast][data-type="info"] {
+  background: color-mix(in srgb, #3b82f6 6%, var(--card)) !important;
+  border-color: color-mix(in srgb, #3b82f6 30%, transparent) !important;
+}
+[data-sonner-toast][data-type="info"] [data-icon] {
+  color: #3b82f6 !important;
+}
+
+/* Loading — faint terminal pulse */
+.dark [data-sonner-toast][data-type="loading"] {
+  border-color: color-mix(in srgb, var(--terminal) 20%, transparent) !important;
+}
+[data-sonner-toast][data-type="loading"] [data-icon] {
+  color: var(--muted-foreground) !important;
+}
+
+/* Action & cancel buttons inside toasts */
+[data-sonner-toast] button[data-button] {
+  background: var(--primary) !important;
+  color: var(--primary-foreground) !important;
+  border-radius: var(--radius-sm) !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+}
+
+[data-sonner-toast] button[data-cancel] {
+  background: var(--muted) !important;
+  color: var(--muted-foreground) !important;
+  border-radius: var(--radius-sm) !important;
+  font-size: 12px !important;
+}
