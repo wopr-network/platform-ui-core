@@ -74,6 +74,8 @@ type AppRouterRecord = {
     migrationRestoreHistory: AnyTRPCQueryProcedure;
     retentionPolicies: AnyTRPCQueryProcedure;
     retentionPoliciesUpdate: AnyTRPCMutationProcedure;
+    getGatewayModel: AnyTRPCQueryProcedure;
+    setGatewayModel: AnyTRPCMutationProcedure;
   };
   promotions: {
     list: AnyTRPCQueryProcedure;
