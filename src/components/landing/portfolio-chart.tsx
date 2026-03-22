@@ -9,13 +9,28 @@ interface PortfolioChartProps {
 
 const BUFFER_SIZE = 800;
 
-// Color stops: [milestone, r, g, b]
-const COLOR_STOPS: [number, number, number, number][] = [
-  [0, 0, 255, 65], // #00FF41 terminal green
-  [13, 245, 158, 11], // #F59E0B amber
-  [26, 239, 68, 68], // #EF4444 red
-  [39, 255, 255, 255], // #FFFFFF white
-];
+function parseHexToRgb(hex: string): [number, number, number] {
+  const h = hex.replace("#", "");
+  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+}
+
+function getTerminalColor(): [number, number, number] {
+  if (typeof document === "undefined") return [0, 255, 65];
+  const val = getComputedStyle(document.documentElement).getPropertyValue("--terminal").trim();
+  if (val && val.startsWith("#") && val.length >= 7) return parseHexToRgb(val);
+  return [0, 255, 65];
+}
+
+// Color stops: [milestone, r, g, b] — base color read from CSS var
+function getColorStops(): [number, number, number, number][] {
+  const [r, g, b] = getTerminalColor();
+  return [
+    [0, r, g, b],
+    [13, 245, 158, 11], // #F59E0B amber
+    [26, 239, 68, 68], // #EF4444 red
+    [39, 255, 255, 255], // #FFFFFF white
+  ];
+}
 
 function lerpColor(a: [number, number, number], b: [number, number, number], t: number): string {
   const r = Math.round(a[0] + (b[0] - a[0]) * t);
@@ -25,26 +40,28 @@ function lerpColor(a: [number, number, number], b: [number, number, number], t: 
 }
 
 function getLineColor(milestoneCount: number, now: number): string {
-  // Pulsing phase — lerp between white and terminal green
+  const stops = getColorStops();
+  const terminal = getTerminalColor();
+
+  // Pulsing phase — lerp between white and terminal
   if (milestoneCount >= 53) {
     const t = Math.sin(now * 0.004 * Math.PI) * 0.5 + 0.5;
-    return lerpColor([255, 255, 255], [0, 255, 65], t);
+    return lerpColor([255, 255, 255], terminal, t);
   }
 
   // Find surrounding stops and lerp between them
-  for (let i = COLOR_STOPS.length - 1; i >= 0; i--) {
-    const [m, r, g, b] = COLOR_STOPS[i];
+  for (let i = stops.length - 1; i >= 0; i--) {
+    const [m, r, g, b] = stops[i];
     if (milestoneCount >= m) {
-      const next = COLOR_STOPS[i + 1];
+      const next = stops[i + 1];
       if (!next) return `rgb(${r},${g},${b})`;
       const [nm, nr, ng, nb] = next;
       const t = (milestoneCount - m) / (nm - m);
-      // Ease in-out so the blend feels gradual, not linear
       const ease = t * t * (3 - 2 * t);
       return lerpColor([r, g, b], [nr, ng, nb], ease);
     }
   }
-  return `rgb(${COLOR_STOPS[0][1]},${COLOR_STOPS[0][2]},${COLOR_STOPS[0][3]})`;
+  return `rgb(${stops[0][1]},${stops[0][2]},${stops[0][3]})`;
 }
 
 // 1D value noise — smooth interpolation between a seeded lattice

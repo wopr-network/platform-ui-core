@@ -249,3 +249,12 @@
   animation: webmcp-pulse-glow 0.6s ease-in-out 3;
   border-color: hsl(var(--primary) / 0.6);
 }
+
+/* Grid dot overlay — uses terminal color for brand-agnostic theming */
+.bg-grid-dots {
+  background-image: radial-gradient(
+    color-mix(in srgb, var(--terminal, #00ff41) 8%, transparent) 1px,
+    transparent 1px
+  );
+  background-size: 24px 24px;
+}
