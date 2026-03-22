@@ -75,7 +75,13 @@ export default async function RootLayout({
           >
             <TRPCProvider initialTenantId={initialTenantId}>
               {children}
-              <Toaster theme="dark" />
+              <Toaster
+                theme="dark"
+                position="bottom-right"
+                toastOptions={{
+                  style: { maxWidth: "360px" },
+                }}
+              />
             </TRPCProvider>
           </ThemeProvider>
         </MotionConfig>
