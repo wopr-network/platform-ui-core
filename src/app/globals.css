@@ -263,6 +263,13 @@
 [data-sonner-toaster] {
   font-family: var(--font-mono), ui-monospace, monospace !important;
   --width: 320px !important;
+  position: fixed !important;
+  bottom: 20px !important;
+  right: 20px !important;
+  left: auto !important;
+  top: auto !important;
+  z-index: 99999 !important;
+  transform: none !important;
 }
 
 [data-sonner-toast] {
