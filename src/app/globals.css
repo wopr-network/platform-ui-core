@@ -137,7 +137,7 @@
 @keyframes terminal-pulse {
   0%,
   100% {
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--terminal, #00ff41) 0%, transparent);
+    box-shadow: 0 0 0 0 transparent;
   }
   50% {
     box-shadow: 0 0 8px 2px color-mix(in srgb, var(--terminal, #00ff41) 20%, transparent);
