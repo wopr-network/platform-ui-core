@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { Check } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -87,6 +88,8 @@ export function CreateInstanceClient() {
     setSelectedPlugins((prev) => (prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p]));
   }
 
+  const router = useRouter();
+
   async function handleSubmit() {
     if (!name.trim()) return;
     const validationError = validateName(name);
@@ -96,21 +99,25 @@ export function CreateInstanceClient() {
     }
     setSubmitting(true);
     setSubmitError(null);
-    try {
-      const preset = presets.find((p) => p.id === selectedPreset);
-      await createInstance({
-        name: name.trim(),
-        template: preset?.name ?? "Custom",
-        provider,
-        channels: selectedChannels,
-        plugins: selectedPlugins,
-      });
-      setCreated(true);
-    } catch (err) {
-      setSubmitError(toUserMessage(err, "Failed to create instance"));
-    } finally {
-      setSubmitting(false);
-    }
+
+    const preset = presets.find((p) => p.id === selectedPreset);
+    const payload = {
+      name: name.trim(),
+      template: preset?.name ?? "Custom",
+      provider,
+      channels: selectedChannels,
+      plugins: selectedPlugins,
+    };
+
+    // Fire-and-forget: redirect immediately, let backend provision in background.
+    // The instances page polls for status updates.
+    createInstance(payload).catch(() => {
+      // Silently handled — instance list will show provisioning/error state
+    });
+
+    setCreated(true);
+    // Short delay for the success animation, then redirect to instances
+    setTimeout(() => router.push("/instances"), 1500);
   }
 
   if (created) {
