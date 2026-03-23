@@ -1,6 +1,22 @@
 "use client";
 
-import { LogOutIcon, SettingsIcon, UserIcon } from "lucide-react";
+import {
+  CreditCard,
+  GitBranch,
+  LayoutDashboard,
+  LayoutGrid,
+  LogOutIcon,
+  MessageCircle,
+  MessageSquare,
+  Network,
+  Puzzle,
+  Server,
+  SettingsIcon,
+  Shield,
+  Store,
+  UserIcon,
+  Wallet,
+} from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -53,6 +69,23 @@ function getInitials(name: string): string {
     .toUpperCase();
 }
 
+function getNavIcon(href: string) {
+  if (href === "/dashboard") return LayoutDashboard;
+  if (href === "/chat") return MessageCircle;
+  if (href === "/marketplace") return Store;
+  if (href.startsWith("/channels")) return MessageSquare;
+  if (href.startsWith("/plugins")) return Puzzle;
+  if (href.startsWith("/instances")) return LayoutGrid;
+  if (href.startsWith("/changesets")) return GitBranch;
+  if (href.startsWith("/fleet")) return Server;
+  if (href.includes("network")) return Network;
+  if (href.startsWith("/billing/credits")) return Wallet;
+  if (href.startsWith("/billing")) return CreditCard;
+  if (href.startsWith("/settings")) return SettingsIcon;
+  if (href.startsWith("/admin")) return Shield;
+  return null;
+}
+
 export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -86,7 +119,10 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <div className="flex h-full flex-col">
       <div className="flex h-14 items-center border-b border-sidebar-border px-6">
-        <span className="text-lg font-semibold tracking-tight text-terminal [text-shadow:0_0_12px_rgba(0,255,65,0.4)]">
+        <span
+          className="text-lg font-semibold tracking-tight text-terminal"
+          style={{ textShadow: "0 0 12px var(--terminal-glow, rgba(0, 255, 65, 0.4))" }}
+        >
           {productName()}
         </span>
       </div>
@@ -98,27 +134,33 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
               !item.href.startsWith("/admin") ||
               (user as { role?: string } | undefined)?.role === "platform_admin",
           )
-          .map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              prefetch={false}
-              onClick={onNavigate}
-              className={cn(
-                "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-sidebar-accent hover:text-foreground",
-                isNavActive(item.href, pathname)
-                  ? "bg-terminal/5 border-l-2 border-terminal text-terminal"
-                  : "text-muted-foreground",
-              )}
-            >
-              {item.label}
-              {item.label === "Credits" && creditBalance !== null && (
-                <span className={cn("text-xs font-mono", balanceColorClass(creditBalance))}>
-                  {formatCreditStandard(creditBalance)}
+          .map((item) => {
+            const NavIcon = getNavIcon(item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                prefetch={false}
+                onClick={onNavigate}
+                className={cn(
+                  "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-sidebar-accent hover:text-foreground",
+                  isNavActive(item.href, pathname)
+                    ? "bg-terminal/5 border-l-2 border-terminal text-terminal"
+                    : "text-muted-foreground",
+                )}
+              >
+                <span className="flex items-center gap-2.5">
+                  {NavIcon && <NavIcon className="size-4 shrink-0 opacity-70" />}
+                  {item.label}
                 </span>
-              )}
-            </Link>
-          ))}
+                {item.label === "Credits" && creditBalance !== null && (
+                  <span className={cn("text-xs font-mono", balanceColorClass(creditBalance))}>
+                    {formatCreditStandard(creditBalance)}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
       </nav>
       <div className="border-t border-sidebar-border px-3 py-3">
         {isPending ? (
@@ -138,7 +180,7 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
                   className="size-8 rounded-full object-cover"
                 />
               ) : (
-                <span className="flex size-8 items-center justify-center rounded-full bg-sidebar-accent text-xs font-semibold">
+                <span className="flex size-8 items-center justify-center rounded-full bg-sidebar-accent text-xs font-semibold ring-1 ring-terminal/20">
                   {user.name?.trim() ? getInitials(user.name) : <UserIcon className="size-4" />}
                 </span>
               )}
