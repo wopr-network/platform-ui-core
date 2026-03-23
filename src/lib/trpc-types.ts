@@ -202,6 +202,10 @@ type AppRouterRecord = {
     updatePlugin: AnyTRPCMutationProcedure;
     addPlugin: AnyTRPCMutationProcedure;
   };
+  /** Hot pool instance claim. */
+  pool: {
+    claim: AnyTRPCMutationProcedure;
+  };
 };
 
 export type AppRouter = TRPCBuiltRouter<AnyTRPCRootTypes, AppRouterRecord>;
