@@ -79,6 +79,7 @@ type AppRouterRecord = {
     listAllInstances: AnyTRPCQueryProcedure;
     listAllOrgs: AnyTRPCQueryProcedure;
     billingOverview: AnyTRPCQueryProcedure;
+    listAvailableModels: AnyTRPCQueryProcedure;
   };
   promotions: {
     list: AnyTRPCQueryProcedure;
