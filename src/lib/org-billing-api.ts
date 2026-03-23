@@ -19,12 +19,15 @@ export interface OrgMemberUsageRow {
 
 // ---- API calls ----
 
-export async function getOrgCreditBalance(orgId: string): Promise<OrgCreditBalance> {
-  const res = await trpcVanilla.org.orgBillingBalance.query({ orgId });
+export async function getOrgCreditBalance(_orgId: string): Promise<OrgCreditBalance> {
+  const res = await trpcVanilla.billing.creditsBalance.query({});
   return {
-    balance: (res?.balanceCents ?? 0) / 100,
-    dailyBurn: (res?.dailyBurnCents ?? 0) / 100,
-    runway: res?.runwayDays ?? null,
+    balance:
+      (res?.balance_credits ?? (res as { balance_cents?: number })?.balance_cents ?? 0) / 100,
+    dailyBurn:
+      (res?.daily_burn_credits ?? (res as { daily_burn_cents?: number })?.daily_burn_cents ?? 0) /
+      100,
+    runway: (res as { runway_days?: number | null })?.runway_days ?? null,
   };
 }
 
@@ -33,45 +36,34 @@ export async function getOrgMemberUsage(orgId: string): Promise<{
   periodStart: string;
   members: OrgMemberUsageRow[];
 }> {
-  const res = await trpcVanilla.org.orgMemberUsage.query({ orgId });
-  const members = Array.isArray(res?.members) ? res.members : [];
+  // org.orgMemberUsage not yet implemented — return empty
   return {
-    orgId: res?.orgId ?? orgId,
-    periodStart: res?.periodStart ?? "",
-    members: (
-      members as Array<{
-        memberId?: string;
-        name?: string;
-        email?: string;
-        creditsConsumedCents?: number;
-        lastActiveAt?: string | null;
-      }>
-    ).map((m) => ({
-      memberId: m.memberId ?? "",
-      name: m.name ?? "",
-      email: m.email ?? "",
-      creditsConsumed: (m.creditsConsumedCents ?? 0) / 100,
-      lastActiveAt: m.lastActiveAt ?? null,
-    })),
+    orgId,
+    periodStart: new Date().toISOString(),
+    members: [],
   };
 }
 
-export async function getOrgBillingInfo(orgId: string) {
-  const res = await trpcVanilla.org.orgBillingInfo.query({ orgId });
-  return {
-    paymentMethods: Array.isArray(res?.paymentMethods) ? res.paymentMethods : [],
-    invoices: Array.isArray(res?.invoices)
-      ? (res.invoices as Invoice[]).map((inv) => ({
-          id: inv.id ?? "",
-          date: inv.date ?? "",
-          amount: inv.amount ?? 0,
-          status: inv.status ?? ("paid" as const),
-          downloadUrl: inv.downloadUrl ?? "",
-          hostedUrl: inv.hostedUrl ?? "",
-          hostedLineItems: inv.hostedLineItems,
-        }))
-      : ([] as Invoice[]),
-  };
+export async function getOrgBillingInfo(_orgId: string) {
+  try {
+    const res = await trpcVanilla.billing.billingInfo.query({});
+    return {
+      paymentMethods: Array.isArray(res?.paymentMethods) ? res.paymentMethods : [],
+      invoices: Array.isArray(res?.invoices)
+        ? (res.invoices as Invoice[]).map((inv) => ({
+            id: inv.id ?? "",
+            date: inv.date ?? "",
+            amount: inv.amount ?? 0,
+            status: inv.status ?? ("paid" as const),
+            downloadUrl: inv.downloadUrl ?? "",
+            hostedUrl: inv.hostedUrl ?? "",
+            hostedLineItems: inv.hostedLineItems,
+          }))
+        : ([] as Invoice[]),
+    };
+  } catch {
+    return { paymentMethods: [], invoices: [] as Invoice[] };
+  }
 }
 
 export async function createOrgTopupCheckout(

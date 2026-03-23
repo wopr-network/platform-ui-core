@@ -75,8 +75,15 @@ function CreditsContent() {
 
   const balance: CreditBalanceData | null = rawBalance
     ? {
-        balance: ((rawBalance as { balance_cents?: number }).balance_cents ?? 0) / 100,
-        dailyBurn: ((rawBalance as { daily_burn_cents?: number }).daily_burn_cents ?? 0) / 100,
+        balance:
+          ((rawBalance as { balance_credits?: number; balance_cents?: number }).balance_credits ??
+            (rawBalance as { balance_cents?: number }).balance_cents ??
+            0) / 100,
+        dailyBurn:
+          ((rawBalance as { daily_burn_credits?: number; daily_burn_cents?: number })
+            .daily_burn_credits ??
+            (rawBalance as { daily_burn_cents?: number }).daily_burn_cents ??
+            0) / 100,
         runway: (rawBalance as { runway_days?: number | null }).runway_days ?? null,
       }
     : null;
