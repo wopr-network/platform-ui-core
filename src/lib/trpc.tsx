@@ -1,7 +1,7 @@
 "use client";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { createTRPCClient, httpBatchStreamLink } from "@trpc/client";
+import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import { createTRPCReact } from "@trpc/react-query";
 import { useState } from "react";
 import { PLATFORM_BASE_URL } from "./api-config";
@@ -25,7 +25,7 @@ async function trpcFetchWithAuth(url: RequestInfo | URL, options?: RequestInit) 
  */
 export const trpcVanilla = createTRPCClient<AppRouter>({
   links: [
-    httpBatchStreamLink({
+    httpBatchLink({
       url: `${PLATFORM_BASE_URL}/trpc`,
       fetch: trpcFetchWithAuth,
       headers() {
@@ -76,7 +76,7 @@ export function TRPCProvider({
   const [trpcClient] = useState(() =>
     trpc.createClient({
       links: [
-        httpBatchStreamLink({
+        httpBatchLink({
           url: `${PLATFORM_BASE_URL}/trpc`,
           fetch: trpcFetchWithAuth,
           headers() {
