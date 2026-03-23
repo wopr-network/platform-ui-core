@@ -32,7 +32,7 @@ function isNavActive(href: string, pathname: string): boolean {
   if (href === "/billing/plans")
     return pathname.startsWith("/billing") && !pathname.startsWith("/billing/credits");
   if (href === "/billing/credits") return pathname.startsWith("/billing/credits");
-  if (href === "/admin/tenants") return pathname.startsWith("/admin");
+  if (href === "/admin/tenants" || href === "/admin") return pathname.startsWith("/admin");
   return pathname.startsWith(href);
 }
 
@@ -95,7 +95,7 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         {getNavItems()
           .filter(
             (item) =>
-              item.href !== "/admin/tenants" ||
+              !item.href.startsWith("/admin") ||
               (user as { role?: string } | undefined)?.role === "platform_admin",
           )
           .map((item) => (
