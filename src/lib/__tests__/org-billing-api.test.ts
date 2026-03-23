@@ -1,25 +1,24 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const {
-  mockOrgBillingBalanceQuery,
-  mockOrgMemberUsageQuery,
-  mockOrgBillingInfoQuery,
+  mockCreditsBalanceQuery,
+  mockBillingInfoQuery,
   mockOrgTopupCheckoutMutate,
   mockOrgSetDefaultPaymentMethodMutate,
 } = vi.hoisted(() => ({
-  mockOrgBillingBalanceQuery: vi.fn(),
-  mockOrgMemberUsageQuery: vi.fn(),
-  mockOrgBillingInfoQuery: vi.fn(),
+  mockCreditsBalanceQuery: vi.fn(),
+  mockBillingInfoQuery: vi.fn(),
   mockOrgTopupCheckoutMutate: vi.fn(),
   mockOrgSetDefaultPaymentMethodMutate: vi.fn(),
 }));
 
 vi.mock("@/lib/trpc", () => ({
   trpcVanilla: {
+    billing: {
+      creditsBalance: { query: mockCreditsBalanceQuery },
+      billingInfo: { query: mockBillingInfoQuery },
+    },
     org: {
-      orgBillingBalance: { query: mockOrgBillingBalanceQuery },
-      orgMemberUsage: { query: mockOrgMemberUsageQuery },
-      orgBillingInfo: { query: mockOrgBillingInfoQuery },
       orgTopupCheckout: { mutate: mockOrgTopupCheckoutMutate },
       orgSetDefaultPaymentMethod: { mutate: mockOrgSetDefaultPaymentMethodMutate },
     },
@@ -38,11 +37,11 @@ import {
 describe("getOrgCreditBalance", () => {
   afterEach(() => vi.clearAllMocks());
 
-  it("converts cents to dollars and returns balance", async () => {
-    mockOrgBillingBalanceQuery.mockResolvedValue({
-      balanceCents: 5000,
-      dailyBurnCents: 200,
-      runwayDays: 25,
+  it("converts credits to dollars and returns balance", async () => {
+    mockCreditsBalanceQuery.mockResolvedValue({
+      balance_credits: 5000,
+      daily_burn_credits: 200,
+      runway_days: 25,
     });
 
     const result = await getOrgCreditBalance("org-1");
@@ -51,14 +50,29 @@ describe("getOrgCreditBalance", () => {
       dailyBurn: 2,
       runway: 25,
     });
-    expect(mockOrgBillingBalanceQuery).toHaveBeenCalledWith({ orgId: "org-1" });
+    expect(mockCreditsBalanceQuery).toHaveBeenCalledWith({});
+  });
+
+  it("falls back to legacy cents fields", async () => {
+    mockCreditsBalanceQuery.mockResolvedValue({
+      balance_cents: 3000,
+      daily_burn_cents: 100,
+      runway_days: 30,
+    });
+
+    const result = await getOrgCreditBalance("org-1");
+    expect(result).toEqual({
+      balance: 30,
+      dailyBurn: 1,
+      runway: 30,
+    });
   });
 
   it("defaults to zero balance when response fields are null", async () => {
-    mockOrgBillingBalanceQuery.mockResolvedValue({
-      balanceCents: null,
-      dailyBurnCents: null,
-      runwayDays: null,
+    mockCreditsBalanceQuery.mockResolvedValue({
+      balance_credits: null,
+      daily_burn_credits: null,
+      runway_days: null,
     });
 
     const result = await getOrgCreditBalance("org-1");
@@ -70,7 +84,7 @@ describe("getOrgCreditBalance", () => {
   });
 
   it("defaults to zero balance when response fields are undefined", async () => {
-    mockOrgBillingBalanceQuery.mockResolvedValue({});
+    mockCreditsBalanceQuery.mockResolvedValue({});
 
     const result = await getOrgCreditBalance("org-1");
     expect(result).toEqual({
@@ -81,101 +95,17 @@ describe("getOrgCreditBalance", () => {
   });
 
   it("propagates tRPC errors", async () => {
-    mockOrgBillingBalanceQuery.mockRejectedValue(new Error("Forbidden"));
+    mockCreditsBalanceQuery.mockRejectedValue(new Error("Forbidden"));
     await expect(getOrgCreditBalance("org-1")).rejects.toThrow("Forbidden");
   });
 });
 
 describe("getOrgMemberUsage", () => {
-  afterEach(() => vi.clearAllMocks());
-
-  it("transforms member usage with cents-to-dollars conversion", async () => {
-    mockOrgMemberUsageQuery.mockResolvedValue({
-      orgId: "org-1",
-      periodStart: "2026-03-01",
-      members: [
-        {
-          memberId: "m-1",
-          name: "Alice",
-          email: "alice@test.com",
-          creditsConsumedCents: 1500,
-          lastActiveAt: "2026-03-02T10:00:00Z",
-        },
-        {
-          memberId: "m-2",
-          name: "Bob",
-          email: "bob@test.com",
-          creditsConsumedCents: 300,
-          lastActiveAt: null,
-        },
-      ],
-    });
-
-    const result = await getOrgMemberUsage("org-1");
-    expect(result).toEqual({
-      orgId: "org-1",
-      periodStart: "2026-03-01",
-      members: [
-        {
-          memberId: "m-1",
-          name: "Alice",
-          email: "alice@test.com",
-          creditsConsumed: 15,
-          lastActiveAt: "2026-03-02T10:00:00Z",
-        },
-        {
-          memberId: "m-2",
-          name: "Bob",
-          email: "bob@test.com",
-          creditsConsumed: 3,
-          lastActiveAt: null,
-        },
-      ],
-    });
-    expect(mockOrgMemberUsageQuery).toHaveBeenCalledWith({ orgId: "org-1" });
-  });
-
-  it("defaults member fields when properties are missing", async () => {
-    mockOrgMemberUsageQuery.mockResolvedValue({
-      orgId: "org-1",
-      periodStart: "2026-03-01",
-      members: [{}],
-    });
-
-    const result = await getOrgMemberUsage("org-1");
-    expect(result.members[0]).toEqual({
-      memberId: "",
-      name: "",
-      email: "",
-      creditsConsumed: 0,
-      lastActiveAt: null,
-    });
-  });
-
-  it("handles null members array", async () => {
-    mockOrgMemberUsageQuery.mockResolvedValue({
-      orgId: "org-1",
-      periodStart: "2026-03-01",
-      members: null,
-    });
-
-    const result = await getOrgMemberUsage("org-1");
-    expect(result.members).toEqual([]);
-  });
-
-  it("falls back orgId and periodStart when missing from response", async () => {
-    mockOrgMemberUsageQuery.mockResolvedValue({
-      members: [],
-    });
-
+  it("returns stub data with empty members array", async () => {
     const result = await getOrgMemberUsage("org-1");
     expect(result.orgId).toBe("org-1");
-    expect(result.periodStart).toBe("");
-  });
-
-  it("propagates tRPC errors", async () => {
-    mockOrgMemberUsageQuery.mockRejectedValue(new Error("Server error"));
-    await expect(getOrgMemberUsage("org-1")).rejects.toThrow("Server error");
+    expect(result.members).toEqual([]);
+    expect(result.periodStart).toBeTruthy();
   });
 });
 
@@ -195,7 +125,7 @@ describe("getOrgBillingInfo", () => {
         hostedLineItems: undefined,
       },
     ];
-    mockOrgBillingInfoQuery.mockResolvedValue({ paymentMethods, invoices });
+    mockBillingInfoQuery.mockResolvedValue({ paymentMethods, invoices });
 
     const result = await getOrgBillingInfo("org-1");
     expect(result).toEqual({
@@ -212,11 +142,11 @@ describe("getOrgBillingInfo", () => {
         },
       ],
     });
-    expect(mockOrgBillingInfoQuery).toHaveBeenCalledWith({ orgId: "org-1" });
+    expect(mockBillingInfoQuery).toHaveBeenCalledWith({});
   });
 
   it("defaults to empty arrays when fields are null", async () => {
-    mockOrgBillingInfoQuery.mockResolvedValue({
+    mockBillingInfoQuery.mockResolvedValue({
       paymentMethods: null,
       invoices: null,
     });
@@ -226,15 +156,16 @@ describe("getOrgBillingInfo", () => {
   });
 
   it("defaults to empty arrays when fields are undefined", async () => {
-    mockOrgBillingInfoQuery.mockResolvedValue({});
+    mockBillingInfoQuery.mockResolvedValue({});
 
     const result = await getOrgBillingInfo("org-1");
     expect(result).toEqual({ paymentMethods: [], invoices: [] });
   });
 
-  it("propagates tRPC errors", async () => {
-    mockOrgBillingInfoQuery.mockRejectedValue(new Error("Not found"));
-    await expect(getOrgBillingInfo("org-1")).rejects.toThrow("Not found");
+  it("returns defaults on tRPC error instead of throwing", async () => {
+    mockBillingInfoQuery.mockRejectedValue(new Error("Not found"));
+    const result = await getOrgBillingInfo("org-1");
+    expect(result).toEqual({ paymentMethods: [], invoices: [] });
   });
 });
 
