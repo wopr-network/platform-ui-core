@@ -2,25 +2,19 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/trpc", () => ({
   trpcVanilla: {
-    org: {
-      orgBillingBalance: {
+    billing: {
+      creditsBalance: {
         query: vi.fn().mockResolvedValue({
-          orgId: "org-1",
-          balanceCents: 5000,
-          dailyBurnCents: 100,
-          runwayDays: 50,
+          balance_credits: 5000,
+          daily_burn_credits: 100,
+          runway_days: 50,
         }),
       },
-      orgMemberUsage: {
-        query: vi.fn().mockResolvedValue({
-          orgId: "org-1",
-          periodStart: "2026-02-01T00:00:00.000Z",
-          members: [],
-        }),
-      },
-      orgBillingInfo: {
+      billingInfo: {
         query: vi.fn().mockResolvedValue({ paymentMethods: [], invoices: [] }),
       },
+    },
+    org: {
       orgTopupCheckout: {
         mutate: vi.fn().mockResolvedValue({
           url: "https://checkout.stripe.com/test",
@@ -42,7 +36,7 @@ import {
 } from "@/lib/org-billing-api";
 
 describe("org-billing-api", () => {
-  it("getOrgCreditBalance converts cents to dollars", async () => {
+  it("getOrgCreditBalance converts credits to dollars", async () => {
     const result = await getOrgCreditBalance("org-1");
     expect(result.balance).toBe(50);
     expect(result.dailyBurn).toBe(1);
