@@ -1279,8 +1279,8 @@ export interface CheckoutResponse {
 export async function getCreditBalance(): Promise<CreditBalance> {
   const res = await trpcVanilla.billing.creditsBalance.query({});
   return {
-    balance: (res?.balance_cents ?? 0) / 100,
-    dailyBurn: (res?.daily_burn_cents ?? 0) / 100,
+    balance: (res?.balance_credits ?? res?.balance_cents ?? 0) / 100,
+    dailyBurn: (res?.daily_burn_credits ?? res?.daily_burn_cents ?? 0) / 100,
     runway: res?.runway_days ?? null,
   };
 }
