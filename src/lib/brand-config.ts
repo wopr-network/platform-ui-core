@@ -90,6 +90,9 @@ export interface BrandConfig {
 
   /** Sidebar navigation items. Each has a label and href. */
   navItems: Array<{ label: string; href: string }>;
+
+  /** Whether the embedded chat widget is enabled (default true). */
+  chatEnabled: boolean;
 }
 
 /**
@@ -154,6 +157,7 @@ function envDefaults(): BrandConfig {
     companyLegalName: process.env.NEXT_PUBLIC_BRAND_COMPANY_LEGAL || "Platform Inc.",
     price: process.env.NEXT_PUBLIC_BRAND_PRICE || "",
     homePath: process.env.NEXT_PUBLIC_BRAND_HOME_PATH || "/marketplace",
+    chatEnabled: process.env.NEXT_PUBLIC_BRAND_CHAT_ENABLED !== "false",
     navItems: parseNavItems(process.env.NEXT_PUBLIC_BRAND_NAV_ITEMS) ?? [
       { label: "Dashboard", href: "/dashboard" },
       { label: "Chat", href: "/chat" },

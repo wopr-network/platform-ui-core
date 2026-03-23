@@ -24,7 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { usePageContext } from "@/hooks/use-page-context";
 import { useWebMCP } from "@/hooks/use-webmcp";
-import { productName } from "@/lib/brand-config";
+import { getBrandConfig, productName } from "@/lib/brand-config";
 import { ChatProvider } from "@/lib/chat/chat-context";
 
 export default function DashboardLayout({
@@ -107,7 +107,7 @@ export default function DashboardLayout({
           </motion.main>
         </AnimatePresence>
       </div>
-      {!pathname.startsWith("/chat") && <ChatWidget />}
+      {getBrandConfig().chatEnabled && !pathname.startsWith("/chat") && <ChatWidget />}
     </ChatProvider>
   );
 }
