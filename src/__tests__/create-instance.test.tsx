@@ -3,6 +3,18 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CreateInstanceClient } from "../app/instances/new/create-instance-client";
 
+vi.mock("next/navigation", () => ({
+  useRouter: vi.fn().mockReturnValue({
+    push: vi.fn(),
+    replace: vi.fn(),
+    prefetch: vi.fn(),
+    back: vi.fn(),
+    refresh: vi.fn(),
+  }),
+  usePathname: vi.fn().mockReturnValue("/instances/new"),
+  useSearchParams: vi.fn().mockReturnValue(new URLSearchParams()),
+}));
+
 vi.mock("@/lib/marketplace-data", () => ({
   listMarketplacePlugins: vi.fn(),
 }));
