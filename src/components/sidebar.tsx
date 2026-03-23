@@ -78,7 +78,7 @@ function getNavIcon(href: string) {
   if (href.startsWith("/instances")) return LayoutGrid;
   if (href.startsWith("/changesets")) return GitBranch;
   if (href.startsWith("/fleet")) return Server;
-  if (href.includes("network")) return Network;
+  if (href.startsWith("/network")) return Network;
   if (href.startsWith("/billing/credits")) return Wallet;
   if (href.startsWith("/billing")) return CreditCard;
   if (href.startsWith("/settings")) return SettingsIcon;
