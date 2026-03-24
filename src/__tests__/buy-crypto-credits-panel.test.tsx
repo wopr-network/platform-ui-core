@@ -145,7 +145,7 @@ describe("BuyCryptoCreditPanel", () => {
     await user.click(screen.getByText("$50"));
     await user.click(screen.getByRole("button", { name: "Pay with USDC" }));
 
-    expect(mockCreateCheckout).toHaveBeenCalledWith("base", 50);
+    expect(mockCreateCheckout).toHaveBeenCalledWith("usdc:base", 50);
     expect(await screen.findByText("0xabc123def456")).toBeInTheDocument();
     expect(screen.getByText("50.000000 USDC")).toBeInTheDocument();
   });
@@ -370,7 +370,7 @@ describe("BuyCryptoCreditPanel", () => {
     vi.useRealTimers();
   });
 
-  it("calls createCheckout with chain, not methodId", async () => {
+  it("calls createCheckout with methodId", async () => {
     mockGetSupportedPaymentMethods.mockResolvedValue([MOCK_ETH_METHOD]);
     mockCreateCheckout.mockResolvedValue({
       depositAddress: "0xdef456",
@@ -391,6 +391,6 @@ describe("BuyCryptoCreditPanel", () => {
     await user.click(screen.getByText("$100"));
     await user.click(screen.getByRole("button", { name: "Pay with ETH" }));
 
-    expect(mockCreateCheckout).toHaveBeenCalledWith("base", 100);
+    expect(mockCreateCheckout).toHaveBeenCalledWith("eth:base", 100);
   });
 });
