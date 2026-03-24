@@ -1364,8 +1364,8 @@ export interface CheckoutResult {
   priceCents?: number;
 }
 
-export async function createCheckout(chain: string, amountUsd: number): Promise<CheckoutResult> {
-  return trpcVanilla.billing.checkout.mutate({ chain, amountUsd });
+export async function createCheckout(methodId: string, amountUsd: number): Promise<CheckoutResult> {
+  return trpcVanilla.billing.checkout.mutate({ methodId, amountUsd });
 }
 
 // --- Charge status polling ---

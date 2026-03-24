@@ -119,7 +119,7 @@ export function BuyCryptoCreditPanel() {
     setLoading(true);
     setError(null);
     try {
-      const result = await createCheckout(selectedMethod.chain, selectedAmount);
+      const result = await createCheckout(selectedMethod.id, selectedAmount);
       setCheckout(result);
     } catch {
       setError("Checkout failed. Please try again.");
