@@ -108,6 +108,10 @@ async function mutateProductConfig(endpoint: string, input: unknown): Promise<vo
     const text = await res.text().catch(() => "Unknown error");
     throw new Error(text || `HTTP ${res.status}`);
   }
+  const json = (await res.json()) as { error?: { message?: string } };
+  if (json.error) {
+    throw new Error(json.error.message ?? "Mutation failed");
+  }
 }
 
 // ---------------------------------------------------------------------------

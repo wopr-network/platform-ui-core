@@ -40,8 +40,7 @@ export function FleetForm({ initial, onSave }: FleetFormProps) {
   }
 
   function setNum(key: keyof FleetConfig, value: string) {
-    const n = Number.parseInt(value, 10);
-    if (!Number.isNaN(n)) setForm((prev) => ({ ...prev, [key]: n }));
+    setForm((prev) => ({ ...prev, [key]: value === "" ? 0 : Number.parseInt(value, 10) }));
   }
 
   async function handleSave() {

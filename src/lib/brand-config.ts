@@ -258,13 +258,20 @@ export function envKey(suffix: string): string {
 export async function initBrandConfig(apiBaseUrl: string): Promise<void> {
   try {
     const res = await fetch(`${apiBaseUrl}/trpc/product.getBrandConfig`, {
+      credentials: "include",
       next: { revalidate: 60 },
     });
     if (!res.ok) return;
-    const json = await res.json();
-    const data = json?.result?.data;
+    const text = await res.text();
+    let json: unknown;
+    try {
+      json = JSON.parse(text);
+    } catch {
+      return; // Non-JSON response (proxy error, HTML page, etc.)
+    }
+    const data = (json as { result?: { data?: unknown } })?.result?.data;
     if (data) {
-      setBrandConfig(data);
+      setBrandConfig(data as Partial<BrandConfig>);
     }
   } catch {
     // API unavailable — env var defaults remain active

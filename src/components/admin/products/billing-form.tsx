@@ -35,8 +35,7 @@ export function BillingForm({ initial, onSave }: BillingFormProps) {
   }
 
   function setNum(key: "affiliateMaxCap", value: string) {
-    const n = Number.parseInt(value, 10);
-    if (!Number.isNaN(n)) setForm((prev) => ({ ...prev, [key]: n }));
+    setForm((prev) => ({ ...prev, [key]: value === "" ? 0 : Number.parseInt(value, 10) }));
   }
 
   function setCreditPrice(tier: string, value: string) {
