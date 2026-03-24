@@ -247,3 +247,33 @@ export function eventName(event: string): string {
 export function envKey(suffix: string): string {
   return `${_config.envVarPrefix}_${suffix}`;
 }
+
+/**
+ * Fetch brand config from the platform API and apply it.
+ * Call once in root layout server component.
+ * Falls back to env var defaults if API unavailable.
+ *
+ * @param apiBaseUrl - The platform API base URL (e.g. from NEXT_PUBLIC_API_URL)
+ */
+export async function initBrandConfig(apiBaseUrl: string): Promise<void> {
+  try {
+    const res = await fetch(`${apiBaseUrl}/trpc/product.getBrandConfig`, {
+      credentials: "include",
+      next: { revalidate: 60 },
+    });
+    if (!res.ok) return;
+    const text = await res.text();
+    let json: unknown;
+    try {
+      json = JSON.parse(text);
+    } catch {
+      return; // Non-JSON response (proxy error, HTML page, etc.)
+    }
+    const data = (json as { result?: { data?: unknown } })?.result?.data;
+    if (data) {
+      setBrandConfig(data as Partial<BrandConfig>);
+    }
+  } catch {
+    // API unavailable — env var defaults remain active
+  }
+}
