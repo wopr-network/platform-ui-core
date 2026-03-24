@@ -4,7 +4,9 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("framer-motion", () => ({
   motion: {
-    div: ({ children, ...props }: Record<string, unknown>) => <div {...props}>{children}</div>,
+    div: ({ children, ...props }: { children?: React.ReactNode; [key: string]: unknown }) => (
+      <div {...props}>{children}</div>
+    ),
   },
   AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
@@ -15,8 +17,26 @@ vi.mock("qrcode.react", () => ({
 
 vi.mock("@/lib/api", () => ({
   getSupportedPaymentMethods: vi.fn().mockResolvedValue([
-    { id: "BTC:mainnet", type: "native", token: "BTC", chain: "bitcoin", displayName: "Bitcoin", decimals: 8, displayOrder: 0, iconUrl: "" },
-    { id: "USDT:tron", type: "erc20", token: "USDT", chain: "tron", displayName: "USDT on Tron", decimals: 6, displayOrder: 1, iconUrl: "" },
+    {
+      id: "BTC:mainnet",
+      type: "native",
+      token: "BTC",
+      chain: "bitcoin",
+      displayName: "Bitcoin",
+      decimals: 8,
+      displayOrder: 0,
+      iconUrl: "",
+    },
+    {
+      id: "USDT:tron",
+      type: "erc20",
+      token: "USDT",
+      chain: "tron",
+      displayName: "USDT on Tron",
+      decimals: 6,
+      displayOrder: 1,
+      iconUrl: "",
+    },
   ]),
   createCheckout: vi.fn().mockResolvedValue({
     depositAddress: "THwbQb1sPiRUpUYunVQxQKc6i4LCmpP1mj",

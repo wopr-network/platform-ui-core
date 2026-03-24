@@ -5,9 +5,9 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { AutoTopupCard } from "@/components/billing/auto-topup-card";
 import { BuyCreditsPanel } from "@/components/billing/buy-credits-panel";
-import { BuyCryptoCreditPanel } from "@/components/billing/buy-crypto-credits-panel";
 import { CouponInput } from "@/components/billing/coupon-input";
 import { CreditBalance } from "@/components/billing/credit-balance";
+import { CryptoCheckout } from "@/components/billing/crypto-checkout";
 import { DividendBanner } from "@/components/billing/dividend-banner";
 import { DividendEligibility } from "@/components/billing/dividend-eligibility";
 import { DividendPoolStats } from "@/components/billing/dividend-pool-stats";
@@ -200,7 +200,7 @@ function CreditsContent() {
 
       <BuyCreditsPanel />
       <CouponInput />
-      <BuyCryptoCreditPanel />
+      <CryptoCheckout />
       <AutoTopupCard />
       <TransactionHistory />
 
