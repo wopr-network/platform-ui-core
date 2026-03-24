@@ -6,10 +6,10 @@ import { useCallback, useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   type CheckoutResult,
-  type SupportedPaymentMethod,
   createCheckout,
   getChargeStatus,
   getSupportedPaymentMethods,
+  type SupportedPaymentMethod,
 } from "@/lib/api";
 import { AmountSelector } from "./amount-selector";
 import { ConfirmationTracker } from "./confirmation-tracker";
@@ -30,7 +30,9 @@ export function CryptoCheckout() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    getSupportedPaymentMethods().then(setMethods).catch(() => {});
+    getSupportedPaymentMethods()
+      .then(setMethods)
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -47,7 +49,10 @@ export function CryptoCheckout() {
         } else if (res.status === "expired" || res.status === "failed") {
           setStatus(res.status as PaymentStatus);
           clearInterval(interval);
-        } else if (res.amountReceivedCents > 0 && res.amountReceivedCents >= res.amountExpectedCents) {
+        } else if (
+          res.amountReceivedCents > 0 &&
+          res.amountReceivedCents >= res.amountExpectedCents
+        ) {
           setStatus("confirming");
           setStep("confirming");
         } else if (res.amountReceivedCents > 0) {
@@ -93,7 +98,11 @@ export function CryptoCheckout() {
   if (methods.length === 0) return null;
 
   return (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+    >
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -122,12 +131,13 @@ export function CryptoCheckout() {
               >
                 <PaymentMethodPicker
                   methods={methods}
-                  amountUsd={amountUsd}
                   onSelect={handleMethod}
                   onBack={() => setStep("amount")}
                 />
                 {loading && (
-                  <p className="mt-2 text-xs text-muted-foreground animate-pulse">Creating checkout...</p>
+                  <p className="mt-2 text-xs text-muted-foreground animate-pulse">
+                    Creating checkout...
+                  </p>
                 )}
               </motion.div>
             )}
@@ -155,7 +165,11 @@ export function CryptoCheckout() {
                   credited={status === "credited"}
                 />
                 {status === "credited" && (
-                  <button type="button" onClick={handleReset} className="mt-4 text-sm text-primary hover:underline">
+                  <button
+                    type="button"
+                    onClick={handleReset}
+                    className="mt-4 text-sm text-primary hover:underline"
+                  >
                     Done — buy more credits
                   </button>
                 )}
