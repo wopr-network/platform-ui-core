@@ -20,14 +20,12 @@ const POPULAR_COUNT = 6;
 
 interface PaymentMethodPickerProps {
   methods: SupportedPaymentMethod[];
-  amountUsd: number;
   onSelect: (method: SupportedPaymentMethod) => void;
   onBack?: () => void;
 }
 
 export function PaymentMethodPicker({
   methods,
-  amountUsd: _amountUsd,
   onSelect,
   onBack,
 }: PaymentMethodPickerProps) {

@@ -59,20 +59,20 @@ const METHODS: SupportedPaymentMethod[] = [
 
 describe("PaymentMethodPicker", () => {
   it("renders all methods", () => {
-    render(<PaymentMethodPicker methods={METHODS} amountUsd={25} onSelect={vi.fn()} />);
+    render(<PaymentMethodPicker methods={METHODS} onSelect={vi.fn()} />);
     expect(screen.getByText("Bitcoin")).toBeInTheDocument();
     expect(screen.getByText("USDT on Tron")).toBeInTheDocument();
   });
 
   it("filters by search text", async () => {
-    render(<PaymentMethodPicker methods={METHODS} amountUsd={25} onSelect={vi.fn()} />);
+    render(<PaymentMethodPicker methods={METHODS} onSelect={vi.fn()} />);
     await userEvent.type(screen.getByPlaceholderText(/search/i), "tron");
     expect(screen.getByText("USDT on Tron")).toBeInTheDocument();
     expect(screen.queryByText("Bitcoin")).not.toBeInTheDocument();
   });
 
   it("filters by Stablecoins pill", async () => {
-    render(<PaymentMethodPicker methods={METHODS} amountUsd={25} onSelect={vi.fn()} />);
+    render(<PaymentMethodPicker methods={METHODS} onSelect={vi.fn()} />);
     await userEvent.click(screen.getByText("Stablecoins"));
     expect(screen.getByText("USDT on Tron")).toBeInTheDocument();
     expect(screen.getByText("USDC on Polygon")).toBeInTheDocument();
@@ -81,7 +81,7 @@ describe("PaymentMethodPicker", () => {
 
   it("calls onSelect when a method is clicked", async () => {
     const onSelect = vi.fn();
-    render(<PaymentMethodPicker methods={METHODS} amountUsd={25} onSelect={onSelect} />);
+    render(<PaymentMethodPicker methods={METHODS} onSelect={onSelect} />);
     await userEvent.click(screen.getByText("Bitcoin"));
     expect(onSelect).toHaveBeenCalledWith(METHODS[0]);
   });
