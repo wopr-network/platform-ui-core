@@ -26,9 +26,12 @@ export function OAuthButtons({ callbackUrl = "/" }: OAuthButtonsProps) {
   async function handleOAuth(provider: string) {
     setLoading(provider);
     try {
+      const absoluteCallback = callbackUrl.startsWith("http")
+        ? callbackUrl
+        : `${window.location.origin}${callbackUrl}`;
       await signIn.social({
         provider,
-        callbackURL: callbackUrl,
+        callbackURL: absoluteCallback,
       });
     } catch {
       // signIn.social redirects on success; failure here means the redirect didn't happen
