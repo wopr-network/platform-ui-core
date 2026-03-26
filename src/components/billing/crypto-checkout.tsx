@@ -32,7 +32,9 @@ export function CryptoCheckout() {
   useEffect(() => {
     getSupportedPaymentMethods()
       .then(setMethods)
-      .catch(() => {});
+      .catch(() => {
+        // silently fall back to empty methods list
+      });
   }, []);
 
   useEffect(() => {

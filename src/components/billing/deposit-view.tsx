@@ -45,8 +45,16 @@ export function DepositView({ checkout, status, onBack }: DepositViewProps) {
       <p className="text-xs text-muted-foreground">
         on {checkout.chain} &middot; ${checkout.amountUsd.toFixed(2)} USD
       </p>
-      <div className="mx-auto w-fit rounded-lg border border-border bg-background p-3" aria-hidden="true">
-        <QRCodeSVG value={checkout.depositAddress} size={140} bgColor="hsl(var(--background))" fgColor="hsl(var(--foreground))" />
+      <div
+        className="mx-auto w-fit rounded-lg border border-border bg-background p-3"
+        aria-hidden="true"
+      >
+        <QRCodeSVG
+          value={checkout.depositAddress}
+          size={140}
+          bgColor="hsl(var(--background))"
+          fgColor="hsl(var(--foreground))"
+        />
       </div>
       <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/50 px-3 py-2">
         <code className="flex-1 truncate text-xs font-mono">{checkout.depositAddress}</code>

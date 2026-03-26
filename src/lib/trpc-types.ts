@@ -80,6 +80,8 @@ type AppRouterRecord = {
     listAllOrgs: AnyTRPCQueryProcedure;
     billingOverview: AnyTRPCQueryProcedure;
     listAvailableModels: AnyTRPCQueryProcedure;
+    getPoolConfig: AnyTRPCQueryProcedure;
+    setPoolSize: AnyTRPCMutationProcedure;
   };
   promotions: {
     list: AnyTRPCQueryProcedure;
