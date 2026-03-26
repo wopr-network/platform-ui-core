@@ -23,6 +23,7 @@ const adminNavItems = [
   { label: "Migrations", href: "/admin/migrations" },
   { label: "GPU", href: "/admin/gpu" },
   { label: "Fleet Updates", href: "/admin/fleet-updates" },
+  { label: "Pool", href: "/admin/pool-config" },
   { label: "Incidents", href: "/admin/incidents" },
 ];
 

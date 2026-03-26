@@ -32,7 +32,6 @@ export default function OnboardingPage() {
   const [botName, setBotName] = useState("");
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: router.push is stable; using [router] causes infinite re-renders
   useEffect(() => {
     if (isOnboardingComplete()) {
       router.push(homePath());

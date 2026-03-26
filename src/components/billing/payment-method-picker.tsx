@@ -24,11 +24,7 @@ interface PaymentMethodPickerProps {
   onBack?: () => void;
 }
 
-export function PaymentMethodPicker({
-  methods,
-  onSelect,
-  onBack,
-}: PaymentMethodPickerProps) {
+export function PaymentMethodPicker({ methods, onSelect, onBack }: PaymentMethodPickerProps) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<Filter>("popular");
 

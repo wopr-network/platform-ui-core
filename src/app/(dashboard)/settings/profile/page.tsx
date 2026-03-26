@@ -253,6 +253,7 @@ export default function ProfilePage() {
               disabled={uploading}
             >
               {profile.avatarUrl ? (
+                // biome-ignore lint/performance/noImgElement: external avatar URL — domain not configured for next/image
                 <img
                   src={profile.avatarUrl}
                   alt={profile.name}

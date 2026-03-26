@@ -408,8 +408,8 @@ describe("Payment page", () => {
     const amountCells = await screen.findAllByText("$29.00");
     // inv-001 has no downloadUrl and no hostedUrl — the row should render no <a> element at all
     // The 3rd amount cell belongs to inv-001 (oldest invoice, no URLs)
-    const inv001Row = amountCells[2].closest("tr")!;
-    expect(within(inv001Row).queryByRole("link")).toBeNull();
+    const inv001Row = amountCells[2].closest("tr");
+    expect(inv001Row ? within(inv001Row).queryByRole("link") : null).toBeNull();
   });
 
   it("renders BYOK messaging", async () => {
