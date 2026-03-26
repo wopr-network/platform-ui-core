@@ -20,7 +20,6 @@ import { Separator } from "@/components/ui/separator";
 import { usePluginRegistry } from "@/hooks/use-plugin-registry";
 import { createInstance } from "@/lib/api";
 import { productName } from "@/lib/brand-config";
-import { toUserMessage } from "@/lib/errors";
 import { cn } from "@/lib/utils";
 
 const PRESET_ACCENT_COLORS: Record<string, string> = {

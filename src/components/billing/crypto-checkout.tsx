@@ -33,7 +33,7 @@ export function CryptoCheckout() {
     getSupportedPaymentMethods()
       .then(setMethods)
       .catch(() => {
-        // silently fall back to empty methods list
+        // Silently fail — payment methods are non-critical on mount
       });
   }, []);
 

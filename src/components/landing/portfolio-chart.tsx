@@ -20,7 +20,7 @@ function parseHexToRgb(hex: string): [number, number, number] {
 function getTerminalColor(): [number, number, number] {
   if (typeof document === "undefined") return [0, 255, 65];
   const val = getComputedStyle(document.documentElement).getPropertyValue("--terminal").trim();
-  if (val && val.startsWith("#") && val.length >= 4) return parseHexToRgb(val);
+  if (val?.startsWith("#") && val.length >= 4) return parseHexToRgb(val);
   return [0, 255, 65];
 }
 

@@ -311,7 +311,7 @@ export default function HostedUsageDetailPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredEvents.map((event, index) => (
+                  {filteredEvents.map((event, _index) => (
                     <tr
                       key={event.id}
                       className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"

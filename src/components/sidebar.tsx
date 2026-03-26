@@ -117,7 +117,7 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   }
 
   return (
-    <div className="flex h-full flex-col">
+    <div data-slot="sidebar" className="flex h-full flex-col">
       <div className="flex h-14 items-center border-b border-sidebar-border px-6">
         <span
           className="text-lg font-semibold tracking-tight text-terminal"
@@ -226,7 +226,10 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
 export function Sidebar() {
   return (
-    <aside className="flex h-screen w-64 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
+    <aside
+      data-slot="sidebar"
+      className="flex h-screen w-64 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground"
+    >
       <SidebarContent />
     </aside>
   );
