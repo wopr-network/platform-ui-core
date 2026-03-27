@@ -4,10 +4,11 @@ import { BuyCreditsPanel } from "@/components/billing/buy-credits-panel";
 import { CryptoCheckout } from "@/components/billing/crypto-checkout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { productName } from "@/lib/brand-config";
+import { getBrandConfig, productName } from "@/lib/brand-config";
 import { pricingData } from "@/lib/pricing-data";
 
 export default function PlansPage() {
+  const { planFeatures } = getBrandConfig();
   return (
     <div className="max-w-3xl space-y-6">
       <div>
@@ -30,12 +31,7 @@ export default function PlansPage() {
           </p>
           <p className="text-muted-foreground">per bot</p>
           <ul className="space-y-2 text-sm">
-            {[
-              `$${pricingData.signup_credit} signup credit included`,
-              "All channels",
-              "All plugins",
-              "Hosted AI — no API keys needed",
-            ].map((feature) => (
+            {planFeatures.map((feature) => (
               <li key={feature} className="flex items-center gap-2 text-muted-foreground">
                 <Check className="size-4 shrink-0 text-terminal" />
                 {feature}

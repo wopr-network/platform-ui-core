@@ -93,6 +93,9 @@ export interface BrandConfig {
 
   /** Whether the embedded chat widget is enabled (default true). */
   chatEnabled: boolean;
+
+  /** Feature bullet points shown on the billing plans page. */
+  planFeatures: string[];
 }
 
 /**
@@ -129,6 +132,20 @@ function parseNavItems(raw: string | undefined): Array<{ label: string; href: st
   return null;
 }
 
+/** Parse a JSON string array env var. Returns null if unset/invalid. */
+function parseStringArray(raw: string | undefined): string[] | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed) && parsed.every((s: unknown) => typeof s === "string")) {
+      return parsed as string[];
+    }
+  } catch {
+    // Invalid JSON — fall back to defaults
+  }
+  return null;
+}
+
 function envDefaults(): BrandConfig {
   // Direct process.env.X access is required — Next.js Turbopack only inlines
   // NEXT_PUBLIC_* vars when accessed as literal dot-property references.
@@ -158,6 +175,12 @@ function envDefaults(): BrandConfig {
     price: process.env.NEXT_PUBLIC_BRAND_PRICE || "",
     homePath: process.env.NEXT_PUBLIC_BRAND_HOME_PATH || "/marketplace",
     chatEnabled: process.env.NEXT_PUBLIC_BRAND_CHAT_ENABLED !== "false",
+    planFeatures: parseStringArray(process.env.NEXT_PUBLIC_BRAND_PLAN_FEATURES) ?? [
+      "Signup credit included",
+      "All channels",
+      "All plugins",
+      "Hosted AI — no API keys needed",
+    ],
     navItems: parseNavItems(process.env.NEXT_PUBLIC_BRAND_NAV_ITEMS) ?? [
       { label: "Dashboard", href: "/dashboard" },
       { label: "Chat", href: "/chat" },
