@@ -1,62 +1,51 @@
 /**
  * Centralized API base URL configuration.
  *
- * Set NEXT_PUBLIC_API_URL to the platform root (e.g. "http://localhost:3001").
- * All API clients derive their paths from this single value.
+ * The API URL is derived at runtime from the hostname — no NEXT_PUBLIC_API_URL
+ * env var needed. Convention: UI at `<domain>` → API at `api.<domain>`.
+ * Staging: `staging.<domain>` → `staging.api.<domain>`.
  *
- * In production runtime, validates that the URL is a public HTTPS endpoint.
- * This prevents internal Docker hostnames from leaking into the browser bundle.
+ * Falls back to NEXT_PUBLIC_API_URL if set (local dev), then localhost.
  */
 
 import { getBrandConfig } from "./brand-config";
 
-const INTERNAL_HOSTNAME_RE =
-  /^(localhost|127\.\d+\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+|192\.168\.\d+\.\d+|.*\.local$)/i;
+/**
+ * Derive the platform API URL from the current hostname.
+ * Works on both client (window.location) and server (brand config domain).
+ */
+function resolveApiUrl(): string {
+  // 1. Explicit env var — local dev, tests, or override
+  const envUrl = process.env.NEXT_PUBLIC_API_URL;
+  if (envUrl) return envUrl;
 
-function isInternalHostname(hostname: string): boolean {
-  return INTERNAL_HOSTNAME_RE.test(hostname) || !hostname.includes(".");
+  // 2. Client-side: derive from browser hostname
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname;
+    const proto = window.location.protocol;
+    // localhost → local dev
+    if (host === "localhost" || host === "127.0.0.1") {
+      return "http://localhost:3001";
+    }
+    // staging.X.com → staging.api.X.com
+    if (host.startsWith("staging.")) {
+      const base = host.replace(/^staging\./, "");
+      return `${proto}//staging.api.${base}`;
+    }
+    // X.com → api.X.com
+    return `${proto}//api.${host}`;
+  }
+
+  // 3. Server-side: derive from brand config domain
+  const domain = getBrandConfig().domain;
+  if (domain && domain !== "localhost" && domain.includes(".")) {
+    return `https://api.${domain}`;
+  }
+
+  return "http://localhost:3001";
 }
 
-function validateProductionApiUrl(url: string | undefined): void {
-  const isProductionRuntime =
-    process.env.NODE_ENV === "production" &&
-    process.env.NEXT_RUNTIME === "nodejs" &&
-    process.env.NEXT_PHASE !== "phase-production-build" &&
-    !process.env.E2E_MOCK_API;
-
-  if (!isProductionRuntime) return;
-
-  if (!url) {
-    throw new Error(
-      "NEXT_PUBLIC_API_URL is not set. In production it must be a public HTTPS URL. An internal hostname or localhost will not work in the browser.",
-    );
-  }
-
-  let parsed: URL;
-  try {
-    parsed = new URL(url);
-  } catch {
-    throw new Error(
-      `NEXT_PUBLIC_API_URL ("${url}") is not a valid URL. In production it must be a public HTTPS URL.`,
-    );
-  }
-
-  if (isInternalHostname(parsed.hostname)) {
-    throw new Error(
-      `NEXT_PUBLIC_API_URL ("${url}") contains an internal hostname ("${parsed.hostname}"). In production it must be a public HTTPS URL.`,
-    );
-  }
-
-  if (parsed.protocol !== "https:") {
-    throw new Error(
-      `NEXT_PUBLIC_API_URL ("${url}") uses ${parsed.protocol} but production requires https. Set it to the public HTTPS URL.`,
-    );
-  }
-}
-
-validateProductionApiUrl(process.env.NEXT_PUBLIC_API_URL);
-
-export const PLATFORM_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+export const PLATFORM_BASE_URL = resolveApiUrl();
 
 /** Base URL for REST API calls (platform root + /api). */
 export const API_BASE_URL = `${PLATFORM_BASE_URL}/api`;

@@ -5,9 +5,24 @@ import { sanitizeRedirectUrl } from "@/lib/utils";
 
 const log = logger("middleware");
 
-const apiOrigin = process.env.NEXT_PUBLIC_API_URL
-  ? new URL(process.env.NEXT_PUBLIC_API_URL).origin
-  : "";
+/** Derive API origin from request hostname. Convention: api.<domain>. */
+function getApiOrigin(host: string): string {
+  // Explicit override for local dev
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    try {
+      return new URL(process.env.NEXT_PUBLIC_API_URL).origin;
+    } catch {
+      /* fall through */
+    }
+  }
+  if (!host || host === "localhost" || host.startsWith("localhost:")) return "";
+  const hostname = host.split(":")[0];
+  if (hostname.startsWith("staging.")) {
+    const base = hostname.replace(/^staging\./, "");
+    return `https://staging.api.${base}`;
+  }
+  return `https://api.${hostname}`;
+}
 
 /**
  * Only add upgrade-insecure-requests when actually serving over HTTPS.
@@ -25,8 +40,9 @@ const apiOrigin = process.env.NEXT_PUBLIC_API_URL
 const NONCE_STYLES_ENABLED = true;
 
 /** Build the CSP header value with a per-request nonce. */
-function buildCsp(nonce: string, requestUrl?: string): string {
+function buildCsp(nonce: string, requestUrl?: string, requestHost?: string): string {
   const isHttps = requestUrl ? requestUrl.startsWith("https://") : false;
+  const api = getApiOrigin(requestHost ?? "");
   return [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://js.stripe.com`,
@@ -35,7 +51,7 @@ function buildCsp(nonce: string, requestUrl?: string): string {
       : ["style-src 'self' 'unsafe-inline'"]),
     "img-src 'self' data: blob:",
     "font-src 'self'",
-    `connect-src 'self' https://api.stripe.com${apiOrigin ? ` ${apiOrigin}` : ""}`,
+    `connect-src 'self' https://api.stripe.com${api ? ` ${api}` : ""}`,
     "frame-src https://js.stripe.com",
     "frame-ancestors 'none'",
     "base-uri 'self'",
@@ -165,7 +181,7 @@ export default async function middleware(request: NextRequest) {
 
   // Generate a per-request nonce for CSP
   const nonce = crypto.randomUUID();
-  const cspHeaderValue = buildCsp(nonce, request.url);
+  const cspHeaderValue = buildCsp(nonce, request.url, request.headers.get("host") ?? "");
 
   /** Apply CSP and cache-busting headers to any response before returning it. */
   function withCsp(response: NextResponse): NextResponse {
