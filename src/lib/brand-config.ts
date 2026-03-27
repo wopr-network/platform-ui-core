@@ -94,6 +94,9 @@ export interface BrandConfig {
   /** Whether the embedded chat widget is enabled (default true). */
   chatEnabled: boolean;
 
+  /** Whether dividend features are shown in billing (default false). */
+  dividendsEnabled: boolean;
+
   /** Feature bullet points shown on the billing plans page. */
   planFeatures: string[];
 }
@@ -175,6 +178,7 @@ function envDefaults(): BrandConfig {
     price: process.env.NEXT_PUBLIC_BRAND_PRICE || "",
     homePath: process.env.NEXT_PUBLIC_BRAND_HOME_PATH || "/marketplace",
     chatEnabled: process.env.NEXT_PUBLIC_BRAND_CHAT_ENABLED !== "false",
+    dividendsEnabled: process.env.NEXT_PUBLIC_BRAND_DIVIDENDS_ENABLED === "true",
     planFeatures: parseStringArray(process.env.NEXT_PUBLIC_BRAND_PLAN_FEATURES) ?? [
       "Signup credit included",
       "All channels",

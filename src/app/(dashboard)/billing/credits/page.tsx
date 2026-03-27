@@ -20,6 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { CreditBalance as CreditBalanceData, DividendWalletStats } from "@/lib/api";
 import { getDividendStats } from "@/lib/api";
 import { useSession } from "@/lib/auth-client";
+import { getBrandConfig } from "@/lib/brand-config";
 import { getOrganization } from "@/lib/org-api";
 import { trpc } from "@/lib/trpc";
 
@@ -56,6 +57,7 @@ function CreditsContent() {
   }, [session?.user?.email, session?.user?.id]);
 
   const [showCryptoPending, setShowCryptoPending] = useState(cryptoPending);
+  const showDividends = getBrandConfig().dividendsEnabled;
   const [dividendStats, setDividendStats] = useState<DividendWalletStats | null>(null);
   const [todayDividendCents, setTodayDividendCents] = useState(0);
 
@@ -91,6 +93,7 @@ function CreditsContent() {
   const error = balanceError ? "Failed to load credit balance." : null;
 
   useEffect(() => {
+    if (!showDividends) return;
     getDividendStats()
       .then((statsData) => {
         if (statsData) {
@@ -101,7 +104,7 @@ function CreditsContent() {
         }
       })
       .catch(() => null);
-  }, []);
+  }, [showDividends]);
 
   if (!orgChecked) {
     return (
@@ -161,14 +164,12 @@ function CreditsContent() {
     <div className="max-w-3xl space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Credits</h1>
-        <p className="text-sm text-muted-foreground">
-          Stay active to keep claiming your daily dividend
-        </p>
+        <p className="text-sm text-muted-foreground">Purchase and manage your credits</p>
       </div>
 
       <LowBalanceBanner balance={balance.balance} runway={balance.runway} />
 
-      {dividendStats && (
+      {showDividends && dividendStats && (
         <DividendBanner todayAmountCents={todayDividendCents} stats={dividendStats} />
       )}
 
@@ -183,14 +184,14 @@ function CreditsContent() {
 
       <CreditBalance data={balance} />
 
-      {dividendStats && (
+      {showDividends && dividendStats && (
         <DividendEligibility
           windowExpiresAt={dividendStats.userWindowExpiresAt}
           eligible={dividendStats.userEligible}
         />
       )}
 
-      {dividendStats && (
+      {showDividends && dividendStats && (
         <DividendPoolStats
           poolCents={dividendStats.poolCents}
           activeUsers={dividendStats.activeUsers}
@@ -204,7 +205,9 @@ function CreditsContent() {
       <AutoTopupCard />
       <TransactionHistory />
 
-      {dividendStats && <FirstDividendDialog todayAmountCents={todayDividendCents} />}
+      {showDividends && dividendStats && (
+        <FirstDividendDialog todayAmountCents={todayDividendCents} />
+      )}
     </div>
   );
 }
