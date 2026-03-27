@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { CreditOption } from "@/lib/api";
 import { createCreditCheckout, getCreditOptions } from "@/lib/api";
+import { getBrandConfig } from "@/lib/brand-config";
 import { logger } from "@/lib/logger";
 import { cn } from "@/lib/utils";
 import { isAllowedRedirectUrl } from "@/lib/validate-redirect-url";
@@ -84,7 +85,9 @@ export function BuyCreditsPanel() {
         <CardHeader>
           <CardTitle>Buy Credits</CardTitle>
           <p className="text-xs text-muted-foreground">
-            Every purchase resets your 7-day dividend window
+            {getBrandConfig().dividendsEnabled
+              ? "Every purchase resets your 7-day dividend window"
+              : "Top up your credit balance"}
           </p>
         </CardHeader>
         <CardContent>
@@ -104,7 +107,9 @@ export function BuyCreditsPanel() {
         <CardHeader>
           <CardTitle>Buy Credits</CardTitle>
           <p className="text-xs text-muted-foreground">
-            Every purchase resets your 7-day dividend window
+            {getBrandConfig().dividendsEnabled
+              ? "Every purchase resets your 7-day dividend window"
+              : "Top up your credit balance"}
           </p>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -123,7 +128,9 @@ export function BuyCreditsPanel() {
         <CardHeader>
           <CardTitle>Buy Credits</CardTitle>
           <p className="text-xs text-muted-foreground">
-            Every purchase resets your 7-day dividend window
+            {getBrandConfig().dividendsEnabled
+              ? "Every purchase resets your 7-day dividend window"
+              : "Top up your credit balance"}
           </p>
         </CardHeader>
         <CardContent>
