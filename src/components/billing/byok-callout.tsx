@@ -12,7 +12,7 @@ export function ByokCallout({ compact }: { compact?: boolean }) {
   useEffect(() => {
     getInferenceMode()
       .then(setMode)
-      .catch(() => setMode("byok"));
+      .catch(() => setMode("hosted"));
   }, []);
 
   if (mode === null) {

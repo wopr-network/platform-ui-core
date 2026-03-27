@@ -27,7 +27,7 @@ export default function BillingLayout({
   useEffect(() => {
     getInferenceMode()
       .then(setMode)
-      .catch(() => setMode("byok"));
+      .catch(() => setMode("hosted"));
   }, []);
 
   return (

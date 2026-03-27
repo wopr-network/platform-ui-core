@@ -1,6 +1,7 @@
 import { Check } from "lucide-react";
 import Link from "next/link";
-import { ByokCallout } from "@/components/billing/byok-callout";
+import { BuyCreditsPanel } from "@/components/billing/buy-credits-panel";
+import { CryptoCheckout } from "@/components/billing/crypto-checkout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { productName } from "@/lib/brand-config";
@@ -13,8 +14,6 @@ export default function PlansPage() {
         <h1 className="text-2xl font-bold tracking-tight">Your Plan</h1>
         <p className="text-sm text-muted-foreground">Simple pricing. No tiers. No gotchas.</p>
       </div>
-
-      <ByokCallout />
 
       <Card className="border-terminal shadow-[0_0_12px_rgba(0,255,65,0.15)]">
         <CardHeader className="text-center">
@@ -35,7 +34,7 @@ export default function PlansPage() {
               `$${pricingData.signup_credit} signup credit included`,
               "All channels",
               "All plugins",
-              "All providers",
+              "Hosted AI — no API keys needed",
             ].map((feature) => (
               <li key={feature} className="flex items-center gap-2 text-muted-foreground">
                 <Check className="size-4 shrink-0 text-terminal" />
@@ -52,7 +51,8 @@ export default function PlansPage() {
         </CardContent>
       </Card>
 
-      <ByokCallout compact />
+      <BuyCreditsPanel />
+      <CryptoCheckout />
     </div>
   );
 }
